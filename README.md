@@ -27,6 +27,19 @@ npm install
 bower install
 ```
 
+##### Tests
+
+Before starting the engine, you should run the tests to see if everything's OK with your setup.
+
+```
+npm test
+```
+
+You can also lint with gulp
+```
+gulp
+```
+
 ##### To start the engine and web-based interface:
 
 ```

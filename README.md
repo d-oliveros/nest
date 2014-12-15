@@ -11,6 +11,7 @@ A robust scraping and crawling engine powered with NodeJS.
 
 ### Todo
 
+  * engine.stop() method. Currently, there's no way to stop the engine once it starts.
   * Implement Tor (https://github.com/d-oliveros/node-tor-nightcrawler)
   * Number of workers based on number of cores / memory
   * Better documentation

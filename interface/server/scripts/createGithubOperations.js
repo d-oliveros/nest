@@ -1,13 +1,23 @@
 var async = require('async');
 var skills = require(__data+'/skills.list.json');
 
-var Operation = require(__models+'/Operation');
+var githubSearchRoute = require(__routes+'/github/search');
 
-module.exports = function() {
-	async.eachSeries(skills, function(skill, callback) {
-		Operation.findOrCreate({
-			routeName: 'github:search',
-			query: skill.replace(/-/g, ' '),
-		}, callback);
-	}, console.error.bind(console));
+module.exports = function(callback) {
+	callback = callback || function(){};
+
+	console.log('Starting createGithubOperations script');
+	console.log(skills.length);
+
+	async.eachLimit(skills, 10, function(skill, callback) {
+		skill = skill.replace(/-/g, ' ');
+		
+		console.log('Creating operation for skill: '+skill);
+
+		githubSearchRoute.initialize(skill, callback);
+	}, function(err) {
+		if (err) return console.error(err);
+		console.log('Finished initiating the operations.');
+		callback();
+	});
 };

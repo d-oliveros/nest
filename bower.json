@@ -1,0 +1,29 @@
+{
+  "name": "Nest",
+  "main": "index.js",
+  "version": "0.0.0",
+  "homepage": "",
+  "moduleType": [
+    "globals",
+    "node"
+  ],
+  "authors": [
+    "David Oliveros"
+  ],
+  "license": "MIT",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "interface/client/bower_components",
+    "test"
+  ],
+  "dependencies": {
+    "chartjs": "~0.2.0",
+    "angular": "~1.3.6",
+    "angular-cookies": "~1.3.6",
+    "angular-resource": "~1.3.6",
+    "angular-sanitize": "~1.3.6",
+    "angular-ui-router": "~0.2.13"
+  }
+}

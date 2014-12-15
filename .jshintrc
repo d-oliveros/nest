@@ -1,0 +1,23 @@
+{
+	"eqeqeq": true,
+	"newcap": true,
+	"nonew": true,
+	"undef": true,
+	"unused": true,
+	"mocha": true,
+	"node" : true,
+	"globals": {
+		"expect": false,
+		"__base": false,
+		"__env": false,
+		"__config": false,
+		"__modules": false,
+		"__models": false,
+		"__routes": false,
+		"__database": false,
+		"__interface": false,
+		"__data": false,
+		"__test": false,
+		"$": false
+	}
+}

@@ -1,0 +1,7 @@
+{
+	"name": "Test User",
+	"email": "testing@test.com",
+	"local": {
+		"link": "https://www.testingdomain.com/user/test"
+	}
+}

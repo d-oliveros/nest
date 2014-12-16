@@ -24,11 +24,11 @@ _.each(reposQueries, function(query) {
 });
 
 // Create the operations on Nest
-var githubRoute = require(__routes+'/github/search');
+var githubSearchRoute = require(__routes+'/github/search');
 
 async.eachLimit(ops, 10, function(op, callback) {
 	console.log('Starting op: '+op);
-	githubRoute.initialize(op, callback);
+	githubSearchRoute.initialize(op, callback);
 }, function(err) {
 	if (err) return console.error(err);
 	console.log(ops.length+' operations created. Script finished.');

@@ -1,8 +1,8 @@
 var _ = require('lodash');
 var async = require('async');
 
-var Profile   = require(__models+'/Profile');
-var Operation = require(__models+'/Operation');
+var Item      = require(__database+'/Item');
+var Operation = require(__database+'/Operation');
 
 var debug = require('debug')('Agent:run');
 
@@ -91,13 +91,13 @@ module.exports = function(operation) {
 				return callback(null, scraped);
 			});
 		},
-		function saveProfiles(scraped, callback) {
-			Profile.eachUpsert(scraped.profiles, route, callback);
+		function saveItems(scraped, callback) {
+			Item.eachUpsert(scraped.items, route, callback);
 		},
 		function saveOperation(results, callback) {
 			agent.iteration++;
 			operation.stats.pages++;
-			operation.stats.profiles += results.created;
+			operation.stats.items += results.created;
 
 			agent.emit('scraped:page', results, operation);
 			agent.stopPhantom();

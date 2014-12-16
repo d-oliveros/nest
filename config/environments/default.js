@@ -1,7 +1,4 @@
 
-// Mixpanel integration
-// exports.mixpanel = 'MIXPANEL_ID';
-
 exports.mongo = {
 	db: 'nest',
 	host: '127.0.0.1',

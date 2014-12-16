@@ -1,12 +1,12 @@
 require('./test.globals');
 
-require(__database+'/test');
+require(__database  +'/test');
+require(__database  +'/Item/test');
+require(__database  +'/Operation/test');
 
-require(__models  +'/Profile/test');
-require(__models  +'/Operation/test');
-require(__modules +'/Agent/test');
-require(__modules +'/Route/test');
+require(__framework +'/Agent/test');
+require(__framework +'/Route/test');
 
 require(__routes  +'/test');
 
-require(__modules +'/engine/test');
+require(__framework +'/engine/test');

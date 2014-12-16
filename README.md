@@ -148,9 +148,9 @@ Then, you can start the route by doing `someRoute.start(queryParameter)`. This w
 You can also do a script to create a bunch of operations, and let the engine scrape it all (See bin/pwn-github);
 
 
-### Adding your own environment (database, mixpanel tracking, etc)
+### Adding your own environment (database)
 
-Copy config/environments/default.js to /config/environments/local.js, /config/environments/production.js, /config/environments/test.js etc, and set up the database host, credentials, mixpanel key, etc.
+Copy config/environments/default.js to /config/environments/local.js, /config/environments/production.js, /config/environments/test.js etc, and set up the database host and credentials.
 
 If you don't do this, the default environment is used. This environment is using the database "nest" on localhost, default port.
 

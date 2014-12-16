@@ -1,13 +1,13 @@
-var Route = require(__modules+'/Route');
+var Route = require(__framework+'/Route');
 
 var route = new Route({
-	title: 'Profile Page',
+	title: 'Github Profile',
 	name:  'github:profile',
 	url:   'https://github.com/<%- query %>',
 	priority: 100,
 	test: {
 		query: 'isaacs',
-		shouldCreateProfiles:  true,
+		shouldCreateItems:  true,
 		shouldSpawnOperations: true,
 	}
 });
@@ -15,29 +15,33 @@ var route = new Route({
 // This function is executed in the PhantomJS contex;
 // we have no access to the context out of this function
 route.scraper = function() {
-	var data, username, profile;
+	var data, username, email, profile;
 
 	function getText($elem) {
 		return $elem.clone().children().remove().end().text();
 	}
 
 	data = {
-		profiles: [],
+		items: [],
 		operations: [],
 	};
 
 	username = $('.vcard-username').text();
 
 	// Create the user profile
+
+	email = $('a.email').text().trim().toLowerCase();
+
 	profile = {
 		name:  $('.vcard-fullname').text(),
-		email: $('a.email').text().trim().toLowerCase(),
-		image: $('img.avatar').attr('src'),
+		key:   email,
 
 		local: {
 			link: 'https://github.com/'+username,
-			username: username,
 			data: {
+				name: $('.vcard-fullname').text(),
+				username: username,
+				image: $('img.avatar').attr('src'),
 				location: getText($('.octicon-location').parent()),
 				organization: getText($('.octicon-organization').parent()),
 				joinedDate: $('time.join-date').text(),
@@ -96,8 +100,8 @@ route.scraper = function() {
 		}
 	});
 
-	if ( profile.email ) {
-		data.profiles.push(profile);
+	if ( profile.key ) {
+		data.items.push(profile);
 	}
 
 	// Create operations to the `following` and `followers` routes

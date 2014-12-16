@@ -1,7 +1,7 @@
 var _ = require('lodash');
 
-var Operation = require(__models+'/Operation');
-var Profile   = require(__models+'/Profile');
+var Operation = require(__database+'/Operation');
+var Item   = require(__database+'/Item');
 
 // Route tests
 describe('Routes', function() {
@@ -12,7 +12,7 @@ describe('Routes', function() {
 	beforeEach( function(done) {
 		Operation.remove(function(err) {
 			if (err) return done(err);
-			Profile.remove(done);
+			Item.remove(done);
 		});
 	});
 
@@ -46,7 +46,7 @@ function createRouteTest(domain, route) {
 			});
 
 			agent.once('scraped:page', function(results, operation) {
-				if (testParams.shouldCreateProfiles && results.created <= 0 ) {
+				if (testParams.shouldCreateItems && results.created <= 0 ) {
 					console.error(results, operation);
 					return done( new Error('No results scraped from page.') );
 				}
@@ -63,4 +63,4 @@ function createRouteTest(domain, route) {
 			}
 		});
 	});
-};
+}

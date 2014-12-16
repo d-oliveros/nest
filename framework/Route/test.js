@@ -1,5 +1,5 @@
 var githubRoute = require(__routes+'/github/search');
-var Operation = require(__models+'/Operation');
+var Operation = require(__database+'/Operation');
 
 describe('Route', function() {
 	var currentPage = 1;

@@ -27,7 +27,7 @@ _.each(reposQueries, function(query) {
 var githubSearchRoute = require(__routes+'/github/search');
 
 async.eachLimit(ops, 10, function(op, callback) {
-	console.log('Starting op: '+op);
+	console.log('Starting op: github:search ('+op+')');
 	githubSearchRoute.initialize(op, callback);
 }, function(err) {
 	if (err) return console.error(err);

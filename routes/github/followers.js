@@ -1,4 +1,4 @@
-var Route = require(__modules+'/Route');
+var Route = require(__framework+'/Route');
 
 var route = new Route({
 	title: 'Followers',
@@ -8,7 +8,7 @@ var route = new Route({
 	
 	test: {
 		query: 'torvalds',
-		shouldCreateProfiles:  false,
+		shouldCreateItems:  false,
 		shouldSpawnOperations: true,
 	}
 });

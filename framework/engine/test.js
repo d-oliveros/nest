@@ -1,16 +1,17 @@
-var Operation = require(__models+'/Operation');
-var Profile = require(__models+'/Profile');
+var Operation = require(__database+'/Operation');
+var Item = require(__database+'/Item');
 var engine = require('./index');
 
-var dummyParams = require(__test+'/data/dummy/params.json');
+var dummyParams = require(__test+'/data/params.json');
 
 describe('engine', function() {
 	this.timeout(15000); // 15 seconds
 
+	// Clear the database
 	before( function(done) {
 		Operation.remove( function(err) {
 			if (err) return done(err);
-			Profile.remove( function(err) {
+			Item.remove( function(err) {
 				if (err) return done(err);
 				engine.start();
 				done();

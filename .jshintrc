@@ -11,12 +11,10 @@
 		"__base": false,
 		"__env": false,
 		"__config": false,
-		"__modules": false,
-		"__models": false,
-		"__routes": false,
 		"__database": false,
+		"__framework": false,
 		"__interface": false,
-		"__data": false,
+		"__routes": false,
 		"__test": false,
 		"$": false
 	}

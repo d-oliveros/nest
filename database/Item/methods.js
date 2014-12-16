@@ -1,16 +1,16 @@
 var _ = require('lodash');
 
-exports.getProvider = function(name) {
+exports.getProvider = function(route) {
 	return _.findWhere(this.providers, {
-		name: name
+		name: route.domain,
 	});
 };
 
 exports.updateProvider = function(route, locals) {
-	var prevProvider = this.getProvider(route.engine);
+	var prevProvider = this.getProvider(route);
 
 	var newProvider = {
-		name:   route.engine,
+		name:     route.domain,
 		route:    route.name,
 		priority: route.priority,
 	};

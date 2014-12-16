@@ -4,6 +4,7 @@ config/environments/*
 
 # Logs
 logs
+notes
 *.log
 
 # Runtime data

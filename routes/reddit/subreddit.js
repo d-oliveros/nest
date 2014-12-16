@@ -1,15 +1,18 @@
 var Route = require(__framework+'/Route');
 
 var route = new Route({
-	title: 'Search Results',
-	name:  'github:search',
-	url:   'https://github.com/search?p=<%= state.currentPage %>&type=Users&q=<%= query %>',
+	title: 'Subreddit Wall',
+	name:  'reddit:wall',
+	url:   'todo',
+	//url:   'http://www.reddit.com/r/<%= query %>/new/?count=<% print (state.currentPage-1) * 25 %>&after=<% print state.data.tail || "" %>', // must set tail property to data on state
 	priority: 80,
+	/*
 	test: {
-		query: 'nodejs',
-		shouldCreateItems:  true,
+		query: 'compsci',
+		shouldCreateItems:  false,
 		shouldSpawnOperations: true,
 	}
+	*/
 });
 
 // This function is executed in the PhantomJS contex;
@@ -37,28 +40,28 @@ route.scraper = function() {
 		// Create the user profile
 		profile = {
 			name:  format($info.clone().children().remove().end().text()),
-			key: $meta.find('.email').text() || null,
+			email: $meta.find('.email').text() || null,
 			image: $elem.find('img.avatar').attr('src'),
 
 			local: {
+				username:   $info.find('a').attr('href').substr(1),
 				link: link,
 				data: {
-					username:   $info.find('a').attr('href').substr(1),
 					joinedDate: $meta.find('.join-date').attr('datetime'),
 					location:   format($location.clone().children().remove().end().text()),
 				},
 			}
 		};
 
-		if ( profile.key ) {
-			data.items.push(profile);
+		if ( profile.email ) {
+			data.profiles.push(profile);
 		}
 
 		// Create operations to `profile` routes
 		// Ej. Schedule the routes to be scraped later
 		data.operations.push({
 			routeName: 'github:profile',
-			query: profile.local.data.username,
+			query: profile.local.username,
 		});
 
 	});

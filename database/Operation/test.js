@@ -1,5 +1,5 @@
 var Operation = require('./index');
-var dummyParams = require(__test+'/data/dummy/params.json');
+var dummyParams = require(__test+'/data/params.json');
 
 describe('Operation', function() {
 	this.timeout(300000); // 5 mins

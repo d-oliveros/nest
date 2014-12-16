@@ -2,7 +2,6 @@ var _            = require('lodash');
 var async        = require('async');
 var phantom      = require('phantom');
 var EventEmitter = require('events').EventEmitter;
-var analytics    = require(__modules+'/analytics');
 var debug        = require('debug')('Agent');
 
 module.exports = _.clone(EventEmitter.prototype);
@@ -110,10 +109,11 @@ exports.sanitizeScraped = function(scraped) {
 
 	_.defaults(sanitized, {
 		hasNextPage: false,
-		profiles: [],
+		items: [],
 	});
 
-	_.each(sanitized.profiles, function(item) {
+	// Remove empty properties
+	_.each(sanitized.items, function(item) {
 		item.local = _.pick(item.local, _.identity);
 	});
 
@@ -135,19 +135,11 @@ exports.error = function(error) {
 exports.addEventHandlers = function() {
 
 	// Debugger
-	this.on('start', debug.bind(this, 'Starting operation.'));
-	this.on('finish', debug.bind(this, 'Operation finished.'));
-	this.on('scraped:raw', debug.bind(this, 'Got raw scraped data.'));
+	this.on('start',        debug.bind(this, 'Starting operation.'));
+	this.on('finish',       debug.bind(this, 'Operation finished.'));
+	this.on('scraped:raw',  debug.bind(this, 'Got raw scraped data.'));
 	this.on('scraped:page', debug.bind(this, 'Scraped a page.'));
 
-
-	// Analytics
-	this.on('scraped:page', function(stats, operation) {
-		var data = operation.getAnalytics();
-		data['New Profiles'] = stats.created;
-		data['Updated Profiles'] = stats.updated;
-		analytics.track('Scrape', data);
-	});
 
 	this.on('finish', function() {
 		//var data = operation.getAnalytics();

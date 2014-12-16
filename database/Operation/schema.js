@@ -20,7 +20,7 @@ var schema = new mongoose.Schema({
 	stats: {
 		pages:    { type: Number, default: 0 },
 		results:  { type: Number, default: 0 },
-		profiles: { type: Number, default: 0 },
+		items:    { type: Number, default: 0 },
 	},
 }, { collection: 'operations' });
 

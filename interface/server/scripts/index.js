@@ -1,2 +1,0 @@
-
-exports.createGithubOperations = require('./createGithubOperations');

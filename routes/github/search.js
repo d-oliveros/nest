@@ -3,7 +3,7 @@ var Route = require(__modules+'/Route');
 var route = new Route({
 	title: 'Search Results',
 	name:  'github:search',
-	url:   'https://github.com/search?q=<%- query %>&p=<%= state.currentPage %>&type=Users',
+	url:   'https://github.com/search?p=<%= state.currentPage %>&type=Users&q=<%= query %>',
 	priority: 80,
 	test: {
 		query: 'nodejs',

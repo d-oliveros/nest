@@ -1,4 +1,9 @@
-var environment;
+var _ = require('lodash'), environment;
+
+exports.phantom   = require('./phantom.config');
+exports.interface = require('./interface.config');
+exports.engine    = require('./engine.config');
+exports.lint      = require('./lint.config');
 
 try {
 	environment = require('./environments/'+__env);
@@ -6,9 +11,4 @@ try {
 	environment = require('./environments/default');
 }
 
-module.exports = environment;
-
-module.exports.phantom   = require('./phantom.config');
-module.exports.interface = require('./interface.config');
-module.exports.engine    = require('./engine.config');
-module.exports.lint      = require('./lint.config');
+_.assign(exports, environment);

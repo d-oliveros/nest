@@ -1,7 +1,6 @@
 var _ = require('lodash');
-var debug = require('debug')('Route');
 
-module.exports = Route;
+var debug = require('debug')('Route');
 
 function Route(params) {
 	if ( params.name.indexOf(':') < 0 )
@@ -32,4 +31,13 @@ function Route(params) {
 	}
 }
 
+Route.get = function(routeName) {
+	var parts = routeName.split(':');
+	var domain = parts[0];
+	var path = parts[1];
+	return require(__routes)[domain][path];
+};
+
 Route.prototype = require('./prototype');
+
+module.exports = Route;

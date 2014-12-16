@@ -3,6 +3,7 @@ var async = require('async');
 
 var Item      = require(__database+'/Item');
 var Operation = require(__database+'/Operation');
+var Route     = require(__framework+'/Route');
 
 var debug = require('debug')('Agent:run');
 
@@ -54,14 +55,6 @@ module.exports = function(operation) {
 		},
 		function sanitize(scraped, callback) {
 			var sanitized = agent.sanitizeScraped(scraped);
-
-			// Set the operation's state
-			if ( sanitized.hasNextPage ) {
-				state.currentPage++;
-			} else {
-				state.finished = true;
-				state.finishedDate = Date.now();
-			}
 			callback(null, sanitized);
 		},
 		function executeMiddleware(scraped, callback) {
@@ -74,11 +67,14 @@ module.exports = function(operation) {
 			}
 
 			debug('Spawning operations.');
-
 			var operations = [];
+
 			async.each(scraped.operations, function(params, cb) {
-				Operation.findOrCreate(params, function(err, operation) {
+				var targetRoute = Route.get(params.routeName);
+
+				targetRoute.initialize(params.query, function(err, operation) {
 					if (err) return cb(err);
+					
 					operations.push(operation);
 					cb();
 				});
@@ -90,6 +86,22 @@ module.exports = function(operation) {
 
 				return callback(null, scraped);
 			});
+		},
+		function setOperationState(scraped, callback) {
+			
+			if ( scraped.hasNextPage ) {
+				state.currentPage++;
+			} else {
+				state.finished = true;
+				state.finishedDate = Date.now();
+			}
+
+			if ( scraped.state ) {
+				state.data = state.data || {};
+				_.assign(state.data, scraped.state);
+			}
+
+			callback(null, scraped);
 		},
 		function saveItems(scraped, callback) {
 			Item.eachUpsert(scraped.items, route, callback);

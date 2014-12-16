@@ -1,4 +1,5 @@
 
 exports.name = 'reddit';
 
-exports.subreddit = require('./subreddit');
+exports.wall = require('./wall');
+exports.post = require('./post');

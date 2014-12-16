@@ -16,7 +16,7 @@ describe('Routes', function() {
 		});
 	});
 
-	_.each(domains, function(domain) {
+	_.each(domains, function(domain, domainName) {
 		_.each(domain, function(route, key) {
 			if (key !== 'name') {
 				if (!route.test)
@@ -34,25 +34,31 @@ function createRouteTest(domain, route) {
 	describe(route.name, function() {
 		it('should scrape results and spawn operations', function(done) {
 			var agent = route.start(testParams.query);
-			var togo = 2;
+			var togo = 0;
 
-			agent.once('operations:created', function(operations) {
-				if ( testParams.shouldSpawnOperations && !operations.length ) {
-					console.error(operations);
-					return done( new Error('New crawling operations were not spawned.') );
-				}
+			if ( testParams.shouldSpawnOperations ) {
+				togo++;
+				agent.once('operations:created', function(operations) {
+					if ( !operations.length ) {
+						console.error(operations);
+						return done( new Error('New crawling operations were not spawned.') );
+					}
 
-				next();
-			});
+					next();
+				});
+			}
 
-			agent.once('scraped:page', function(results, operation) {
-				if (testParams.shouldCreateItems && results.created <= 0 ) {
-					console.error(results, operation);
-					return done( new Error('No results scraped from page.') );
-				}
+			if ( testParams.shouldCreateItems ) {
+				togo++;
+				agent.once('scraped:page', function(results, operation) {
+					if ( results.created <= 0 ) {
+						console.error(results, operation);
+						return done( new Error('No results scraped from page.') );
+					}
 
-				next();
-			});
+					next();
+				});
+			}
 
 			function next() {
 				togo--;

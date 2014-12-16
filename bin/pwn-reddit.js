@@ -12,7 +12,7 @@ var subreddits = [
 ];
 
 // Create the operations on Nest
-var subredditRoute = require(__routes+'/reddit/subreddit');
+var subredditRoute = require(__routes+'/reddit/wall');
 
 async.eachLimit(subreddits, 10, function(subreddit, callback) {
 	console.log('Starting op: reddit:wall ('+subreddit+')');

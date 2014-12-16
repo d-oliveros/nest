@@ -2,6 +2,7 @@ var _            = require('lodash');
 var async        = require('async');
 var phantom      = require('phantom');
 var EventEmitter = require('events').EventEmitter;
+
 var debug        = require('debug')('Agent');
 
 module.exports = _.clone(EventEmitter.prototype);
@@ -35,6 +36,7 @@ exports.emit = function() {
 exports.createPhantom = function(callback) {
 	var self = this;
 
+	debug('Creating PhantomJS instance');
 	phantom.create(__config.phantom, function(ph) {
 		self.phantom = ph;
 		callback(null, ph);
@@ -42,6 +44,8 @@ exports.createPhantom = function(callback) {
 };
 
 exports.stopPhantom = function() {
+	debug('Stopping PhantomJS');
+
 	if ( this.phantom ) {
 		this.phantom.exit();
 	}
@@ -52,6 +56,8 @@ exports.open = function(url, callback) {
 	var self = this;
 	self.url = url;
 
+	debug('Opening URL '+url);
+
 	async.waterfall([
 		function getPhantom(cb) {
 			if ( self.phantom ) return cb(null, phantom);
@@ -61,12 +67,6 @@ exports.open = function(url, callback) {
 			phantom.createPage( function(page) {
 				cb(null, page);
 			});
-		},
-		function enableConsole(page, cb) {
-			page.set('onConsoleMessage', function (msg) {
-				console.log("Phantom Console: " + msg);
-			});
-			cb(null, page);
 		},
 		function openURL(page, cb) {
 			page.open(url, function(status) {
@@ -85,6 +85,7 @@ exports.open = function(url, callback) {
 };
 
 exports.stop = function(removeListeners) {
+	debug('Stopping Agent.');
 	if ( removeListeners ) {
 		this.removeAllListeners();
 	}
@@ -101,10 +102,12 @@ exports.removeEmitter = function(emitter) {
 };
 
 exports.includeJS = function(page, callback) {
+	debug('Including JS on page');
 	page.includeJs('https://code.jquery.com/jquery-2.1.1.min.js', callback);
 };
 
 exports.sanitizeScraped = function(scraped) {
+	debug('Sanitizing scraped');
 	var sanitized = _.clone(scraped ? scraped : {});
 
 	_.defaults(sanitized, {
@@ -117,6 +120,7 @@ exports.sanitizeScraped = function(scraped) {
 		item.local = _.pick(item.local, _.identity);
 	});
 
+	debug('Sanitized scraped');
 	return sanitized;
 };
 

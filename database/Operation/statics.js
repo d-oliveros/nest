@@ -52,7 +52,7 @@ exports.getNext = function(state, callback) {
 		query._id = { $nin: runningOperations };
 	}
 
-	var disabledRoutes = __config.engine.disabledRoutes;
+	var disabledRoutes = __config.engine.disabledRoutes || [];
 	if ( disabledRoutes.length ) {
 		query.route = { $nin: [] };
 

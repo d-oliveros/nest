@@ -1,3 +1,7 @@
+var debug = require('debug');
+
+debug.enable('Worker');
+
 require('../globals');
 require(__database);
 

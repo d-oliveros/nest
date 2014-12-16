@@ -1,5 +1,6 @@
 var _ = require('lodash');
 var mongoose = require('mongoose');
+var Mixed    = mongoose.Schema.Types.Mixed;
 
 var addHooks      = require('./hooks');
 var addVirtuals   = require('./virtuals');
@@ -16,6 +17,7 @@ var schema = new mongoose.Schema({
 		finished:     { type: Boolean, default: false },
 		finishedDate: { type: Date },
 		startedDate:  { type: Date },
+		data:         { type: Mixed, default: {} },
 	},
 	stats: {
 		pages:    { type: Number, default: 0 },

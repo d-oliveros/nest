@@ -16,6 +16,7 @@
 		"__interface": false,
 		"__routes": false,
 		"__test": false,
-		"$": false
+		"$": false,
+		"window": false
 	}
 }

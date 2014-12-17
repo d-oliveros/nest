@@ -15,24 +15,28 @@ function Worker() {
 	this.timeoutPromise = null;
 	this.running = true;
 
+	// Bind the methods to itself
+	this.checkIfRunning     = this.checkIfRunning.bind(this);
+	this.startNextOperation = this.startNextOperation.bind(this);
+
 	this.startLoop();
 }
+
+// This will ensure the operations are loaded in series
+Worker.loaderQueue = async.queue( function(task, callback) {
+	task(callback);
+}, 1);
 
 Worker.prototype = Object.create( Agent.prototype );
 
 Worker.prototype.startLoop = function() {
-	var self, startNextOperation, checkIfRunning;
-
-	self = this;
-
-	startNextOperation = this.startNextOperation.bind(this);
-	checkIfRunning     = this.isRunning.bind(this);
+	var self = this;
 
 	// Start the worker loop
-	async.whilst(checkIfRunning, loadOperation, onStop);
+	async.whilst(self.checkIfRunning, loadOperation, onStop);
 
 	function loadOperation(callback) {
-		Worker.loaderQueue.push(startNextOperation, function(err, agent) {
+		Worker.loaderQueue.push(self.startNextOperation, function(err, agent) {
 			if (err) throw err;
 
 			if (!agent) return callback();
@@ -56,11 +60,6 @@ Worker.prototype.startLoop = function() {
 	}
 
 };
-
-// This will add the task to a queue that will be processed in series
-Worker.loaderQueue = async.queue( function(task, callback) {
-	task(callback);
-}, 1);
 
 // Returns an agent running an operation.
 Worker.prototype.startNextOperation = function(callback) {

@@ -18,8 +18,7 @@ describe('Routes', function() {
 
 	_.each(domains, function(domain) {
 		_.each(domain, function(route, key) {
-			var shouldCreateTest = (key !== 'name');
-			var warnMessage;
+			var warnMessage, shouldCreateTest = (key !== 'name');
 
 			if (shouldCreateTest) {
 				warnMessage = 'Hint: Write test query for '+route.name+' ;)';

@@ -16,7 +16,7 @@ function Worker() {
 	this.running = true;
 
 	// Bind the methods to itself
-	this.checkIfRunning     = this.checkIfRunning.bind(this);
+	this.isRunning          = this.isRunning.bind(this);
 	this.startNextOperation = this.startNextOperation.bind(this);
 
 	this.startLoop();
@@ -33,7 +33,7 @@ Worker.prototype.startLoop = function() {
 	var self = this;
 
 	// Start the worker loop
-	async.whilst(self.checkIfRunning, loadOperation, onStop);
+	async.whilst(self.isRunning, loadOperation, onStop);
 
 	function loadOperation(callback) {
 		Worker.loaderQueue.push(self.startNextOperation, function(err, agent) {

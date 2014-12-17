@@ -1,4 +1,3 @@
-var _ = require('lodash');
 var debug = require('debug')('Operation:statics');
 
 exports.getKeyParams = function(params) {
@@ -42,24 +41,23 @@ exports.findOrCreate = function(params, callback) {
 };
 
 exports.getNext = function(state, callback) {
-	var runningOperations = state.getOperationIds();
+	var query, runningOperations, disabledRoutes;
 
-	var query = { 
+	runningOperations = state.getOperationIds();
+	disabledRoutes    = __config.engine.disabledRoutes || [];
+
+	query = { 
 		'state.finished': false
 	};
 
-	if ( runningOperations.length ) {
+	if ( runningOperations.length )
 		query._id = { $nin: runningOperations };
-	}
 
-	var disabledRoutes = __config.engine.disabledRoutes || [];
-	if ( disabledRoutes.length ) {
-		query.route = { $nin: [] };
+	if ( disabledRoutes.length )
+		query.route = { $nin: disabledRoutes };
 
-		_.each(disabledRoutes, function(route) {
-			query.route.$nin.push(route);
-		});
-	}
-
-	this.findOne(query).sort({ 'priority': -1 }).exec(callback);
+	this
+		.findOne(query)
+		.sort({ 'priority': -1 })
+		.exec(callback);
 };

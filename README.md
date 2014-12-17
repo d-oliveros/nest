@@ -53,24 +53,18 @@ gulp
 node bin/start
 ```
 
-##### To start the engine with worker messages (recommended)
-
-```
-DEBUG=Worker node bin/start
-```
-
 When running node bin/start, nothing will happen because there are still no operations to process.
 
 #### To quickly check this up, run:
 
 ```js
 node bin/pwn-github
-DEBUG=Worker node bin/start
+node bin/start
 ```
 
 #### WTF's happining?
 
-Don't know where to start. You can look into the tests in each module to see what everything is doing. I haven't got into writing a proper documentation for this thing, so...
+Try running `DEBUG=* node bin/start` and looking at the console messages. You can also look into the tests in each module to see what everything is doing. I haven't got into writing a proper documentation for this thing, so...
 
 To start a single route, you can do something like:
 
@@ -108,7 +102,7 @@ var someRoute = new Route({
 	// run npm test. It will automatically test this route.
 	test: {
 		query: '2803446/david-oliveros',
-		shouldCreateProfiles: true, // Are we expecting new profiles out of this route?
+		shouldCreateItems: true, // Are we expecting new items out of this route?
 		shouldSpawnOperations: true, // Are we expecting new operations out of this route?
 	},
 
@@ -118,15 +112,14 @@ var someRoute = new Route({
 // we have no access to the context out of this function
 someRoute.scraper = function() {
 	var data = {
-		profiles: [],
+		items: [],
 		operations: [],
 	};
 
-	data.profiles.push({
+	data.items.push({
 		name: $('#user-displayname a').text(),
-		email: $(...),
-		image: $(...),
-
+		key: $('#id-of-element-containing-some-sort-of-id').text(),
+		
 		// The "Local" property will be added to the profile saved in the database,
 		// as part of this route. Basically the idea is you can have the same person
 		// on multiple sites, but you only want to keep a single record for him.
@@ -134,7 +127,9 @@ someRoute.scraper = function() {
 		// and all the data that is local to this domain will be saved in a corresponding field
 		// in the database. I suck at explaining things, take a look at the Profile schema to know more.
 		local: {
-
+			link: 'https://domain.com/'+id, // Canonical link to this piece of content
+			data: {
+			}
 		}
 	});
 

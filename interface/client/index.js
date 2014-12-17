@@ -29,17 +29,21 @@
 		});
 		
 		socket.on('operation:start', function(operation) {
-			var message = 'Operation: Scraping Page ' + operation.state.currentPage;
-			message += ' of query '+operation.query;
-			message += ' on ' + operation.route;
-			$log.info(message);
+			$log.info( 
+				'Operation: '+
+				'Scraping Page '+ operation.state.currentPage+
+				' of query '+operation.query+
+				' on ' + operation.route
+			);
 		});
 
 		socket.on('results', function(route, data) {
+
 			console.log(data);
+
 			if (data.updated || data.created) {
-				$log.info('Got', data.updated+data.created, 'results from', route);
 				$log.debug(data.profiles);
+				$log.info('Got',data.updated+data.created,'results from',route);
 			}
 		});
 

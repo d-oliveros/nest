@@ -6,11 +6,27 @@ var mongoose = require('mongoose');
 var providerSchema = require('./provider.schema');
 
 var schema = new mongoose.Schema({
-	name:     { type: String, trim: true },
-	key:      { type: String, required: true, unique: true, lowercase: true, trim: true },
-	created:  { type: Date, default: Date.now },
+	name: { 
+		type: String, 
+		trim: true 
+	},
 
-	providers: [providerSchema],
+	key: { 
+		type: String, 
+		required: true, 
+		unique: true, 
+		lowercase: true, 
+		trim: true 
+	},
+	
+	created: { 
+		type: Date, 
+		default: Date.now 
+	},
+
+	providers: [
+		providerSchema
+	],
 }, { 
 	collection: 'items',
 });

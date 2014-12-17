@@ -12,18 +12,29 @@ describe('Operation', function() {
 		});
 
 		it('should get the correct route', function(done) {
-			var keyParams = Operation.getKeyParams(dummyParams);
+			var keyParams, domainIsObject, domainNameIsIncorrect, 
+				routeIsObject, routeIsCorrect;
 
+			keyParams = Operation.getKeyParams(dummyParams);
+			
 			Operation.findOne(keyParams, function(err, operation) {
 				
-				var domainIsObject = typeof operation.routeDomain === 'object';
-				if (!domainIsObject || operation.routeDomain.name !== 'github') {
-					return done( new Error('Domain is incorrect: '+JSON.stringify(operation.domainName)) );
+				domainIsObject = typeof operation.routeDomain === 'object';
+				domainNameIsIncorrect = operation.routeDomain.name !== 'github';
+
+				if ( !domainIsObject || domainNameIsIncorrect ) {
+					return done( new Error('Domain is incorrect: '+
+						JSON.stringify(operation.domainName)
+					));
 				}
 
-				var routeIsObject = typeof operation.route === 'object';
-				if (!routeIsObject || operation.route.name !== dummyParams.routeName ) {
-					return done( new Error('Route is incorrect:'+dummyParams.routeName) );
+				routeIsObject  = typeof operation.route === 'object';
+				routeIsCorrect = operation.route.name === dummyParams.routeName;
+
+				if ( !routeIsObject || !routeIsCorrect ) {
+					return done( new Error('Route is incorrect:' +
+						dummyParams.routeName
+					));
 				}
 
 				done();
@@ -39,12 +50,14 @@ describe('Operation', function() {
 
 		it('should get the key params', function() {
 			var keyParams = Operation.getKeyParams(dummyParams);
+
 			keyParams.routeName.should.equal(dummyParams.routeName);
 			keyParams.query.should.equal(dummyParams.query);
 		});
 
 		it('should create a new operation', function(done) {
 			var keyParams = Operation.getKeyParams(dummyParams);
+			
 			Operation.remove(keyParams, function(err) {
 				if (err) return done(err);
 				Operation.findOrCreate(keyParams, function(err, operation) {

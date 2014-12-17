@@ -18,9 +18,15 @@ describe('Routes', function() {
 
 	_.each(domains, function(domain) {
 		_.each(domain, function(route, key) {
-			if (key !== 'name') {
-				if (!route.test)
-					return console.warn('Hint: Write test query for '+route.name+' ;)');
+			var shouldCreateTest = (key !== 'name');
+			var warnMessage;
+
+			if (shouldCreateTest) {
+				warnMessage = 'Hint: Write test query for '+route.name+' ;)';
+
+				if (!route.test) {
+					return console.warn(warnMessage);
+				}
 
 				createRouteTest(domain, route);
 			}
@@ -33,15 +39,20 @@ function createRouteTest(domain, route) {
 
 	describe(route.name, function() {
 		it('should scrape results and spawn operations', function(done) {
-			var agent = route.start(testParams.query);
-			var togo = 0;
+			var agent, togo;
+
+			agent = route.start(testParams.query);
+			togo = 0;
 
 			if ( testParams.shouldSpawnOperations ) {
 				togo++;
 				agent.once('operations:created', function(operations) {
 					if ( !operations.length ) {
 						console.error(operations);
-						return done( new Error('New crawling operations were not spawned.') );
+
+						return done( new Error(
+							'New crawling operations were not spawned.'
+						));
 					}
 
 					next();
@@ -53,7 +64,10 @@ function createRouteTest(domain, route) {
 				agent.once('scraped:page', function(results, operation) {
 					if ( results.created <= 0 ) {
 						console.error(results, operation);
-						return done( new Error('No results scraped from page.') );
+						
+						return done( new Error(
+							'No results scraped from page.'
+						));
 					}
 
 					next();

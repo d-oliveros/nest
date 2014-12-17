@@ -1,9 +1,16 @@
 var Route = require(__framework+'/Route');
 
+var routeURL = 
+	'http://www.reddit.com/r/<%= query %>/new/'+
+		'?count=<%= ((state.currentPage-1) * 25) %>'+
+		'<% if (state.data.lastId) {%>'+
+			'&after=t3_<%= state.data.lastId %>'+
+		'<% } %>';
+
 var route = new Route({
 	title: 'Subreddit Wall',
 	name:  'reddit:wall',
-	url:   'http://www.reddit.com/r/<%= query %>/new/?count=<%= ((state.currentPage-1) * 25) %><% if (state.data.lastId) { %>&after=t3_<%= state.data.lastId %><% } %>', // must set tail property to data on state
+	url:   routeURL,
 	priority: 80,
 	test: {
 		query: 'compsci',
@@ -15,6 +22,8 @@ var route = new Route({
 // This function is executed in the PhantomJS contex;
 // we have no access to the context out of this function
 route.scraper = function() {
+	var $posts = $('#siteTable div.thing');
+	
 	var data = {
 		hasNextPage: !!$('.nav-buttons a[rel="nofollow next"]').length,
 		items: [],
@@ -22,15 +31,16 @@ route.scraper = function() {
 		state: {},
 	};
 
-	var $posts = $('#siteTable div.thing');
 	$posts.each(function() {
-		var $post  = $(this);
-		var $title = $post.find('a.title');
+		var $post, $title, id, title, upvotes, subreddit;
 
-		var id        = $post.data('fullname').split('_')[1].trim();
-		var title     = $title.text().trim();
-		var upvotes   = $post.find('div.score.unvoted').text().trim();
-		var subreddit = window.location.pathname.split('/')[2];
+		$post  = $(this);
+		$title = $post.find('a.title');
+
+		id        = $post.data('fullname').split('_')[1].trim();
+		title     = $title.text().trim();
+		upvotes   = $post.find('div.score.unvoted').text().trim();
+		subreddit = window.location.pathname.split('/')[2];
 
 		data.items.push({
 			name: title,

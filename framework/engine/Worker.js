@@ -21,11 +21,20 @@ function Worker() {
 Worker.prototype = Object.create( Agent.prototype );
 
 Worker.prototype.startLoop = function() {
-	var self = this;
+	var self, startNextOperation, checkIfRunning;
+
+	self = this;
+
+	startNextOperation = this.startNextOperation.bind(this);
+	checkIfRunning     = this.isRunning.bind(this);
 
 	// Start the worker loop
-	async.whilst(this.isRunning.bind(this), function(callback) {
-		Worker.loaderQueue.push(self.startNextOperation.bind(self), function(err, agent) {
+	async.whilst(checkIfRunning, loadOperation, onStop);
+
+	function loadOperation(callback) {
+		Worker.loaderQueue.push(startNextOperation, function(err, agent) {
+			if (err) throw err;
+
 			if (!agent) return callback();
 
 			agent.once('error', function(err) {
@@ -40,9 +49,12 @@ Worker.prototype.startLoop = function() {
 				callback();
 			});
 		});
-	}, function() {
+	}
+
+	function onStop() {
 		self.emit('worker:stopped', self);
-	});
+	}
+
 };
 
 // This will add the task to a queue that will be processed in series
@@ -50,36 +62,40 @@ Worker.loaderQueue = async.queue( function(task, callback) {
 	task(callback);
 }, 1);
 
-// Returns an operation that has not finished, and it's not running
+// Returns an agent running an operation.
 Worker.prototype.startNextOperation = function(callback) {
 	var self = this;
 
 	debug('Worker querying for next operation.');
 
 	Operation.getNext(state, function(err, operation) {
-		if (err) return callback(err);
+		if ( err || !self.isRunning() ) 
+			return callback(err);
 
-		if ( !self.isRunning() ) {
-			return callback();
-		}
+		var agent, operationRoute;
 
-		if (operation) {
-			self.operationId = operation._id.toString();
-
-			debug('Worker got operation: '+operation.route.name+' ('+operation.query+')');
-			var agent = new Agent();
-			agent.addEmitter(self);
-			agent.run(operation);
-			return callback(null, agent);
-		}
-		
 		// If there are no new operations to process, 
 		// keep on quering for them each second.
-		debug('There are no pending operations. Retrying in 1s');
-		self.timeoutPromise = setTimeout( function() {
-			self.timeoutPromise = null;
-			self.startNextOperation(callback);
-		}, 1000);
+		if ( !operation ) {
+			debug('There are no pending operations. Retrying in 1s');
+			self.timeoutPromise = setTimeout( function() {
+				self.timeoutPromise = null;
+				self.startNextOperation(callback);
+			}, 1000);
+
+			return;
+		}
+
+		self.operationId = operation._id.toString();
+
+		operationRoute = operation.route.name;
+		debug('Worker got operation: '+operationRoute+' '+operation.query);
+
+		agent = new Agent();
+		agent.addEmitter(self);
+		agent.run(operation);
+
+		callback(null, agent);
 	});
 };
 

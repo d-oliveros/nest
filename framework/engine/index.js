@@ -18,9 +18,13 @@ exports.start = function() {
 	/*
 	Uncomment this to test if workers are trying to work on the same operation
 	setInterval( function() {
-		var workerOperationIds = state.getOperationIds();
-		if ( workerOperationIds.length !== _.unique(workerOperationIds).length ) {
-			throw new Error('Two workers are working on the same operation ID.');
+		var errorMessage, workerOperationIds;
+
+		workerOperationIds = state.getOperationIds();
+
+		if (workerOperationIds.length !== _.unique(workerOperationIds).length) {
+			errorMessage = 'Two workers are working on the same operation ID.';
+			throw new Error(errorMessage);
 		}
 	}, 50);
 	*/

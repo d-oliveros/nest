@@ -6,6 +6,6 @@ exports.workers = [];
 exports.externalOperationIds = [];
 
 exports.getOperationIds = function() {
-	var workerOperationIds = _.compact( _.pluck(exports.workers, 'operationId') );
+	var workerOperationIds = _.compact(_.pluck(exports.workers, 'operationId'));
 	return _.union(exports.externalOperationsIds, workerOperationIds);
 };

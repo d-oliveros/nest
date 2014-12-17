@@ -70,8 +70,8 @@ module.exports = function operationRunner(operation) {
 			async.each(scraped.operations, function(params, cb) {
 				var parts = params.routeName.split(':');
 
-				// Ok, this sucks. (shouldn't be requiring a module inside a function)
-				// but, we can't require the routes, or Route, because Route
+				// Ok, we shouldn't be requiring a module inside a function,
+				// although we can't require the routes, or Route, because Route
 				// depends on Agent. Anyone has a better idea?
 				var targetRoute = require(__routes+'/'+parts[0]+'/'+parts[1]);
 

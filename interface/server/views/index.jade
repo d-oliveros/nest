@@ -10,7 +10,8 @@ html(lang="en", id="ng-app", ng-app="nest")
 
 	body
 		#main
-			button(ng-click="runScript('createGithubOperations')") Create initial github search operations
+			button(ng-click="runScript('createGithubOperations')") 
+				| Create initial github search operations
 
 		aside#scripts
 			script(src='/socket.io/socket.io.js')

@@ -32,4 +32,6 @@ async.eachLimit(ops, 10, function(op, callback) {
 }, function(err) {
 	if (err) return console.error(err);
 	console.log(ops.length+' operations created. Script finished.');
+	console.log('Now, start the engine with node bin/start');
+	process.exit(0);
 });

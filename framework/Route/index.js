@@ -2,6 +2,8 @@ var _ = require('lodash');
 
 var debug = require('debug')('Route');
 
+module.exports = Route;
+
 function Route(params) {
 	if ( params.name.indexOf(':') < 0 )
 		throw new Error('Invalid route: '+params.name);
@@ -31,13 +33,13 @@ function Route(params) {
 	}
 }
 
+Route.prototype = require('./prototype');
+
+// Static: returns the actual route of a route name
+//
 Route.get = function(routeName) {
 	var parts = routeName.split(':');
 	var domain = parts[0];
 	var path = parts[1];
 	return require(__routes)[domain][path];
 };
-
-Route.prototype = require('./prototype');
-
-module.exports = Route;

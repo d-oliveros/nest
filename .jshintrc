@@ -4,6 +4,7 @@
 	"nonew": true,
 	"undef": true,
 	"unused": true,
+	"freeze": true,
 	"mocha": true,
 	"node" : true,
 	"globals": {

@@ -1,13 +1,11 @@
 var _ = require('lodash');
 var async = require('async');
 
-var Item      = require(__database+'/Item');
-var Operation = require(__database+'/Operation');
-var Route     = require(__framework+'/Route');
+var Item  = require(__database+'/Item');
 
 var debug = require('debug')('Agent:run');
 
-module.exports = function(operation) {
+module.exports = function operationRunner(operation) {
 	var state, route, scraper, middleware,
 		url, agent, _error, _isStopping;
 
@@ -34,7 +32,7 @@ module.exports = function(operation) {
 
 	agent.emit('operation:start', operation);
 
-	// Check if this operation has already finished
+	// Check if this operation is actually finished
 	if ( state.finished ) {
 		_.defer(agent.emit.bind(agent, 'operation:finish', operation));
 		return agent;
@@ -70,7 +68,12 @@ module.exports = function(operation) {
 			var operations = [];
 
 			async.each(scraped.operations, function(params, cb) {
-				var targetRoute = Route.get(params.routeName);
+				var parts = params.routeName.split(':');
+
+				// Ok, this sucks. (shouldn't be requiring a module inside a function)
+				// but, we can't require the routes, or Route, because Route
+				// depends on Agent. Anyone has a better idea?
+				var targetRoute = require(__routes+'/'+parts[0]+'/'+parts[1]);
 
 				targetRoute.initialize(params.query, function(err, operation) {
 					if (err) return cb(err);
@@ -120,16 +123,15 @@ module.exports = function(operation) {
 	], onFinish);
 
 	function onFinish(err) {
-		if (err) return agent.error ? agent.error(err) : console.error(err);
+		if (err) return agent.error(err);
 
 		if ( _isStopping ) {
 			agent.emit('operation:stopped', operation);
 		}
 
-		if ( state.finished || _isStopping ) {
+		if ( _isStopping || state.finished ) {
 			agent.emit('operation:finish', operation);
-		} 
-		else {
+		} else {
 			agent.emit('operation:next', operation);
 			agent.run(operation);
 		}

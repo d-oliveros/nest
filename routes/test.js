@@ -16,7 +16,7 @@ describe('Routes', function() {
 		});
 	});
 
-	_.each(domains, function(domain, domainName) {
+	_.each(domains, function(domain) {
 		_.each(domain, function(route, key) {
 			if (key !== 'name') {
 				if (!route.test)

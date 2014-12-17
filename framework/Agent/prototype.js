@@ -49,6 +49,7 @@ exports.stopPhantom = function() {
 	if ( this.phantom ) {
 		this.phantom.exit();
 	}
+
 	this.phantom = null;
 };
 
@@ -77,7 +78,7 @@ exports.open = function(url, callback) {
 		function includeJS(page, cb) {
 			self.includeJS(page, function(status) {
 				if (!status) return cb('Could not include JS on url: '+url);
-				self.emit('page:ready');
+				self.emit('page:ready', page);
 				cb(null, page);
 			});
 		},
@@ -86,9 +87,11 @@ exports.open = function(url, callback) {
 
 exports.stop = function(removeListeners) {
 	debug('Stopping Agent.');
+
 	if ( removeListeners ) {
 		this.removeAllListeners();
 	}
+
 	this.stopPhantom();
 	this.emit('agent:stop');
 };
@@ -107,8 +110,9 @@ exports.includeJS = function(page, callback) {
 };
 
 exports.sanitizeScraped = function(scraped) {
-	debug('Sanitizing scraped');
 	var sanitized = _.clone(scraped ? scraped : {});
+
+	debug('Sanitizing scraped');
 
 	_.defaults(sanitized, {
 		hasNextPage: false,
@@ -120,7 +124,6 @@ exports.sanitizeScraped = function(scraped) {
 		item.local = _.pick(item.local, _.identity);
 	});
 
-	debug('Sanitized scraped');
 	return sanitized;
 };
 
@@ -143,11 +146,7 @@ exports.addEventHandlers = function() {
 	this.on('finish',       debug.bind(this, 'Operation finished.'));
 	this.on('scraped:raw',  debug.bind(this, 'Got raw scraped data.'));
 	this.on('scraped:page', debug.bind(this, 'Scraped a page.'));
-
-
-	this.on('finish', function() {
-		//var data = operation.getAnalytics();
-	});
+	
 };
 
 exports.run = require('./run.method');

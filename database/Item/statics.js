@@ -2,6 +2,13 @@ var _ = require('lodash');
 var async = require('async');
 var debug = require('debug')('Item:statics');
 
+// Optimally, we would be able to do the upsert 
+// operation atomically. Since we can't, we need to 
+// make sure only one upsert operation is happening at any time
+var upsertQueue = async.queue( function(task, callback) {
+	task(callback);
+}, 1);
+
 exports.eachUpsert = function(items, route, callback) {
 	var Item = this;
 
@@ -27,12 +34,6 @@ exports.eachUpsert = function(items, route, callback) {
 		callback(err, stats);
 	});
 };
-
-// Optimally, we would be able to do the upsert operation atomically
-// since we can't, we need to make sure only one upsert operation is happening at any time
-var upsertQueue = async.queue( function(task, callback) {
-	task(callback);
-}, 1);
 
 exports.upsert = function(data, route, callback) {
 	var op, isNew, Item;

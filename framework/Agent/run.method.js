@@ -5,15 +5,13 @@ var Item  = require(__database+'/Item');
 
 var debug = require('debug')('Agent:run');
 
-module.exports = function operationRunner(operation) {
-	var state, route, scraper, middleware,
-		url, agent, _error, _isStopping;
+module.exports = function run(operation) {
+	var state, route, scraper, url, agent, _error, _isStopping;
 
 	agent       = this;
 	state       = operation.state;
 	route       = operation.route;
 	scraper     = route.scraper;
-	middleware  = route.middleware;
 	_error      = agent.error;
 	_isStopping = false;
 
@@ -56,10 +54,10 @@ module.exports = function operationRunner(operation) {
 			callback(null, sanitized);
 		},
 		function executeMiddleware(scraped, callback) {
-			middleware(scraped, callback);
+			route.middleware(scraped, callback);
 		},
 		function spawnOperations(scraped, callback) {
-			if ( !scraped.operations ) {
+			if ( scraped.operations.length === 0 ) {
 				debug('No operations to spawn.');
 				return callback(null, scraped);
 			}

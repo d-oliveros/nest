@@ -117,6 +117,7 @@ exports.sanitizeScraped = function(scraped) {
 	_.defaults(sanitized, {
 		hasNextPage: false,
 		items: [],
+		operations: [],
 	});
 
 	// Remove empty properties

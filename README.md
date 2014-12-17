@@ -17,8 +17,9 @@ A robust scraping and crawling engine powered with NodeJS.
   * Write documentation.
   * engine.stop() method. Currently, there's no way to stop the engine once it starts.
   * Support for multiple engines running different processes / servers.
-  * Implement Tor (https://github.com/d-oliveros/node-tor-nightcrawler).
-  * Implement a better logging system. Mixpanel sucks ass for this kind of stuff (ultra expensive)
+  * Implement [Tor](https://github.com/d-oliveros/node-tor-nightcrawler).
+  * Implement a better logging system.
+  * Add a Pre-page-evaluate hook in `Agent.prototype.run`, so routes can execute arbitrary functions before applying the scraper function. Uses cases: Scroll down the page for 2 minutes before applying the scraper, click stuff, logging in, etc.
   * Remove the globals?
   * Remove Redis as a dependency: It is not used at all (yet?).
   * Better web-based interface. Thinking on a metrics dashboard, or a way to start crawling operations from there.

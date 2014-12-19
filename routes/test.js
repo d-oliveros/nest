@@ -18,16 +18,13 @@ describe('Routes', function() {
 
 	_.each(domains, function(domain) {
 		_.each(domain, function(route, key) {
-			var warnMessage, shouldCreateTest = (key !== 'name');
+			if (key !== 'name') {
+				
+				if (!route.test) 
+					console.warn('Hint: Write test for '+route.name+' ;)');
 
-			if (shouldCreateTest) {
-				warnMessage = 'Hint: Write test query for '+route.name+' ;)';
-
-				if (!route.test) {
-					return console.warn(warnMessage);
-				}
-
-				createRouteTest(domain, route);
+				else 
+					createRouteTest(domain, route);
 			}
 		});
 	});

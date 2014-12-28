@@ -25,8 +25,9 @@ function Route(params) {
 
 	this.test        = params.test || null;
 
-	this.scraper     = params.scraper ? params.scraper : this.scraper;
-	this.middleware  = params.middleware ? params.middleware : this.middleware;
+	this.scraper     = params.scraper || this.scraper;
+	this.middleware  = params.middleware || this.middleware;
+	this.checkStatus = params.checkStatus || this.checkStatus;
 
 	if ( typeof this.priority === 'undefined' ) {
 		this.priority = 50;

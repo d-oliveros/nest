@@ -6,7 +6,7 @@ var Item  = require(__database+'/Item');
 var debug = require('debug')('Agent:run');
 
 module.exports = function run(operation) {
-	var state, route, scraper, url, agent, _error, _isStopping;
+	var state, route, scraper, url, agent, _error, _isStopping, _isBlocked;
 
 	agent       = this;
 	state       = operation.state;
@@ -14,6 +14,7 @@ module.exports = function run(operation) {
 	scraper     = route.scraper;
 	_error      = agent.error;
 	_isStopping = false;
+	_isBlocked  = false;
 
 	agent.on('agent:stop', function() {
 		_isStopping = true;
@@ -28,7 +29,10 @@ module.exports = function run(operation) {
 			Date.now();
 	}
 
-	agent.emit('operation:start', operation);
+	// Create the URL using the operation's parameters
+	url = route.urlTemplate(operation);
+
+	agent.emit('operation:start', operation, url);
 
 	// Check if this operation is actually finished
 	if ( state.finished ) {
@@ -36,12 +40,23 @@ module.exports = function run(operation) {
 		return agent;
 	}
 
-	// Create the URL using the operation's parameters
-	url = route.urlTemplate(operation);
-
 	async.waterfall([
 		function openURL(callback) {
 			agent.open(url, callback);
+		},
+		function checkStatus(page, callback) {
+			page.evaluate(route.checkStatus, function(status) {
+				switch (status) {
+					case 'blocked':
+						_isBlocked = true;
+						onFinish();
+						break;
+
+					default:
+					case 'ok': 
+						callback(null, page);
+				}
+			});
 		},
 		function scrapePage(page, callback) {
 			page.evaluate(scraper, function(scraped) {
@@ -89,7 +104,6 @@ module.exports = function run(operation) {
 			});
 		},
 		function setOperationState(scraped, callback) {
-			
 			if ( scraped.hasNextPage ) {
 				state.currentPage++;
 			} else {
@@ -115,7 +129,7 @@ module.exports = function run(operation) {
 			agent.emit('scraped:page', results, operation);
 			agent.stopPhantom();
 
-			debug('Saving operation: ', operation);
+			debug('Saving operation.');
 			operation.save(callback);
 		}
 	], onFinish);
@@ -123,13 +137,26 @@ module.exports = function run(operation) {
 	function onFinish(err) {
 		if (err) return agent.error(err);
 
+		// If the operation has been stopped
 		if ( _isStopping ) {
 			agent.emit('operation:stopped', operation);
 		}
 
+		// If the operation has finished
 		if ( _isStopping || state.finished ) {
 			agent.emit('operation:finish', operation);
-		} else {
+		}
+
+		// If the IP has been blocked
+		else if ( _isBlocked ) {
+			debug('Operation blocked. Retrying in 5s...');
+			agent.emit('operation:blocked', operation, url);
+
+			setTimeout(agent.run.bind(agent, operation), 5000);
+		} 
+
+		// If the operation has not finished
+		else {
 			agent.emit('operation:next', operation);
 			agent.run(operation);
 		}

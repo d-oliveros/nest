@@ -16,10 +16,18 @@ var route = new Route({
 // we have no access to the context out of this function
 route.scraper = function() {
 	var data = {
-		hasNextPage: !!$('.next_page').attr('href'),
+		hasNextPage: $('a.next_page').length > 0,
 		items: [],
 		operations: [],
+		lol: $('body').html()
 	};
+
+	// Get the language filter selection
+	var $selectedItem = $('.codesearch-aside a.filter-item.selected');
+	var selectedItem = format( $selectedItem.clone().children().remove().end().text() );
+
+	// Get the active search query
+	var searchQuery = $('input.input-block.js-search-query').attr('value');
 
 	// For each user
 	$('.user-list-item').each(function() {
@@ -38,17 +46,25 @@ route.scraper = function() {
 		profile = {
 			name:  format($info.clone().children().remove().end().text()),
 			key: $meta.find('.email').text() || null,
-			image: $elem.find('img.avatar').attr('src'),
 
 			local: {
 				link: link,
 				data: {
 					username:   $info.find('a').attr('href').substr(1),
+					image:      $elem.find('img.avatar').attr('src'),
 					joinedDate: $meta.find('.join-date').attr('datetime'),
 					location:   format($location.clone().children().remove().end().text()),
 				},
 			}
 		};
+
+		if ( searchQuery ) {
+			profile.local.data.searchQuery = searchQuery;
+		}
+
+		if ( selectedItem ) {
+			profile.local.data.searchLanguage = selectedItem;
+		}
 
 		if ( profile.key ) {
 			data.items.push(profile);
@@ -76,5 +92,59 @@ route.scraper = function() {
 
 	return data;
 };
+
+route.checkStatus = function() {
+	var status = 'ok';
+
+	$('h1').each( function() {
+		var $h1 = $(this);
+
+		if ( $h1.text() === 'Whoa there!' ) {
+			status = 'blocked';
+		}
+	});
+
+	return status;
+};
+
+route.middleware = function(scraped, callback) {
+	var item, parts, searchQuery, repos;
+
+	// Track the number of repositories
+	if ( scraped.items.length ) {
+		for (var i = 0, len = scraped.items.length; i < len; i++) {
+			item = scraped.items[i];
+			if ( item.local && item.local.data && item.local.data.searchQuery ) {
+				parts = item.local.data.searchQuery.split(' ');
+
+				// Get the number of repos filter from the search query
+				for (var j = 0, jLen = parts.length; j < jLen; j++) {
+					searchQuery = parts[j];
+					if ( searchQuery.indexOf('repos:') > -1 ) {
+						repos = searchQuery.split(':')[1];
+
+						if ( !isNaN(repos) ) {
+							repos = parseInt(repos);
+						}  else {
+							if ( repos.indexOf('>') > -1 ) {
+								repos = parseInt(repos.replace('>', ''));
+
+								if ( !isNaN(repos) ) {
+									repos++;
+								}
+							}
+						}
+						if ( !isNaN(repos) ) {
+							item.local.data.repositoryCount = repos;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	callback(null, scraped);
+};
+
 
 module.exports = route;

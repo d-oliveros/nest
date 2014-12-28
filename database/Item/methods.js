@@ -15,7 +15,7 @@ exports.updateProvider = function(route, locals) {
 		priority: route.priority,
 	};
 
-	_.extend(newProvider, locals);
+	_.assign(newProvider, locals);
 
 	// Create the provider if it doesn't exist
 	if ( !prevProvider ) {

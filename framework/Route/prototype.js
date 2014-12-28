@@ -33,6 +33,14 @@ exports.scraper = function() {
 	throw new Error('You need to implement your own scraper.');
 };
 
+// Checks if the page has been blocked
+// Should return status string with possible values:
+// - 'blocked'
+// - 'ok'
+exports.checkStatus = function() {
+	return 'ok';
+};
+
 // Default urlTemplate
 exports.urlTemplate = function() {
 	throw new Error('You need to implement your own URL generator.');

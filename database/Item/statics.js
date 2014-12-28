@@ -40,7 +40,7 @@ exports.upsert = function(data, route, callback) {
 
 	data = _.clone(data);
 	Item = this;
-	
+
 	debug('Upsert: Finding Item for', data.key);
 
 	upsertQueue.push( function(cb) {
@@ -53,12 +53,11 @@ exports.upsert = function(data, route, callback) {
 
 			if (isNew) {
 				item = new Item(data);
-				console.log('Creating a new item: '+item.key);
 			} else {
 				_.assign(item, data);
 			}
 
-			item.updateProvider(route, item.local);
+			item.updateProvider(route, data.local);
 
 			debug('New Item', item);
 

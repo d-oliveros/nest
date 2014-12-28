@@ -19,6 +19,15 @@ function Worker() {
 	this.isRunning          = this.isRunning.bind(this);
 	this.startNextOperation = this.startNextOperation.bind(this);
 
+	// Set up debugging listeners
+	this.on('operation:start', function(operation, url) {
+		debug('Scraping: '+url);
+	});
+
+	this.on('operation:blocked', function(operation, url) {
+		debug('Request blocked on: '+url);
+	});
+
 	this.startLoop();
 }
 
@@ -38,7 +47,6 @@ Worker.prototype.startLoop = function() {
 	function loadOperation(callback) {
 		Worker.loaderQueue.push(self.startNextOperation, function(err, agent) {
 			if (err) throw err;
-
 			if (!agent) return callback();
 
 			agent.once('error', function(err) {
@@ -48,7 +56,7 @@ Worker.prototype.startLoop = function() {
 			});
 
 			agent.once('operation:finish', function(operation) {
-				debug('Worker finished operation.', operation.route.name);
+				debug('Operation finished: '+operation.route.name);
 				self.operationId = null;
 				callback();
 			});
@@ -65,13 +73,11 @@ Worker.prototype.startLoop = function() {
 Worker.prototype.startNextOperation = function(callback) {
 	var self = this;
 
-	debug('Worker querying for next operation.');
-
 	Operation.getNext(state, function(err, operation) {
-		if ( err || !self.isRunning() ) 
-			return callback(err);
+		var agent, routeName, query;
 
-		var agent, operationRoute;
+		if ( err || !self.isRunning() )
+			return callback(err);
 
 		// If there are no new operations to process, 
 		// keep on quering for them each second.
@@ -87,8 +93,10 @@ Worker.prototype.startNextOperation = function(callback) {
 
 		self.operationId = operation._id.toString();
 
-		operationRoute = operation.route.name;
-		debug('Worker got operation: '+operationRoute+' '+operation.query);
+		routeName = operation.route.name;
+		query = operation.query;
+
+		debug('Got operation: '+routeName+'. Query: '+query);
 
 		agent = new Agent();
 		agent.addEmitter(self);

@@ -61,13 +61,21 @@ exports.open = function(url, callback) {
 
 	async.waterfall([
 		function getPhantom(cb) {
-			if ( self.phantom ) return cb(null, phantom);
+			if ( self.phantom ) return cb(null, self.phantom);
 			self.createPhantom(cb);
 		},
 		function createPage(phantom, cb) {
 			phantom.createPage( function(page) {
 				cb(null, page);
 			});
+		},
+		function enableConsole(page, cb) {
+			if ( process.env.PHANTOM_LOG === 'true' ) {
+				page.set('onConsoleMessage', function (msg) {
+					console.log("Phantom Console: " + msg);
+				});
+			}
+			cb(null, page);
 		},
 		function openURL(page, cb) {
 			page.open(url, function(status) {
@@ -124,6 +132,7 @@ exports.sanitizeScraped = function(scraped) {
 	_.each(sanitized.items, function(item) {
 		item.local = _.pick(item.local, _.identity);
 	});
+
 
 	return sanitized;
 };

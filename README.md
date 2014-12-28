@@ -51,26 +51,36 @@ gulp
 ##### To start the engine and web-based interface:
 
 ```
-node bin/start
+node index
 ```
 
-When running node bin/start, nothing will happen because there are still no operations to process.
+When running `node index`, nothing will happen because there are still no operations to process.
 
 #### To quickly check this up, run:
 
 ```js
-node bin/pwn-github
-node bin/start
+node scripts/github
+node index
 ```
 
 #### WTF's happining?
 
-Try running `DEBUG=* node bin/start` and looking at the console messages. You can also look into the tests in each module to see what everything is doing. I haven't got into writing a proper documentation for this thing, so...
+Try running `DEBUG=* node index` after running `node scripts/github` and looking at the console messages. You can also look into the tests in each module to see what everything is doing. I haven't got into writing a proper documentation for this thing, so...
 
 To start a single route, you can do something like:
 
 ```js
 require('./globals'); // Kill me for using globals
+
+var github = require(__routes+'/github');
+github.search.start('nodejs');
+```
+
+The `Route:start` method returns an `Agent` instance, which will emit events when things happen:
+
+```js
+require('./globals'); // Kill me for using globals
+
 var github = require(__routes+'/github');
 var agent = github.search.start('nodejs');
 
@@ -78,10 +88,15 @@ agent.on('scraped:page', function(results) {
 	console.log('Got scraped data!', results);
 });
 
-agent.on('operation:finish', function(op) {
+agent.on('operation:finish', function(operation) {
 	console.log('Operation finished!');
+	// Stats on operation.stats
+	console.log('Operations created: '+operation.stats.items);
+	console.log(operation.stats.spawned+' new potential routes created!');
 });
 ```
+
+You don't have to manually save the results into the DB; The agent will save all the scraped results in the database for you, and will make sure it doesn't accidentally scrape the same link twice.
 
 Normally, a scraping op will spawn a bunch of other scraping operations. That's when the engine comes in handy. By default, the engine will create x amount of workers, where x is the amount of CPU cores you have. Each worker will query for an operation, sorted by priority, run that operation (and spawn a bunch of other operations), and query for another operation again.
 
@@ -141,7 +156,7 @@ someRoute.scraper = function() {
 
 Then, you can start the route by doing `someRoute.start(queryParameter)`. This will return an Agent instance.
 
-You can also do a script to create a bunch of operations, and let the engine scrape it all (See bin/pwn-github);
+The most basic and direct example is found on `scripts/imdb.js`. You can also do a script to create a bunch of operations, and let the engine scrape it all (See `scripts/github.js`).
 
 
 ### Adding your own environment (database)

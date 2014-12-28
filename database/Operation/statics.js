@@ -1,14 +1,17 @@
 var debug = require('debug')('Operation:statics');
 
 exports.getKeyParams = function(params) {
-	if ( !params.routeName || !params.query ) {
-		throw new Error('Params are invalid: '+JSON.stringify(params));
+	if ( !params.routeName ) {
+		throw new Error('Route name is required.');
 	}
 
 	var keyParams = {
-		routeName: params.routeName,
-		query: params.query,
+		routeName: params.routeName
 	};
+
+	if ( params.query ) {
+		keyParams.query = params.query;
+	}
 
 	debug('Generated key params', keyParams);
 

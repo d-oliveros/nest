@@ -97,6 +97,8 @@ module.exports = function run(operation) {
 			}, function(err) {
 				if (err) return callback(err);
 
+				operation.stats.spawned += operations.length;
+
 				debug('Operations spawned: '+operations.length+' operations.');
 				agent.emit('operations:created', operations);
 
@@ -124,7 +126,8 @@ module.exports = function run(operation) {
 		function saveOperation(results, callback) {
 			agent.iteration++;
 			operation.stats.pages++;
-			operation.stats.items += results.created;
+			operation.stats.items   += results.created;
+			operation.stats.updated += results.updated;
 
 			agent.emit('scraped:page', results, operation);
 			agent.stopPhantom();

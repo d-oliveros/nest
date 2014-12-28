@@ -56,7 +56,13 @@ Worker.prototype.startLoop = function() {
 			});
 
 			agent.once('operation:finish', function(operation) {
-				debug('Operation finished: '+operation.route.name);
+				debug(
+					'Operation finished: '+operation.route.name+'. '+
+					operation.stats.items+' items created. '+
+					operation.stats.updated+' items updated. '+
+					operation.stats.spawned+' operations created.'
+				);
+
 				self.operationId = null;
 				callback();
 			});

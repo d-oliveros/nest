@@ -10,8 +10,10 @@ var methods       = require('./methods');
 var schema = new mongoose.Schema({
 	routeName:    { type: String, required: true },
 	query:        { type: String, default: '' },
+	
 	priority:     { type: Number, default: 50 },
 	created:      { type: Date,   default: Date.now },
+
 	state: {
 		currentPage:  { type: Number,  default: 1 },
 		finished:     { type: Boolean, default: false },
@@ -19,10 +21,13 @@ var schema = new mongoose.Schema({
 		startedDate:  { type: Date },
 		data:         { type: Mixed, default: {} },
 	},
+
 	stats: {
 		pages:    { type: Number, default: 0 },
 		results:  { type: Number, default: 0 },
 		items:    { type: Number, default: 0 },
+		updated:  { type: Number, default: 0 },
+		spawned:  { type: Number, default: 0 },
 	},
 }, { collection: 'operations' });
 

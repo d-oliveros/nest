@@ -56,6 +56,6 @@ function startOperation(op, callback) {
 function onComplete(err) {
 	if (err) return console.error(err);
 	console.log(ops.length+' operations created. Script finished.');
-	console.log('Now, start the engine with node bin/start');
+	console.log('Now, start the engine. ( hint: node index )');
 	process.exit(0);
 }

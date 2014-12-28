@@ -19,6 +19,6 @@ async.eachLimit(subreddits, 10, function(subreddit, callback) {
 }, function(err) {
 	if (err) return console.error(err);
 	console.log(subreddits.length+' operations created. Script finished.');
-	console.log('Now, start the engine with node bin/start');
+	console.log('Now, start the engine. ( hint: node index )');
 	process.exit(0);
 });

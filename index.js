@@ -1,2 +1,9 @@
+var debug = require('debug');
+debug.enable('Worker');
 
-console.log("\nNest\nUsage: node bin/[script name]\n");
+require('./globals');
+require(__database);
+
+var server = require(__interface).server;
+
+server.start();

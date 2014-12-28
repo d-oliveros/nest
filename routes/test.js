@@ -34,7 +34,17 @@ function createRouteTest(domain, route) {
 	var testParams = route.test;
 
 	describe(route.name, function() {
-		it('should scrape results and spawn operations', function(done) {
+		var responsabilities = [];
+
+		if ( testParams.shouldSpawnOperations ) {
+			responsabilities.push('spawn operations');
+		}
+
+		if ( testParams.shouldCreateItems ) {
+			responsabilities.push('scrape results');
+		}
+
+		it('should '+responsabilities.join(' and '), function(done) {
 			var agent, togo;
 
 			agent = route.start(testParams.query);

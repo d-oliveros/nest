@@ -4,9 +4,7 @@ require(__database);
 var async = require('async');
 var _ = require('lodash');
 
-
-// Create the operations list to send to Nest
-//
+// Create the search queries
 var reposQueries = ['repos%3A>50'];
 
 for(var i = 50; i >= 0; i--) {
@@ -46,7 +44,7 @@ _.each(reposQueries, function(query) {
 	});
 });
 
-// Create the operations on Nest
+// Initialize the scraping operations on Nest
 var githubSearchRoute = require(__routes+'/github/search');
 async.eachLimit(ops, 10, startOperation, onComplete);
 

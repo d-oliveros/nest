@@ -3,7 +3,6 @@ require(__database);
 
 var async = require('async');
 
-// Create the operations list to send to Nest
 var subreddits = [
 	'cscareerquestions',
 	'compsci',

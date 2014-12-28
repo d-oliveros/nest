@@ -19,7 +19,6 @@ route.scraper = function() {
 		hasNextPage: $('a.next_page').length > 0,
 		items: [],
 		operations: [],
-		lol: $('body').html()
 	};
 
 	// Get the language filter selection

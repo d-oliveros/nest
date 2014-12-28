@@ -13,7 +13,6 @@ exports.start = function(query) {
 };
 
 exports.initialize = function(query, callback) {
-
 	var operationQuery = {
 		query:     query,
 		routeName: this.name,

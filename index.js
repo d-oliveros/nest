@@ -1,9 +1,11 @@
-var debug = require('debug');
+var debug, server;
+
+// Enable Worker messages
+debug = require('debug');
 debug.enable('Worker');
 
+// Start the scraping engine and the web-based interface
 require('./globals');
-require(__database);
-
-var server = require(__interface).server;
+server = require(__interface).server;
 
 server.start();

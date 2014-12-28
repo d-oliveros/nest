@@ -10,7 +10,6 @@ var methods       = require('./methods');
 var schema = new mongoose.Schema({
 	routeName:    { type: String, required: true },
 	query:        { type: String, default: '' },
-	
 	priority:     { type: Number, default: 50 },
 	created:      { type: Date,   default: Date.now },
 

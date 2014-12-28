@@ -1,5 +1,4 @@
 require('../globals');
-require(__database);
 
 var async = require('async');
 var _ = require('lodash');

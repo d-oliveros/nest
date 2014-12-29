@@ -23,7 +23,7 @@ A data extraction framework on NodeJS. Replicate another site's data without tou
 
 ```
 npm install
-bower install
+sudo npm install -g phantomjs
 ```
 
 #### Tests

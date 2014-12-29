@@ -14,7 +14,6 @@ A data extraction framework on NodeJS. Replicate another site's data without tou
   * engine.stop() method. Currently, there's no way to stop the engine once it starts.
   * Support for multiple engines running different processes / servers.
   * Implement [Tor](https://github.com/d-oliveros/node-tor-nightcrawler).
-  * Remove Redis as a dependency: It is not used at all (yet?).
 
 #### Requirements
   * MongoDB, if running on local.
@@ -110,7 +109,8 @@ The `Route` class makes it dead-simple to program crawlers on new sites. You can
 
 ```js
 var someRoute = new Route({
-	name: 'stackoverflow:profile',
+	provider: 'stackoverflow',
+	name: 'profile',
 	url: 'http://stackoverflow.com/users/<%= query %>',
 	priority: 90,
 
@@ -131,26 +131,19 @@ var someRoute = new Route({
 someRoute.scraper = function() {
 	var data = {
 		items: [],
-		operations: [],
 	};
 
 	data.items.push({
+		key: $('#id-of-this-item').text(), // this is the only required property
 		name: $('#user-displayname a').text(),
-		key: $('#id-of-element-containing-some-sort-of-id').text(),
-		
-		// The "Local" property will be added to the profile saved in the database,
-		// as part of this route. Basically the idea is you can have the same person
-		// on multiple sites, but you only want to keep a single record for him.
-		// To solve this, all the profiles are created and updated with a domain property,
-		// and all the data that is local to this domain will be saved in a corresponding field
-		// in the database. I suck at explaining things, take a look at the Profile schema to know more.
-		local: {
-			link: 'https://domain.com/'+id, // Canonical link to this piece of content
-			data: {
-			}
-		}
-	});
+		link: 'https://domain.com/'+id, // Canonical link to this content
+		type: 'user',
 
+		// Any other property will be saved in the database
+		age: $('#age-container').text(),
+		somethingElse: $('#important-stuff').text(),
+		/* ...will save any property... */
+	});
 
 	return data;
 };
@@ -160,7 +153,9 @@ You can place this new route on the `/routes` folder, and test the route by runn
 
 You can start some initial routes from a script file by doing `someRoute.start(queryParameter)`. You can place those on `/scripts` for now.
 
-The most basic and direct example is found on `scripts/imdb.js`. You can also do a script to create a bunch of operations, and let the engine scrape it all (See `scripts/github.js`).
+The most basic and direct example is found on `scripts/imdb.js`. It is able to scrape all IMDB movies (at least the most popular 100k) in one night.
+
+You can also do a script to create a bunch of operations, and let the engine scrape it all. See `scripts/github.js`.
 
 ## Adding your own environment (database)
 

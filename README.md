@@ -1,10 +1,9 @@
 Nest
 ==============
 
-A robust scraping and crawling engine powered with NodeJS.
+A data extraction framework on NodeJS. Replicate another site's data without touching its database.
 
-### Features
-
+#### Features
   * PhantomJS scraping. No more "Couldn't scrape because data was dynamic" bs.
   * Persistent state. You can stop and start the engine at any time without worrying of losing data or the current flow.
   * Controlled, parallel processment of scraping operations.
@@ -12,23 +11,20 @@ A robust scraping and crawling engine powered with NodeJS.
   * Web-based interface that is... currently useless. (The engine events are being send through websockets, though)
 
 
-### Todo
-
+#### Todo
   * Write documentation.
   * engine.stop() method. Currently, there's no way to stop the engine once it starts.
   * Support for multiple engines running different processes / servers.
   * Implement [Tor](https://github.com/d-oliveros/node-tor-nightcrawler).
-  * Implement a better logging system.
-  * Add a Pre-page-evaluate hook in `Agent.prototype.run`, so routes can execute arbitrary functions before applying the scraper function. Uses cases: Scroll down the page for 2 minutes before applying the scraper, click stuff, logging in, etc.
-  * Remove the globals?
+  * Better web-based interface. Thinking on a metrics dashboard, or a way to start scripts from there.
   * Remove Redis as a dependency: It is not used at all (yet?).
-  * Better web-based interface. Thinking on a metrics dashboard, or a way to start crawling operations from there.
 
-### Requirements
-  * MongoDB + Redis, if running on local.
+#### Requirements
+  * MongoDB, if running on local.
   * PhantomJS (sudo npm install -g phantomjs)
+  * 
 
-## Usage
+## Installation
 
 ```
 npm install
@@ -40,40 +36,46 @@ bower install
 Before starting the engine, you should run the tests to see if everything's OK with your setup.
 
 ```
-npm test
+make test
 ```
 
-You can also lint with gulp
-```
-gulp
-```
-
-##### To start the engine and web-based interface:
+## Usage
 
 ```
 node index
 ```
 
-When running `node index`, nothing will happen because there are still no operations to process.
+When running `node index`, the engine will start, but nothing will happen because there are no operations to process. Right now, the only way to start replicating a site's database is to run a script.
 
-#### To quickly check this up, run:
+To quickly check this up, run:
 
 ```js
 node scripts/github
 node index
 ```
 
-#### WTF's happining?
+#### How does it work?
 
-Try running `DEBUG=* node index` after running `node scripts/github` and looking at the console messages. You can also look into the tests in each module to see what everything is doing. I haven't got into writing a proper documentation for this thing, so...
+Try running `DEBUG=* node index` and looking at the console messages. You can also look into the tests in each module to see what everything is doing. I haven't got into writing a proper documentation for this thing, so...
 
-To start a single route, you can do something like:
+## Routes
+
+A route is a definition of a website's section, like a search results page, or a post page. A route definition has various components:
+
+- Scraper function. Transforms the HTML into structured data.
+- URL generator function. Transforms the query and operation's state into a URL string.
+- Route name.
+- Priority.
+- Test options.
+
+A route can be started with a query by doing:
 
 ```js
-require('./globals'); // Kill me for using globals
+require('./globals'); // todo: remove globals
 
 var github = require(__routes+'/github');
-github.search.start('nodejs');
+var query = 'nodejs';
+github.search.start(query);
 ```
 
 The `Route:start` method returns an `Agent` instance, which will emit events when things happen:
@@ -98,11 +100,15 @@ agent.on('operation:finish', function(operation) {
 
 You don't have to manually save the results into the DB; The agent will save all the scraped results in the database for you, and will make sure it doesn't accidentally scrape the same link twice.
 
+## Engine
+
 Normally, a scraping op will spawn a bunch of other scraping operations. That's when the engine comes in handy. By default, the engine will create x amount of workers, where x is the amount of CPU cores you have. Each worker will query for an operation, sorted by priority, run that operation (and spawn a bunch of other operations), and query for another operation again.
 
 Only 1 worker will be querying for an operation at a given time. That is to avoid having multiple workers working on the same op. If there are no unfinished operations, the worker will keep on querying for new ops every 600ms.
 
 The `Worker` class is a sub-class of the Agent class. The Agent class is extending EventEmitter. The Agent class has the ability to add external EventEmitters and emit events to them, and can also spawn phantomJS processes and open URLs and do a bunch of cool stuff.
+
+## Creating new routes
 
 The `Route` class makes it dead-simple to program crawlers on new sites. You can create a new Route like this:
 
@@ -154,12 +160,13 @@ someRoute.scraper = function() {
 };
 ```
 
-Then, you can start the route by doing `someRoute.start(queryParameter)`. This will return an Agent instance.
+You can place this new route on the `/routes` folder, and test the route by running `make test`.
+
+You can start some initial routes from a script file by doing `someRoute.start(queryParameter)`. You can place those on `/scripts` for now.
 
 The most basic and direct example is found on `scripts/imdb.js`. You can also do a script to create a bunch of operations, and let the engine scrape it all (See `scripts/github.js`).
 
-
-### Adding your own environment (database)
+## Adding your own environment (database)
 
 Copy config/environments/default.js to /config/environments/local.js, /config/environments/production.js, /config/environments/test.js etc, and set up the database host and credentials.
 

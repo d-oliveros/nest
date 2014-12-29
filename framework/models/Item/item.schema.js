@@ -1,10 +1,7 @@
 var mongoose = require('mongoose');
-
-//var addHooks    = require('./schema.hooks');
-//var addVirtuals = require('./schema.virtuals');
-
 var providerSchema = require('./provider.schema');
 
+// Schema
 var schema = new mongoose.Schema({
 	name: { 
 		type: String, 
@@ -24,16 +21,18 @@ var schema = new mongoose.Schema({
 		default: Date.now 
 	},
 
-	providers: [
-		providerSchema
-	],
+	providers: [ providerSchema ],
 }, { 
 	collection: 'items',
 });
 
-schema.statics = require('./statics');
-schema.methods = require('./methods');
+// Statics methods
+schema.statics = require('./static.methods');
 
+// Instance methods
+schema.methods = require('./instance.methods');
+
+// Index
 schema.index({ 'name': -1 });
 schema.index({ 'providers.name': -1 });
 schema.index({ 'providers.route': -1 });

@@ -1,4 +1,4 @@
-var Route = require(__framework+'/Route');
+var Route = require(__framework).Route;
 
 var routeURL = 
 	'http://www.reddit.com/r/<%= query %>/new/'+

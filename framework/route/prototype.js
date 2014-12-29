@@ -1,5 +1,5 @@
-var Operation = require(__database+'/Operation');
-var Agent     = require(__framework+'/Agent');
+var Operation = require(__framework+'/models/Operation');
+var Agent     = require(__framework+'/agent');
 
 exports.start = function(query) {
 	var agent = new Agent();

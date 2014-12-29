@@ -1,6 +1,6 @@
 var _ = require('lodash');
 
-var Worker = require('./Worker');
+var Worker = require('./worker');
 var state = require('./state');
 
 exports.emitter = require('./emitter');
@@ -31,5 +31,5 @@ exports.start = function() {
 };
 
 exports.stop = function() {
-
+	// todo
 };

@@ -1,7 +1,7 @@
 var _ = require('lodash');
 var async = require('async');
 
-var Item  = require(__database+'/Item');
+var Item  = require(__framework+'/models/Item');
 
 var debug = require('debug')('Agent:run');
 

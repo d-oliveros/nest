@@ -8,4 +8,4 @@ global.expect = require('chai').expect;
 Error.stackTraceLimit = Infinity;
 
 require('../globals');
-require(__database);
+require(__framework+'/database');

@@ -6,17 +6,14 @@ A data extraction framework on NodeJS. Replicate another site's data without tou
 #### Features
   * PhantomJS scraping. No more "Couldn't scrape because data was dynamic" bs.
   * Persistent state. You can stop and start the engine at any time without worrying of losing data or the current flow.
-  * Controlled, parallel processment of scraping operations.
-  * Dead-simple interface for scripting new crawlers on other sites.
-  * Web-based interface that is... currently useless. (The engine events are being send through websockets, though)
-
+  * Controlled, parallel scraping.
+  * Dead-simple interface for scripting new domains.
 
 #### Todo
   * Write documentation.
   * engine.stop() method. Currently, there's no way to stop the engine once it starts.
   * Support for multiple engines running different processes / servers.
   * Implement [Tor](https://github.com/d-oliveros/node-tor-nightcrawler).
-  * Better web-based interface. Thinking on a metrics dashboard, or a way to start scripts from there.
   * Remove Redis as a dependency: It is not used at all (yet?).
 
 #### Requirements

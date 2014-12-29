@@ -4,8 +4,8 @@ var debug, server;
 debug = require('debug');
 debug.enable('Worker');
 
-// Start the scraping engine and the web-based interface
+// Start the engine
 require('./globals');
-server = require(__interface).server;
+var engine = require(__framework).engine;
 
-server.start();
+engine.start();

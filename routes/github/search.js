@@ -1,4 +1,4 @@
-var Route = require(__framework+'/Route');
+var Route = require(__framework).Route;
 
 var route = new Route({
 	title: 'Search Results',

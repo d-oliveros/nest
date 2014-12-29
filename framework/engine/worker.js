@@ -1,8 +1,8 @@
 var async = require('async');
 var debug = require('debug')('Worker');
 
-var Agent     = require(__framework+'/Agent');
-var Operation = require(__database+'/Operation');
+var Agent     = require(__framework+'/agent');
+var Operation = require(__framework+'/models/Operation');
 var state     = require('./state');
 
 // exports: Worker

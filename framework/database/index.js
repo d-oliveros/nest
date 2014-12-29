@@ -1,8 +1,4 @@
 
-// Database models
-exports.Item = require('./Item');
-exports.Operation = require('./Operation');
-
 // Database connections
 exports.redis = require('./redis');
 exports.mongo = require('./mongo');

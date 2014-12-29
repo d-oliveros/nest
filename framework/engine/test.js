@@ -1,5 +1,5 @@
-var Operation = require(__database+'/Operation');
-var Item = require(__database+'/Item');
+var Operation = require(__framework+'/models/Operation');
+var Item = require(__framework+'/models/Item');
 var engine = require('./index');
 
 var dummyParams = require(__test+'/data/params.json');

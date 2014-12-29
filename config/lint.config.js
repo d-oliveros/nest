@@ -1,8 +1,5 @@
 
 module.exports = [
-	'interface/server/**/*.js',
-	'interface/*.js',
-	'database/**/*.js',
 	'routes/**/*.js',
 	'framework/**/*.js',
 	'config/**/*.js',

@@ -1,3 +1,3 @@
-var Agent = require(__framework+'/Agent');
+var Agent = require(__framework+'/agent');
 
 module.exports = new Agent();

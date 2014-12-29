@@ -1,4 +1,4 @@
-var Route = require(__framework).Route;
+var Route = require(__framework+'/route');
 
 var routeURL = 
 	'http://www.reddit.com/r/<%= query %>/new/'+
@@ -8,9 +8,9 @@ var routeURL =
 		'<% } %>';
 
 var route = new Route({
-	title: 'Subreddit Wall',
-	name:  'reddit:wall',
-	url:   routeURL,
+	provider: 'reddit',
+	name: 'wall',
+	url: routeURL,
 	priority: 80,
 	test: {
 		query: 'compsci',
@@ -45,17 +45,15 @@ route.scraper = function() {
 		data.items.push({
 			name: title,
 			key: id,
-			local: {
-				link: 'http://www.reddit.com/'+id,
-				data: {
-					upvotes: upvotes,
-					subreddit: subreddit,
-				},
-			},
+			link: 'http://www.reddit.com/'+id,
+			
+			upvotes: upvotes,
+			subreddit: subreddit,
 		});
 
 		data.operations.push({
-			routeName: 'reddit:post',
+			provider: 'reddit',
+			route: 'post',
 			query: id,
 		});
 

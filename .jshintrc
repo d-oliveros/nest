@@ -14,7 +14,6 @@
 		"__config": false,
 		"__framework": false,
 		"__routes": false,
-		"__test": false,
 		"$": false,
 		"window": false
 	}

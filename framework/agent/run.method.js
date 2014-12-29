@@ -2,17 +2,26 @@ var _ = require('lodash');
 var async = require('async');
 
 var Item  = require(__framework+'/models/Item');
+var routes = require(__routes);
 
 var debug = require('debug')('Agent:run');
 
-module.exports = function run(operation) {
-	var state, route, scraper, url, agent, _error, _isStopping, _isBlocked;
+// Exports: Operation runner function
+//
+module.exports = runner;
+
+
+// runs an operation. `this` should be an `Agent` instance.
+function runner(operation) {
+	var state, route, url, agent, routeName, provider, _isStopping, _isBlocked;
 
 	agent       = this;
 	state       = operation.state;
-	route       = operation.route;
-	scraper     = route.scraper;
-	_error      = agent.error;
+
+	routeName   = operation.route;
+	provider    = operation.provider;
+	route       = routes[provider][routeName];
+
 	_isStopping = false;
 	_isBlocked  = false;
 
@@ -22,19 +31,19 @@ module.exports = function run(operation) {
 
 	debug('Starting operation', operation);
 
-	// Save the starting time of this operation
+	// save the starting time of this operation
 	if ( agent.iteration === 0 ) {
 		operation.state.startedDate = operation.wasNew ? 
 			operation.created : 
 			Date.now();
 	}
 
-	// Create the URL using the operation's parameters
+	// create the URL using the operation's parameters
 	url = route.urlTemplate(operation);
 
 	agent.emit('operation:start', operation, url);
 
-	// Check if this operation is actually finished
+	// check if this operation is actually finished
 	if ( state.finished ) {
 		_.defer(agent.emit.bind(agent, 'operation:finish', operation));
 		return agent;
@@ -59,7 +68,7 @@ module.exports = function run(operation) {
 			});
 		},
 		function scrapePage(page, callback) {
-			page.evaluate(scraper, function(scraped) {
+			page.evaluate(route.scraper, function(scraped) {
 				agent.emit('scraped:raw', scraped, operation);
 				callback(null, scraped);
 			});
@@ -67,6 +76,15 @@ module.exports = function run(operation) {
 		function sanitize(scraped, callback) {
 			var sanitized = agent.sanitizeScraped(scraped);
 			callback(null, sanitized);
+		},
+		function setItemsMeta(scraped, callback) {
+			_.each(scraped.items, function(item) {
+				item.provider    = provider;
+				item.route       = routeName;
+				item.routeWeight = route.priority;
+			});
+			
+			callback(null, scraped);
 		},
 		function executeMiddleware(scraped, callback) {
 			route.middleware(scraped, callback);
@@ -81,12 +99,7 @@ module.exports = function run(operation) {
 			var operations = [];
 
 			async.each(scraped.operations, function(params, cb) {
-				var parts = params.routeName.split(':');
-
-				// Ok, we shouldn't be requiring a module inside a function,
-				// although we can't require the routes, or Route, because Route
-				// depends on Agent. Anyone has a better idea?
-				var targetRoute = require(__routes+'/'+parts[0]+'/'+parts[1]);
+				var targetRoute = routes[params.provider][params.route];
 
 				targetRoute.initialize(params.query, function(err, operation) {
 					if (err) return cb(err);
@@ -106,6 +119,7 @@ module.exports = function run(operation) {
 			});
 		},
 		function setOperationState(scraped, callback) {
+
 			if ( scraped.hasNextPage ) {
 				state.currentPage++;
 			} else {
@@ -118,10 +132,12 @@ module.exports = function run(operation) {
 				_.assign(state.data, scraped.state);
 			}
 
+			state.lastLink = url;
+
 			callback(null, scraped);
 		},
 		function saveItems(scraped, callback) {
-			Item.eachUpsert(scraped.items, route, callback);
+			Item.eachUpsert(scraped.items, callback);
 		},
 		function saveOperation(results, callback) {
 			agent.iteration++;
@@ -140,17 +156,17 @@ module.exports = function run(operation) {
 	function onFinish(err) {
 		if (err) return agent.error(err);
 
-		// If the operation has been stopped
+		// if the operation has been stopped
 		if ( _isStopping ) {
 			agent.emit('operation:stopped', operation);
 		}
 
-		// If the operation has finished
+		// if the operation has finished
 		if ( _isStopping || state.finished ) {
 			agent.emit('operation:finish', operation);
 		}
 
-		// If the IP has been blocked
+		// if the IP has been blocked
 		else if ( _isBlocked ) {
 			debug('Operation blocked. Retrying in 5s...');
 			agent.emit('operation:blocked', operation, url);
@@ -158,12 +174,10 @@ module.exports = function run(operation) {
 			setTimeout(agent.run.bind(agent, operation), 5000);
 		} 
 
-		// If the operation has not finished
+		// if the operation has not finished
 		else {
 			agent.emit('operation:next', operation);
 			agent.run(operation);
 		}
 	}
-
-	return agent;
-};
+}

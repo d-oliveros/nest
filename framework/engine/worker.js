@@ -1,13 +1,16 @@
 var async = require('async');
+
+var Agent       = require(__framework+'/agent');
+var Operation   = require(__framework+'/models/Operation');
+var loaderQueue = require('./loader.queue');
+var state       = require('./state');
+
 var debug = require('debug')('Worker');
 
-var Agent     = require(__framework+'/agent');
-var Operation = require(__framework+'/models/Operation');
-var state     = require('./state');
-
-// exports: Worker
+// Exports: Worker
 //
 module.exports = Worker;
+
 
 function Worker() {
 	Agent.call(this); // call super constructor
@@ -28,24 +31,20 @@ function Worker() {
 		debug('Request blocked on: '+url);
 	});
 
-	this.startLoop();
+	this.start();
 }
 
-// This will ensure the operations are loaded in series
-Worker.loaderQueue = async.queue( function(task, callback) {
-	task(callback);
-}, 1);
-
+// Inherits from: Agent
 Worker.prototype = Object.create( Agent.prototype );
 
-Worker.prototype.startLoop = function() {
+// start this worker
+Worker.prototype.start = function() {
 	var self = this;
 
-	// Start the worker loop
 	async.whilst(self.isRunning, loadOperation, onStop);
 
 	function loadOperation(callback) {
-		Worker.loaderQueue.push(self.startNextOperation, function(err, agent) {
+		loaderQueue.push(self.startNextOperation, function(err, agent) {
 			if (err) throw err;
 			if (!agent) return callback();
 
@@ -71,21 +70,20 @@ Worker.prototype.startLoop = function() {
 
 	function onStop() {
 		self.emit('worker:stopped', self);
+		// todo: pull worker from loaderQueue if was in queue
 	}
 
 };
 
-// Returns an agent running an operation.
+// gets and starts the next operation, and returns a running agent
 Worker.prototype.startNextOperation = function(callback) {
 	var self = this;
 
 	Operation.getNext(state, function(err, operation) {
-		var agent, routeName, query;
-
 		if ( err || !self.isRunning() )
 			return callback(err);
 
-		// If there are no new operations to process, 
+		// if there are no new operations to process, 
 		// keep on quering for them each second.
 		if ( !operation ) {
 			debug('There are no pending operations. Retrying in 1s');
@@ -97,14 +95,15 @@ Worker.prototype.startNextOperation = function(callback) {
 			return;
 		}
 
-		self.operationId = operation._id.toString();
+		self.operationId = operation.id;
 
-		routeName = operation.route.name;
-		query = operation.query;
+		var routeName = operation.route;
+		var provider  = operation.provider;
+		var query     = operation.query;
+		var agent     = new Agent();
 
-		debug('Got operation: '+routeName+'. Query: '+query);
+		debug('Got operation: '+provider+'->'+routeName+'. Query: '+query);
 
-		agent = new Agent();
 		agent.addEmitter(self);
 		agent.run(operation);
 

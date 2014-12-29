@@ -1,7 +1,7 @@
 var _ = require('lodash');
 
 var Item = require('./index');
-var dummyItem = require(__test+'/data/profile.json');
+var dummyItem = require(__base+'/test/data/profile.json');
 
 describe('Item', function() {
 
@@ -25,7 +25,6 @@ describe('Item', function() {
 	});
 
 	describe('Statics', function() {
-		var githubSearchRoute = require(__routes+'/github/search');
 
 		describe('`upsert`', function() {
 			before( function(done) {
@@ -33,20 +32,12 @@ describe('Item', function() {
 			});
 
 			it('should create a new item', function(done) {
-				Item.upsert(dummyItem, githubSearchRoute, function(err, item) {
+				Item.upsert(dummyItem, function(err, op) {
 					if (err) return done(err);
 
-					if (!item.wasNew) {
+					if ( op !== 'created' ) {
 						err = new Error('Item is not new');
 						return done(err);
-					}
-
-					var hasSameName  = item.name  === dummyItem.name;
-					var hasSameEmail = item.email === dummyItem.email;
-
-					if ( !hasSameName || !hasSameEmail ) {
-						err = new Error('Item is invalid');
-						return done(err);	
 					}
 
 					done();
@@ -55,20 +46,15 @@ describe('Item', function() {
 
 			it('should update an existing item', function(done) {
 				var newItem = _.extend( _.clone(dummyItem), {
-					name: 'Name should have changed'
+					name: 'Name should have changed',
 				});
 
-				Item.upsert(newItem, githubSearchRoute, function(err, item) {
+				Item.upsert(newItem, function(err, op) {
 					if (err) return done(err);
 
-					if (item.wasNew) {
-						err = new Error('Item was new');
+					if ( op !== 'updated' ) {
+						err = new Error('Item is new');
 						return done(err);
-					}
-
-					if ( item.name === dummyItem.name ) {
-						err = new Error('Name did not change');
-						return done(err);	
 					}
 
 					Item.remove(done);

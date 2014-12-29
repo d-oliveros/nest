@@ -1,4 +1,5 @@
 {
-	"routeName": "github:search",
+	"provider": "github",
+	"route": "search",
 	"query": "nodejs"
 }

@@ -1,6 +1,6 @@
 {
   "name": "scraper",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -19,6 +19,7 @@
     "mongoose": "^3.8.20",
     "phantom": "^0.7.0",
     "redis": "^0.12.1",
+    "require-all": "^1.0.0",
     "socket.io": "^1.2.1"
   },
   "devDependencies": {

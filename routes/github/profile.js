@@ -1,8 +1,8 @@
-var Route = require(__framework).Route;
+var Route = require(__framework+'/route');
 
 var route = new Route({
-	title: 'Github Profile',
-	name:  'github:profile',
+	provider: 'github',
+	name:  'profile',
 	url:   'https://github.com/<%- query %>',
 	priority: 100,
 	test: {
@@ -12,53 +12,45 @@ var route = new Route({
 	}
 });
 
-// This function is executed in the PhantomJS contex;
+// this function is executed in the PhantomJS contex;
 // we have no access to the context out of this function
 route.scraper = function() {
-	var data, username, email, profile;
-
-	function getText($elem) {
-		return $elem.clone().children().remove().end().text();
-	}
-
-	data = {
+	var data = {
 		items: [],
 		operations: [],
 	};
-
-	username = $('.vcard-username').text();
-
-	// Create the user profile
-
-	email = $('a.email').text().trim().toLowerCase();
-
-	profile = {
-		name:  $('.vcard-fullname').text(),
-		key:   email,
-
-		local: {
-			link: 'https://github.com/'+username,
-			data: {
-				name: $('.vcard-fullname').text(),
-				username: username,
-				image: $('img.avatar').attr('src'),
-				location: getText($('.octicon-location').parent()),
-				organization: getText($('.octicon-organization').parent()),
-				joinedDate: $('time.join-date').text(),
-				repositories: [],
-				forks: [],
-			},
-		}
+	
+	var getText = function($elem) {
+		return $elem.clone().children().remove().end().text().trim();
 	};
 
-	// Get the user's metadata (followers, stars, etc)
+	var username = $('.vcard-username').text();
+	var email = $('a.email').text().trim().toLowerCase();
+
+	// create the user profile
+	var profile = {
+		name:  $('.vcard-fullname').text(),
+		type: 'user',
+		key:   email,
+		link: 'https://github.com/'+username,
+
+		username: username,
+		image: $('img.avatar').attr('src'),
+		location: getText($('.octicon-location').parent()),
+		organization: getText($('.octicon-organization').parent()),
+		joinedDate: $('time.join-date').text(),
+		repositories: [],
+		forks: [],
+	};
+
+	// get the user's metadata (followers, stars, etc)
 	$('.text-muted').each( function() {
 		var key, value;
 
 		key   = $(this).text().toLowerCase();
 		value = $(this).parent().find('.vcard-stat-count').text();
 
-		// Transforms ej. 3.3k to 3300
+		// transforms ej. 3.3k to 3300
 		if ( value.toLowerCase()[value.length-1] === 'k' ) {
 			value = value.slice(0, -1);
 			value = value*1000;
@@ -68,20 +60,20 @@ route.scraper = function() {
 
 		switch(key) {
 			case 'followers':
-				profile.local.data.followers = value;
+				profile.followers = value;
 				break;
 
 			case 'following':
-				profile.local.data.following = value;
+				profile.following = value;
 				break;
 
 			case 'starred':
-				profile.local.data.starred = value;
+				profile.starred = value;
 				break;
 		}
 	});
 
-	// Get the user's repositories and forks
+	// get the user's repositories and forks
 	$('.mini-repo-list-item').each( function() {
 		var isOwn, repository;
 
@@ -94,9 +86,9 @@ route.scraper = function() {
 		};
 		
 		if (isOwn) {
-			profile.local.data.repositories.push(repository);
+			profile.repositories.push(repository);
 		} else {
-			profile.local.data.forks.push(repository);
+			profile.forks.push(repository);
 		}
 	});
 
@@ -104,17 +96,19 @@ route.scraper = function() {
 		data.items.push(profile);
 	}
 
-	// Create operations to the `following` and `followers` routes
-	if ( profile.local.data.followers ) {
+	// create operations to the `following` and `followers` routes
+	if ( profile.followers ) {
 		data.operations.push({
-			routeName: 'github:followers',
+			provider: 'github',
+			route: 'followers',
 			query: username,
 		});
 	}
 
-	if ( profile.local.data.following ) {
+	if ( profile.following ) {
 		data.operations.push({
-			routeName: 'github:following',
+			provider: 'github',
+			route: 'following',
 			query: username,
 		});
 	}

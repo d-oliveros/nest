@@ -1,46 +1,83 @@
 var _ = require('lodash');
 
+var Operation = require(__framework+'/models/Operation');
 var debug = require('debug')('Route');
 
+// Exports: Route
+//
 module.exports = Route;
 
-function Route(params) {
-	if ( params.name.indexOf(':') < 0 )
-		throw new Error('Invalid route: '+params.name);
-	
-	var name  = params.name;
-	var parts = name.split(':');
 
+function Route(params) {
+	if ( !params.name )
+		throw new Error('Name is required.');
+
+	if ( !params.provider )
+		throw new Error('Provider is required.');
+	
 	debug('Creating new route', params);
 
 	this.title       = params.title;
+	this.provider    = params.provider;
 	this.name        = params.name;
 
-	this.domain      = parts[0];
-	this.key         = parts[1];
-
-	this.priority    = params.priority;
-
 	this.urlTemplate = _.template(params.url);
-
-	this.test        = params.test || null;
-
 	this.scraper     = params.scraper || this.scraper;
 	this.middleware  = params.middleware || this.middleware;
 	this.checkStatus = params.checkStatus || this.checkStatus;
+
+	this.test        = params.test || null;
+	this.priority    = params.priority;
 
 	if ( typeof this.priority === 'undefined' ) {
 		this.priority = 50;
 	}
 }
 
-Route.prototype = require('./prototype');
+// creates an operation to this route with the provided query argument
+Route.prototype.initialize = function(query, callback) {
+	var operationQuery = {
+		query:     query,
+		provider:  this.provider,
+		route:     this.name,
+		priority:  this.priority,
+	};
 
-// Static: returns the actual route of a route name
-//
-Route.get = function(routeName) {
-	var parts = routeName.split(':');
-	var domain = parts[0];
-	var path = parts[1];
-	return require(__routes)[domain][path];
+	Operation.findOrCreate(operationQuery, callback);
 };
+
+// starts this route, and return a running agent
+// 
+Route.prototype.start = function(query) {
+	var Agent = require(__framework+'/agent'); // shouldn't be requiring here
+	var agent = new Agent();
+
+	this.initialize(query, function(err, operation) {
+		if (err) return agent.error(err);
+		agent.run(operation);
+	});
+
+	return agent;
+};
+
+
+// default scraper
+Route.prototype.scraper = function() {
+	throw new Error('You need to implement your own scraper.');
+};
+
+// default urlTemplate
+Route.prototype.urlTemplate = function() {
+	throw new Error('You need to implement your own URL generator.');
+};
+
+// default middleware
+Route.prototype.middleware = function(scraped, callback) {
+	callback(null, scraped);
+};
+
+// default status checker.
+Route.prototype.checkStatus = function() {
+	return 'ok';
+};
+

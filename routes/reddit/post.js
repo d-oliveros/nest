@@ -1,8 +1,8 @@
-var Route = require(__framework).Route;
+var Route = require(__framework+'/route');
 
 var route = new Route({
-	title: 'Reddit Post',
-	name:  'reddit:post',
+	provider: 'reddit',
+	name:  'post',
 	url:   'http://www.reddit.com/<%= query %>',
 	priority: 100,
 	test: {
@@ -30,6 +30,7 @@ route.scraper = function() {
 
 	var comments    = [];
 
+	// get the post comments
 	$('.nestedlisting div.thing').each( function() {
 		var $comment = $(this);
 		var commentBody = $comment.find('.usertext-body p').text();
@@ -44,15 +45,12 @@ route.scraper = function() {
 	data.items.push({
 		name: title,
 		key: id,
-		local: {
-			link: 'http://www.reddit.com/'+id,
-			data: {
-				description: description,
-				upvotes: upvotes,
-				subreddit: subreddit,
-				comments: comments,
-			},
-		},
+		link: 'http://www.reddit.com/'+id,
+
+		description: description,
+		upvotes: upvotes,
+		subreddit: subreddit,
+		comments: comments,
 	});
 
 	return data;

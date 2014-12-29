@@ -1,12 +1,9 @@
 var _ = require('lodash');
 
-var Operation = require(__framework).models.Operation;
-var Item      = require(__framework).models.Item;
+var Operation = require(__framework+'/models/Operation');
+var Item      = require(__framework+'/models/Item');
 
-// Route tests
 describe('Routes', function() {
-	var domains = require('./index');
-
 	this.timeout(300000); // 5 mins
 
 	beforeEach( function(done) {
@@ -16,16 +13,15 @@ describe('Routes', function() {
 		});
 	});
 
+	var domains = require('./index');
+	
 	_.each(domains, function(domain) {
-		_.each(domain, function(route, key) {
-			if (key !== 'name') {
-				
-				if (!route.test) 
-					console.warn('Hint: Write test for '+route.name+' ;)');
+		_.each(domain, function(route) {
+			if (!route.test)
+				console.warn('Hint: Write test for '+route.name+' ;)');
 
-				else 
-					createRouteTest(domain, route);
-			}
+			else 
+				createRouteTest(domain, route);
 		});
 	});
 });

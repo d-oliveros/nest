@@ -1,12 +1,15 @@
 var debug = require('debug')('Operation:statics');
 
 exports.getKeyParams = function(params) {
-	if ( !params.routeName ) {
-		throw new Error('Route name is required.');
-	}
+	if ( !params.route )
+		throw new Error('Route is required.');
+
+	if ( !params.provider )
+		throw new Error('Provider is required.');
 
 	var keyParams = {
-		routeName: params.routeName
+		route: params.route,
+		provider: params.provider,
 	};
 
 	if ( params.query ) {
@@ -46,7 +49,7 @@ exports.findOrCreate = function(params, callback) {
 exports.getNext = function(state, callback) {
 	var query, runningOperations, disabledRoutes;
 
-	runningOperations = state.getOperationIds();
+	runningOperations = state.operationIds;
 	disabledRoutes    = __config.engine.disabledRoutes || [];
 
 	query = { 

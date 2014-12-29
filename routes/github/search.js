@@ -1,8 +1,8 @@
-var Route = require(__framework).Route;
+var Route = require(__framework+'/route');
 
 var route = new Route({
-	title: 'Search Results',
-	name:  'github:search',
+	provider: 'github',
+	name:  'search',
 	url:   'https://github.com/search?p=<%= state.currentPage %>&type=Users&q=<%= query %>',
 	priority: 80,
 	test: {
@@ -21,22 +21,35 @@ route.scraper = function() {
 		operations: [],
 	};
 
+	// Remove new lines and trim
+	var format = function (string) {
+		var trimmed = '';
+		string.split('\n').forEach( function(line) {
+			if (line.trim().length) {
+				trimmed = line.trim();
+			}
+		});
+		return trimmed;
+	};
+
 	// Get the language filter selection
-	var $selectedItem = $('.codesearch-aside a.filter-item.selected');
-	var selectedItem = format( $selectedItem.clone().children().remove().end().text() );
+	var $selectedFilter = $('.codesearch-aside a.filter-item.selected');
+	var selectedFilter = format( $selectedFilter.clone().children().remove().end().text() );
 
 	// Get the active search query
 	var searchQuery = $('input.input-block.js-search-query').attr('value');
 
 	// For each user
 	$('.user-list-item').each(function() {
-		var $elem, $meta, $info, $location, link, profile;
+		var $elem, $meta, $info, $location, link, profile, username;
 
 		$elem = $(this);
 		$meta = $elem.find('.user-list-meta');
 		$info = $elem.find('.user-list-info');
 		$location = $meta.find('.octicon-location').parent();
 
+		username = $info.find('a').attr('href').substr(1);
+		
 		link = $info.find('a').attr('href') ?
 			'https://github.com'+$info.find('a').attr('href') :
 			null;
@@ -45,24 +58,21 @@ route.scraper = function() {
 		profile = {
 			name:  format($info.clone().children().remove().end().text()),
 			key: $meta.find('.email').text() || null,
+			type: 'user',
+			link: 'https://github.com/'+username,
 
-			local: {
-				link: link,
-				data: {
-					username:   $info.find('a').attr('href').substr(1),
-					image:      $elem.find('img.avatar').attr('src'),
-					joinedDate: $meta.find('.join-date').attr('datetime'),
-					location:   format($location.clone().children().remove().end().text()),
-				},
-			}
+			username:   username,
+			image:      $elem.find('img.avatar').attr('src'),
+			joinedDate: $meta.find('.join-date').attr('datetime'),
+			location:   format($location.clone().children().remove().end().text()),
 		};
 
 		if ( searchQuery ) {
-			profile.local.data.searchQuery = searchQuery;
+			profile.searchQuery = searchQuery;
 		}
 
-		if ( selectedItem ) {
-			profile.local.data.searchLanguage = selectedItem;
+		if ( selectedFilter ) {
+			profile.mainSkill = selectedFilter;
 		}
 
 		if ( profile.key ) {
@@ -72,22 +82,12 @@ route.scraper = function() {
 		// Create operations to `profile` routes
 		// Ej. Schedule the routes to be scraped later
 		data.operations.push({
-			routeName: 'github:profile',
-			query: profile.local.data.username,
+			provider: 'github',
+			route: 'profile',
+			query: profile.username,
 		});
 
 	});
-
-	// Remove new lines and trim
-	function format(string) {
-		var trimmed = '';
-		string.split('\n').forEach( function(line) {
-			if (line.trim().length) {
-				trimmed = line.trim();
-			}
-		});
-		return trimmed;
-	}
 
 	return data;
 };
@@ -109,14 +109,15 @@ route.checkStatus = function() {
 route.middleware = function(scraped, callback) {
 	var item, parts, searchQuery, repos;
 
-	// Track the number of repositories
+	// track the number of repositories
+	// todo: this is ugly
 	if ( scraped.items.length ) {
 		for (var i = 0, len = scraped.items.length; i < len; i++) {
 			item = scraped.items[i];
 			if ( item.local && item.local.data && item.local.data.searchQuery ) {
 				parts = item.local.data.searchQuery.split(' ');
 
-				// Get the number of repos filter from the search query
+				// get the number of repos filter from the search query
 				for (var j = 0, jLen = parts.length; j < jLen; j++) {
 					searchQuery = parts[j];
 					if ( searchQuery.indexOf('repos:') > -1 ) {

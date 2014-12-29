@@ -2,7 +2,7 @@ var Operation = require(__framework+'/models/Operation');
 var Item = require(__framework+'/models/Item');
 var engine = require('./index');
 
-var dummyParams = require(__test+'/data/params.json');
+var dummyParams = require(__base+'/test/data/params.json');
 
 describe('engine', function() {
 	this.timeout(15000); // 15 seconds
@@ -20,7 +20,7 @@ describe('engine', function() {
 	});
 
 	it('should start with 0 operations', function() {
-		engine.state.getOperationIds().length.should.equal(0);
+		engine.state.operationIds.length.should.equal(0);
 	});
 
 	it('should start an operation after one second', function(done) {

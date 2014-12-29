@@ -5,12 +5,3 @@ exports.mongo = {
 	// user: 'mongo',
 	// pass: 'password'
 };
-
-exports.redis = {
-	db: 'nest',
-	host: '127.0.0.1',
-	port: 6379,
-	options: {
-		parser: 'hiredis',
-	},
-};

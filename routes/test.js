@@ -18,7 +18,7 @@ describe('Routes', function() {
 	_.each(domains, function(domain) {
 		_.each(domain, function(route) {
 			if (!route.test)
-				console.warn('Hint: Write test for '+route.name+' ;)');
+				console.warn('Hint: Write test for '+route.provider+'->'+route.name+' ;)');
 
 			else 
 				createRouteTest(domain, route);

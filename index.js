@@ -6,6 +6,7 @@ debug.enable('Worker');
 
 // Start the engine
 require('./globals');
-var engine = require(__framework).engine;
+var engine = require(__framework+'/engine');
 
 engine.start();
+console.log('Engine started');

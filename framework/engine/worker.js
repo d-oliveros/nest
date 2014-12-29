@@ -56,7 +56,7 @@ Worker.prototype.start = function() {
 
 			agent.once('operation:finish', function(operation) {
 				debug(
-					'Operation finished: '+operation.route.name+'. '+
+					'Operation finished: '+operation.route+'. '+
 					operation.stats.items+' items created. '+
 					operation.stats.updated+' items updated. '+
 					operation.stats.spawned+' operations created.'

@@ -1,5 +1,5 @@
 {
-  "name": "scraper",
+  "name": "nest",
   "version": "0.0.2",
   "description": "",
   "main": "index.js",
@@ -10,17 +10,11 @@
   "license": "MIT",
   "dependencies": {
     "async": "^0.9.0",
-    "cli": "^0.6.5",
     "debug": "^2.1.0",
-    "express": "^4.10.4",
-    "hiredis": "^0.1.17",
-    "jade": "^1.8.1",
     "lodash": "^2.4.1",
     "mongoose": "^3.8.20",
     "phantom": "^0.7.0",
-    "redis": "^0.12.1",
-    "require-all": "^1.0.0",
-    "socket.io": "^1.2.1"
+    "require-all": "^1.0.0"
   },
   "devDependencies": {
     "chai": "^1.10.0",

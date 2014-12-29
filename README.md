@@ -22,7 +22,6 @@ A data extraction framework on NodeJS. Replicate another site's data without tou
 #### Requirements
   * MongoDB, if running on local.
   * PhantomJS (sudo npm install -g phantomjs)
-  * 
 
 ## Installation
 

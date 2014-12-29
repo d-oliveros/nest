@@ -1,9 +1,10 @@
+// Starts user search operations on github by # of repositories
+// using all the possible combinations of sorts and filters
 require('../globals');
 
 var async = require('async');
 var _ = require('lodash');
 
-// Create the search queries
 var reposQueries = ['repos%3A>50'];
 
 for(var i = 50; i >= 0; i--) {
@@ -45,14 +46,14 @@ _.each(reposQueries, function(query) {
 
 // Initialize the scraping operations on Nest
 var githubSearchRoute = require(__routes+'/github/search');
-async.eachLimit(ops, 10, startOperation, onComplete);
+async.eachLimit(ops, 10, startOperation, onFinish);
 
 function startOperation(op, callback) {
 	console.log('Starting op: github:search ('+op+')');
 	githubSearchRoute.initialize(op, callback);
 }
 
-function onComplete(err) {
+function onFinish(err) {
 	if (err) return console.error(err);
 	console.log(ops.length+' operations created. Script finished.');
 	console.log('Now, start the engine. ( hint: node index )');

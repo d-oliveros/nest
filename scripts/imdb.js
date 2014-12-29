@@ -1,3 +1,5 @@
+// Starts the movie search route operation on IMDB sorted by user rating count
+// this operation can go all the way up to 100k items
 var debug = require('debug');
 debug.enable('Agent*');
 

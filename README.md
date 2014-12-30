@@ -17,19 +17,17 @@ A data extraction framework on NodeJS. Replicate another site's data without tou
   * Implement [Tor](https://github.com/d-oliveros/node-tor-nightcrawler).
 
 #### Requirements
-  * MongoDB, if running on local.
-  * PhantomJS (sudo npm install -g phantomjs)
+  * MongoDB [(Install)](http://docs.mongodb.org/manual/installation)
+  * PhantomJS
 
 ## Installation
 
 ```
-npm install
 sudo npm install -g phantomjs
+npm install
 ```
 
-#### Tests
-
-Before starting the engine, you should run the tests to see if everything's OK with your setup.
+Before running Nest, you should run the tests to see if everything's OK with your setup.
 
 ```
 make test
@@ -37,13 +35,20 @@ make test
 
 ## Usage
 
-```
-node index
+To quickly check this up:
+
+```js
+node scripts/imdb
 ```
 
-When running `node index`, the engine will start, but nothing will happen because there are no operations to process. Right now, the only way to start replicating a site's database is to run a script.
+This will initialize the IMDB data extractor, and start populating your local `nest` mongo database. To look at the data, open a terminal and do:
 
-To quickly check this up, run:
+```
+mongo nest
+db.items.find().pretty()
+```
+
+To see a more verbose script, run the Github data extractor:
 
 ```js
 node scripts/github

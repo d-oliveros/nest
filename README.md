@@ -10,6 +10,7 @@ A data extraction framework on NodeJS. Replicate another site's data without tou
   * Dead-simple interface for scripting new domains.
 
 #### Todo
+  * Send debug messages to log file.
   * Write documentation.
   * engine.stop() method. Currently, there's no way to stop the engine once it starts.
   * Support for multiple engines running different processes / servers.

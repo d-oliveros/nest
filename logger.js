@@ -32,8 +32,11 @@ var logger = module.exports = new (winston.Logger)({
 			colorize: true,
 			timestamp: true,
 		}),
-		new (winston.transports.File)({ 
+		new (winston.transports.File)({
+
+			// todo: don't log all debug messages, except when env var is set 
 			level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
+
 			filename: logPath,
 		})
 	],

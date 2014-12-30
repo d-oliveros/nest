@@ -5,7 +5,7 @@ var Operation   = require(__framework+'/models/Operation');
 var loaderQueue = require('./loader.queue');
 var state       = require('./state');
 
-var debug = require('debug')('Worker');
+var debug = _log.debug('Worker');
 
 // Exports: Worker
 //

@@ -3,7 +3,7 @@ var async        = require('async');
 var phantom      = require('phantom');
 var EventEmitter = require('events').EventEmitter;
 
-var debug        = require('debug')('Agent');
+var debug        = _log.debug('Agent');
 
 // Exports: Agent
 //

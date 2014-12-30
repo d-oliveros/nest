@@ -1,5 +1,5 @@
 var async = require('async');
-var debug = require('debug')('Item:statics');
+var debug = _log.debug('Item:statics');
 
 // Applies `Item.upsert` to `items` in series,
 // returns an object with operation stats

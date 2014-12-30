@@ -4,7 +4,17 @@ var gulp = require('gulp');
 var jshint = require('gulp-jshint');
 
 gulp.task('lint', function() {
-	return gulp.src(__config.lint)
+	var dirs = [
+		'index.js',
+		'logger.js',
+		'scripts/**/*',
+		'routes/**/*.js',
+		'framework/**/*.js',
+		'config/**/*.js',
+		'test/**/*.js',
+	];
+
+	return gulp.src(dirs)
 		.pipe(jshint())
 		.pipe(jshint.reporter('jshint-stylish'));
 });

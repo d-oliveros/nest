@@ -3,6 +3,7 @@
   "version": "0.0.2",
   "description": "Data extraction framework.",
   "main": "index.js",
+  "repository": "https://github.com/d-oliveros/nest",
   "scripts": {
     "test": "make test"
   },
@@ -14,7 +15,8 @@
     "lodash": "^2.4.1",
     "mongoose": "^3.8.20",
     "phantom": "^0.7.0",
-    "require-all": "^1.0.0"
+    "require-all": "^1.0.0",
+    "winston": "^0.8.3"
   },
   "devDependencies": {
     "chai": "^1.10.0",

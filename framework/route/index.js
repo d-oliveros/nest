@@ -1,7 +1,7 @@
 var _ = require('lodash');
 
 var Operation = require(__framework+'/models/Operation');
-var debug = require('debug')('Route');
+var debug = _log.debug('Route');
 
 // Exports: Route
 //

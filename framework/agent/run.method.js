@@ -4,7 +4,7 @@ var async = require('async');
 var Item  = require(__framework+'/models/Item');
 var routes = require(__routes);
 
-var debug = require('debug')('Agent:run');
+var debug = _log.debug('Agent:run');
 
 // Exports: Operation runner function
 //
@@ -29,7 +29,7 @@ function runner(operation) {
 		_isStopping = true;
 	});
 
-	debug('Starting operation', operation);
+	debug('Starting operation', operation.toObject());
 
 	// save the starting time of this operation
 	if ( agent.iteration === 0 ) {

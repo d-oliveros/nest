@@ -1,4 +1,4 @@
-var debug = require('debug')('Operation:statics');
+var debug = _log.debug('Operation:statics');
 
 exports.getKeyParams = function(params) {
 	if ( !params.route )

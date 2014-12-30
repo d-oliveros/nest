@@ -1,7 +1,6 @@
-var debug, server;
 
 // Enable Worker messages
-debug = require('debug');
+var debug = require('debug');
 debug.enable('Worker');
 
 // Start the engine

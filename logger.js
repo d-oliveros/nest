@@ -6,22 +6,20 @@ var logPath = path.join(__dirname, 'logs', 'master.log');
 
 var config = {
 	levels: {
-		silly: 0,
 		verbose: 1,
-		info: 2,
-		event: 3,
-		warn: 4,
-		error: 5,
-		debug: 6,
+		debug: 2,
+		info: 3,
+		event: 4,
+		warn: 5,
+		error: 6,
 	},
 	colors: {
-		silly: 'magenta',
 		verbose: 'cyan',
+		debug: 'blue',
 		info: 'green',
 		event: 'orange',
 		warn: 'yellow',
 		error: 'red',
-		debug: 'blue'
 	},
 };
 
@@ -30,13 +28,13 @@ var config = {
 var logger = module.exports = new (winston.Logger)({
 	transports: [
 		new (winston.transports.Console)({
-			level: 'debug',
+			level: 'info',
 			colorize: true,
 			timestamp: true,
 		}),
 		new (winston.transports.File)({ 
+			level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
 			filename: logPath,
-			level: process.env.NODE_ENV === 'production' ? 'error' : 'debug'
 		})
 	],
 	levels: config.levels,
@@ -50,11 +48,7 @@ logger.debug = function(key) {
 	var debugMessage = debug(key);
 
 	return function(message, meta) {
-		logger.log(
-			'debug', 
-			'['+new Date().toLocaleString()+'] '+key+': '+message, meta
-		);
-
+		logger.log('debug', key+': '+message, meta);
 		debugMessage(message);
 	};
 };

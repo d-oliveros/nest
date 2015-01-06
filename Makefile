@@ -1,4 +1,4 @@
-REPORTER = nyan
+REPORTER = stat
 test:
 	./node_modules/.bin/mocha -b \
 		--reporter $(REPORTER) \

@@ -72,9 +72,7 @@ A route is a definition of a website's section, like a search results page, or a
 A route can be started with a query by doing:
 
 ```js
-require('./globals'); // todo: remove globals
-
-var github = require(__routes+'/github');
+var github = require('./routes/github');
 var query = 'nodejs';
 github.search.start(query);
 ```
@@ -82,11 +80,9 @@ github.search.start(query);
 The `Route:start` method returns an `Agent` instance, which will emit events when things happen:
 
 ```js
-require('./globals'); // Kill me for using globals
-
-var github = require(__routes+'/github');
+var github = require('./routes/github');
 var agent = github.search.start('nodejs');
-
+g
 agent.on('scraped:page', function(results) {
 	console.log('Got scraped data!', results);
 });

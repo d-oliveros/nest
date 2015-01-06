@@ -1,3 +1,4 @@
+var config = require('../../config');
 var Worker = require('./worker');
 
 // Exports: Engine
@@ -10,7 +11,7 @@ engine.state   = require('./state');
 engine.start = function() {
 	var worker;
 
-	for (var i = 0, len = __config.engine.workers; i < len; i++) {
+	for (var i = 0, len = config.engine.workers; i < len; i++) {
 		worker = new Worker();
 		worker.addEmitter(engine.emitter);
 		engine.state.workers.push(worker);

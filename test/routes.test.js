@@ -1,7 +1,9 @@
+process.env.NODE_ENV = 'test';
+
 var _ = require('lodash');
 
-var Operation = require(__framework+'/models/Operation');
-var Item      = require(__framework+'/models/Item');
+var Operation = require('../framework/models/Operation');
+var Item      = require('../framework/models/Item');
 
 describe('Routes', function() {
 	this.timeout(300000); // 5 mins
@@ -13,7 +15,7 @@ describe('Routes', function() {
 		});
 	});
 
-	var domains = require('./index');
+	var domains = require('../routes');
 	
 	_.each(domains, function(domain) {
 		_.each(domain, function(route) {

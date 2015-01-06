@@ -3,18 +3,13 @@
 	"newcap": true,
 	"nonew": true,
 	"undef": true,
+	"mocha": true,
 	"unused": true,
 	"freeze": true,
-	"mocha": true,
 	"node" : true,
 	"globals": {
-		"expect": false,
-		"__base": false,
-		"__env": false,
-		"__config": false,
-		"__framework": false,
-		"__routes": false,
-		"_log": false,
+		"should": true,
+		"it": false,
 		"window": false,
 		"$": false
 	}

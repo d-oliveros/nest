@@ -1,8 +1,10 @@
-var Operation = require(__framework+'/models/Operation');
-var Item = require(__framework+'/models/Item');
-var engine = require('./index');
+process.env.NODE_ENV = 'test';
+var should = require('chai').should(); // jshint ignore:line
+var Operation = require('../framework/models/Operation');
+var Item = require('../framework/models/Item');
+var engine = require('../framework/engine');
 
-var dummyParams = require(__base+'/test/data/params.json');
+var dummyParams = require('./data/params.json');
 
 describe('engine', function() {
 	this.timeout(15000); // 15 seconds
@@ -23,7 +25,7 @@ describe('engine', function() {
 		engine.state.operationIds.length.should.equal(0);
 	});
 
-	it('should start an operation after one second', function(done) {
+	it('should pick up an operation after one second', function(done) {
 		engine.emitter.once('operation:start', done.bind(this, null));
 		
 		setTimeout( function() {
@@ -31,6 +33,6 @@ describe('engine', function() {
 			Operation.findOrCreate(keyParams, function(err) {
 				if (err) return done(err);
 			});
-		}, 600);
+		}, 1000);
 	});
 });

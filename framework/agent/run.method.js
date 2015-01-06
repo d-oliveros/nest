@@ -1,9 +1,10 @@
 var _ = require('lodash');
 var async = require('async');
 
-var Item  = require(__framework+'/models/Item');
-var routes = require(__routes);
+var Item  = require('../models/Item');
+var routes = require('../../routes');
 
+var _log = require('../../logger');
 var debug = _log.debug('Agent:run');
 
 // Exports: Operation runner function

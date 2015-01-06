@@ -5,8 +5,6 @@ debug.enable('Worker');
 debug.enable('Agent*');
 
 // Start the engine
-require('./globals');
-var engine = require(__framework+'/engine');
+require('./framework/engine').start();
 
-engine.start();
 console.log('Engine started');

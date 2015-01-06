@@ -1,3 +1,5 @@
+var _log = require('../../../logger');
+var config = require('../../../config');
 var debug = _log.debug('Operation:statics');
 
 exports.getKeyParams = function(params) {
@@ -50,7 +52,7 @@ exports.getNext = function(state, callback) {
 	var query, runningOperations, disabledRoutes;
 
 	runningOperations = state.operationIds;
-	disabledRoutes    = __config.engine.disabledRoutes || [];
+	disabledRoutes    = config.engine.disabledRoutes || [];
 
 	query = { 
 		'state.finished': false

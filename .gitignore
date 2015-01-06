@@ -29,8 +29,5 @@ build/Release
 # Dependency directory
 node_modules
 
-# Bower components
-interface/client/bower_components/*
-
 # Editor specific project files
-/.idea
+.idea

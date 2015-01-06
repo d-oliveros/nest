@@ -1,4 +1,4 @@
-var Route = require(__framework+'/route');
+var Route = require('../../framework/route');
 
 var route = new Route({
 	provider: 'reddit',

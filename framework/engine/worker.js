@@ -1,10 +1,11 @@
 var async = require('async');
 
-var Agent       = require(__framework+'/agent');
-var Operation   = require(__framework+'/models/Operation');
+var Agent       = require('../agent');
+var Operation   = require('../models/Operation');
 var loaderQueue = require('./loader.queue');
 var state       = require('./state');
 
+var _log = require('../../logger');
 var debug = _log.debug('Worker');
 
 // Exports: Worker

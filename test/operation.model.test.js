@@ -1,5 +1,7 @@
-var Operation = require('./index');
-var dummyParams = require(__base+'/test/data/params.json');
+process.env.NODE_ENV = 'test';
+
+var Operation = require('../framework/models/Operation');
+var dummyParams = require('./data/params.json');
 
 describe('Operation', function() {
 	this.timeout(300000); // 5 mins

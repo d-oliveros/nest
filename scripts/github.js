@@ -1,7 +1,5 @@
 // Starts user search operations on github by # of repositories
 // using all the possible combinations of sorts and filters
-require('../globals');
-
 var async = require('async');
 var _ = require('lodash');
 
@@ -45,7 +43,7 @@ _.each(reposQueries, function(query) {
 });
 
 // Initialize the scraping operations on Nest
-var githubSearchRoute = require(__routes+'/github/search');
+var githubSearchRoute = require('../routes/github/search');
 async.eachLimit(ops, 10, startOperation, onFinish);
 
 function startOperation(op, callback) {

@@ -1,10 +1,8 @@
 // Starts subreddit scraping operations on reddit
 // using a really small subset of subreddit groups
-require('../globals');
-
 var async = require('async');
 
-var subredditRoute = require(__routes+'/reddit/wall');
+var subredditRoute = require('../routes/reddit/wall');
 
 var subreddits = [
 	'cscareerquestions',

@@ -1,4 +1,5 @@
 var async = require('async');
+var _log = require('../../../logger');
 var debug = _log.debug('Item:statics');
 
 // Applies `Item.upsert` to `items` in series,

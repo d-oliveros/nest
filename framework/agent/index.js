@@ -3,6 +3,8 @@ var async        = require('async');
 var phantom      = require('phantom');
 var EventEmitter = require('events').EventEmitter;
 
+var _log         = require('../../logger');
+var config       = require('../../config');
 var debug        = _log.debug('Agent');
 
 // Exports: Agent
@@ -54,7 +56,7 @@ Agent.prototype.createPhantom = function(callback) {
 	var self = this;
 
 	debug('Creating PhantomJS instance');
-	phantom.create(__config.phantom, function(ph) {
+	phantom.create(config.phantom, function(ph) {
 		self.phantom = ph;
 		callback(null, ph);
 	});

@@ -1,6 +1,7 @@
 var _ = require('lodash');
 
-var Operation = require(__framework+'/models/Operation');
+var Operation = require('../models/Operation');
+var _log = require('../../logger');
 var debug = _log.debug('Route');
 
 // Exports: Route
@@ -49,7 +50,7 @@ Route.prototype.initialize = function(query, callback) {
 // starts this route, and return a running agent
 // 
 Route.prototype.start = function(query) {
-	var Agent = require(__framework+'/agent'); // shouldn't be requiring here
+	var Agent = require('../agent'); // shouldn't be requiring here
 	var agent = new Agent();
 
 	this.initialize(query, function(err, operation) {

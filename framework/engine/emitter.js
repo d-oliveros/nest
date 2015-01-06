@@ -1,4 +1,4 @@
-var Agent = require(__framework+'/agent');
+var Agent = require('../agent');
 
 // Exports: Agent instance
 //

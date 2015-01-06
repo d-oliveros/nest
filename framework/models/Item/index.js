@@ -1,6 +1,6 @@
 
 // Make sure the database is initialized
-require(__framework+'/database');
+require('../../database');
 
 var mongoose = require('mongoose');
 

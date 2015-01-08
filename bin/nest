@@ -1,0 +1,80 @@
+#!/usr/bin/env node
+var route, routeName, provider, parts, path, 
+	query, engine, debug, argv, cmd, root;
+
+path = require('path');
+debug = require('debug');
+
+// enable Worker messages
+debug.enable('Worker');
+debug.enable('Agent*');
+
+
+argv = process.argv;
+
+if ( argv.length > 5 || argv.length < 3 ) {
+	console.log(
+		'Usage: nest [scrape | work] [route] [query]\n'+
+		'ej. nest scrape github:search nodejs');
+
+	process.exit(0);
+}
+
+root = path.normalize( path.join(__dirname, '..') );
+engine = require(root+'/framework/engine');
+cmd = argv[2];
+
+
+switch (cmd) {
+
+	case 'scrape':
+
+		// load the route
+		if ( argv.length >= 4 ) {
+			parts = argv[3].split(':');
+			provider = parts[0];
+			routeName = parts[1] ? parts[1] : null;
+			query = argv[4] ? argv[4] : undefined;
+
+			// if there's no specific route, execute the script for the provider
+			if ( !routeName ) {
+				try {
+					require(root+'/scripts/'+provider);
+					return;
+				} catch (err) {
+					if ( err.code === 'MODULE_NOT_FOUND' ) {
+						console.error('No init script for '+provider+'.');
+						process.exit(1);
+					} else {
+						throw err;
+					} 
+				}
+			}
+
+			// If there's a route to scrape, load the route and start it
+			else {
+				try {
+					route = require(root+'/routes/'+provider+'/'+routeName);
+				} catch(err) {
+					if ( err.code === 'MODULE_NOT_FOUND' ) {
+						console.error('Route '+argv[3]+' not found.');
+						process.exit(1);
+					} else {
+						throw err;
+					}
+				}
+
+				route.start(query);
+			}
+		}
+
+		break;
+
+	case 'work':
+		engine.start();
+		break;
+
+	default:
+		console.log('Unknown command '+cmd);
+		process.exit(0);
+}

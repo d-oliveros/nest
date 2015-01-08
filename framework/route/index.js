@@ -30,7 +30,7 @@ function Route(params) {
 	this.test        = params.test || null;
 	this.priority    = params.priority;
 
-	if ( typeof this.priority === 'undefined' ) {
+	if ( typeof this.priority !== 'number' ) {
 		this.priority = 50;
 	}
 }
@@ -48,7 +48,6 @@ Route.prototype.initialize = function(query, callback) {
 };
 
 // starts this route, and return a running agent
-// 
 Route.prototype.start = function(query) {
 	var Agent = require('../agent'); // shouldn't be requiring here
 	var agent = new Agent();

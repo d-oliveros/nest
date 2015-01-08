@@ -6,6 +6,7 @@ var Item = require('../framework/models/Item');
 var dummyItem = require('./data/profile.json');
 
 describe('Item', function() {
+	this.timeout(6000);
 
 	describe('Model', function() {
 

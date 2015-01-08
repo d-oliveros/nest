@@ -9,7 +9,6 @@ debug = require('debug');
 debug.enable('Worker');
 debug.enable('Agent*');
 
-
 argv = process.argv;
 
 if ( argv.length > 5 || argv.length < 3 ) {

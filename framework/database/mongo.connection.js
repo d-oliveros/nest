@@ -1,15 +1,15 @@
 var mongoose = require('mongoose');
+var config = require('../../config');
 
-var config   = require('../../config');
-var host     = config.mongo.host;
-var db       = config.mongo.db;
-var user     = config.mongo.user;
-var password = config.mongo.password;
+var host   = config.mongo.host;
+var port   = config.mongo.port || 27017;
+var db     = config.mongo.db;
+var user   = config.mongo.user;
+var pass   = config.mongo.pass;
 
-var prefix = 'mongodb://';
-var authString = user ? user+':'+password+'@' : '';
-var suffix = host+'/'+db;
+var authString = user ? user+':'+pass+'@' : '';
+var hostString = host+':'+port+'/'+db;
 
-mongoose.connect(prefix+authString+suffix);
+mongoose.connect('mongodb://'+authString+hostString);
 
 module.exports = mongoose.connection;

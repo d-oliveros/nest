@@ -28,40 +28,38 @@ describe('Item', function() {
 	});
 
 	describe('Statics', function() {
+		
+		before( function(done) {
+			Item.remove(done);
+		});
 
-		describe('`upsert`', function() {
-			before( function(done) {
+		it('should create a new item', function(done) {
+			Item.upsert(dummyItem, function(err, op) {
+				if (err) return done(err);
+
+				if ( op !== 'created' ) {
+					err = new Error('Item is not new');
+					return done(err);
+				}
+
+				done();
+			});
+		});
+
+		it('should update an existing item', function(done) {
+			var newItem = _.extend( _.clone(dummyItem), {
+				name: 'Name should have changed',
+			});
+
+			Item.upsert(newItem, function(err, op) {
+				if (err) return done(err);
+
+				if ( op !== 'updated' ) {
+					err = new Error('Item is new');
+					return done(err);
+				}
+
 				Item.remove(done);
-			});
-
-			it('should create a new item', function(done) {
-				Item.upsert(dummyItem, function(err, op) {
-					if (err) return done(err);
-
-					if ( op !== 'created' ) {
-						err = new Error('Item is not new');
-						return done(err);
-					}
-
-					done();
-				});
-			});
-
-			it('should update an existing item', function(done) {
-				var newItem = _.extend( _.clone(dummyItem), {
-					name: 'Name should have changed',
-				});
-
-				Item.upsert(newItem, function(err, op) {
-					if (err) return done(err);
-
-					if ( op !== 'updated' ) {
-						err = new Error('Item is new');
-						return done(err);
-					}
-
-					Item.remove(done);
-				});
 			});
 		});
 	});

@@ -1,4 +1,5 @@
 var Route = require('../../framework/route');
+var _ = require('lodash');
 
 var route = new Route({
 	provider: 'github',
@@ -41,7 +42,8 @@ route.scraper = function() {
 
 	// For each user
 	$('.user-list-item').each(function() {
-		var $elem, $meta, $info, $location, link, profile, username;
+		var $elem, $meta, $info, $location, 
+			link, profile, username, parts, repos;
 
 		$elem = $(this);
 		$meta = $elem.find('.user-list-meta');
@@ -69,6 +71,30 @@ route.scraper = function() {
 
 		if ( searchQuery ) {
 			profile.searchQuery = searchQuery;
+
+			parts = searchQuery.split(' ');
+
+			// get the number of repos filter from the search query
+			for (var i = 0, len = parts.length; i < len; i++) {
+				searchQuery = parts[i];
+				if ( searchQuery.indexOf('repos:') > -1 ) {
+					repos = searchQuery.split(':')[1];
+
+					if ( !isNaN(repos) ) {
+						profile.repositoryCount = parseInt(repos);
+					}  else {
+						if ( repos.indexOf('>') > -1 ) {
+							repos = parseInt(repos.replace('>', ''));
+
+							if ( !isNaN(repos) ) {
+								repos++;
+							}
+							
+							profile.repositoryCount = repos;
+						}
+					}
+				}
+			}
 		}
 
 		if ( selectedFilter ) {
@@ -107,44 +133,14 @@ route.checkStatus = function() {
 };
 
 route.middleware = function(scraped, callback) {
-	var item, parts, searchQuery, repos;
+	var emailRegex = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
 
-	// track the number of repositories
-	// todo: this is ugly
-	if ( scraped.items.length ) {
-		for (var i = 0, len = scraped.items.length; i < len; i++) {
-			item = scraped.items[i];
-			if ( item.local && item.local.data && item.local.data.searchQuery ) {
-				parts = item.local.data.searchQuery.split(' ');
-
-				// get the number of repos filter from the search query
-				for (var j = 0, jLen = parts.length; j < jLen; j++) {
-					searchQuery = parts[j];
-					if ( searchQuery.indexOf('repos:') > -1 ) {
-						repos = searchQuery.split(':')[1];
-
-						if ( !isNaN(repos) ) {
-							repos = parseInt(repos);
-						}  else {
-							if ( repos.indexOf('>') > -1 ) {
-								repos = parseInt(repos.replace('>', ''));
-
-								if ( !isNaN(repos) ) {
-									repos++;
-								}
-							}
-						}
-						if ( !isNaN(repos) ) {
-							item.local.data.repositoryCount = repos;
-						}
-					}
-				}
-			}
-		}
-	}
+	// remove the invalid emails from the scraped results
+	scraped.items = _.filter(scraped.items, function(item) {
+		return emailRegex.test(item.key);
+	});
 
 	callback(null, scraped);
 };
-
 
 module.exports = route;

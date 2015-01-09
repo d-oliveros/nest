@@ -1,4 +1,5 @@
 var Route = require('../../framework/route');
+var _ = require('lodash');
 
 var route = new Route({
 	provider: 'github',
@@ -92,6 +93,7 @@ route.scraper = function() {
 		}
 	});
 
+	// save this profile in the db
 	if ( profile.key ) {
 		data.items.push(profile);
 	}
@@ -114,6 +116,20 @@ route.scraper = function() {
 	}
 
 	return data;
+};
+
+
+// Route Middleware
+//
+route.middleware = function(scraped, callback) {
+	var emailRegex = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+
+	// remove the invalid emails from the scraped results
+	scraped.items = _.filter(scraped.items, function(item) {
+		return emailRegex.test(item.key);
+	});
+
+	callback(null, scraped);
 };
 
 module.exports = route;

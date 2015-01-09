@@ -17,13 +17,16 @@ describe('Routes', function() {
 
 	var domains = require('../routes');
 	
-	_.each(domains, function(domain) {
-		_.each(domain, function(route) {
-			if (!route.test)
-				console.warn('Hint: Write test for '+route.provider+'->'+route.name+' ;)');
+	_.each(domains, function(domain, domainName) {
+		describe(domainName, function() {
 
-			else 
-				createRouteTest(domain, route);
+			_.each(domain, function(route) {
+				if (!route.test)
+					console.warn('Hint: Write test for '+route.provider+'->'+route.name+' ;)');
+
+				else 
+					createRouteTest(domain, route);
+			});
 		});
 	});
 });
@@ -32,6 +35,11 @@ function createRouteTest(domain, route) {
 	var testParams = route.test;
 
 	describe(route.name, function() {
+
+		before( function(done) {
+			Item.remove(done);
+		});
+
 		var responsabilities = [];
 
 		if ( testParams.shouldSpawnOperations ) {

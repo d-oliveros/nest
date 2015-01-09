@@ -3,6 +3,7 @@ var async = require('async');
 
 var Item  = require('../models/Item');
 var routes = require('../../routes');
+var modules = require('../modules');
 
 var _log = require('../../logger');
 var debug = _log.debug('Agent:run');
@@ -87,8 +88,21 @@ function runner(operation) {
 			
 			callback(null, scraped);
 		},
-		function executeMiddleware(scraped, callback) {
+		function runMiddleware(scraped, callback) {
+
+			// route-specific middleware
 			route.middleware(scraped, callback);
+
+		},
+		function runModules(scraped, callback) {
+
+			// apply the modules to this scraped data
+			async.eachSeries(_.toArray(modules), function(module, cb) {
+				module(scraped, cb);
+			}, function(err) {
+				if (err) return callback(err);
+				return callback(null, scraped);
+			});
 		},
 		function spawnOperations(scraped, callback) {
 			if ( scraped.operations.length === 0 ) {

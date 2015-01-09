@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-var route, routeName, provider, parts, path, 
+var route, routeName, domain, parts, path, 
 	query, engine, debug, argv, cmd, root;
 
 path = require('path');
@@ -31,18 +31,18 @@ switch (cmd) {
 		// load the route
 		if ( argv.length >= 4 ) {
 			parts = argv[3].split(':');
-			provider = parts[0];
+			domain = parts[0];
 			routeName = parts[1] ? parts[1] : null;
 			query = argv[4] ? argv[4] : undefined;
 
-			// if there's no specific route, execute the script for the provider
+			// if there's no specific route, execute the script for the domain
 			if ( !routeName ) {
 				try {
-					require(root+'/scripts/'+provider);
+					require(root+'/scripts/'+domain);
 					return;
 				} catch (err) {
 					if ( err.code === 'MODULE_NOT_FOUND' ) {
-						console.error('No init script for '+provider+'.');
+						console.error('No init script for '+domain+'.');
 						process.exit(1);
 					} else {
 						throw err;
@@ -53,7 +53,7 @@ switch (cmd) {
 			// If there's a route to scrape, load the route and start it
 			else {
 				try {
-					route = require(root+'/routes/'+provider+'/'+routeName);
+					route = require(root+'/routes/'+domain+'/'+routeName);
 				} catch(err) {
 					if ( err.code === 'MODULE_NOT_FOUND' ) {
 						console.error('Route '+argv[3]+' not found.');

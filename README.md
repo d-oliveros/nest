@@ -1,73 +1,123 @@
+
 Nest
 ==============
 
 A data extraction framework on NodeJS. Replicate another site's data without touching its database.
 
 #### Features
-  * PhantomJS scraping. No more "Couldn't scrape because data was dynamic" bs.
-  * Persistent state. You can stop and start the engine at any time without worrying of losing data or the current flow.
-  * Controlled, parallel scraping.
-  * Dead-simple interface for scripting new domains.
 
-#### Todo
-  * Send debug messages to log file.
-  * Write documentation.
-  * engine.stop() method. Currently, there's no way to stop the engine once it starts.
-  * Support for multiple engines running different processes / servers.
-  * Implement [Tor](https://github.com/d-oliveros/node-tor-nightcrawler).
+  * PhantomJS parallel scraping.
+  * Persistent scraping state.
+  * Dead-simple interface for scripting new domains.
+  * Automated route scraping tests
+
 
 #### Requirements
-  * MongoDB [(Install)](http://docs.mongodb.org/manual/installation)
-  * PhantomJS
+
+  * MongoDB and PhantomJS installed on your system
+
+If you don't have PhantomJS installed already, you can install it by doing:
+
+```
+sudo npm install -g phantomjs
+```
+
 
 ## Installation
 
 ```
-sudo npm install -g phantomjs
 npm install
 ```
 
-Before running Nest, you should run the tests to see if everything's OK with your setup.
+Run the tests to see if everything's OK with your setup:
 
 ```
-make test
+npm test
 ```
+
+There's a bin file (executable) you can use in bin/nest.
+
+You can expose the executable globally by running the `symlink-setup.sh` script. 
+This will create a symlink in /usr/local/bin, and will let you run nest from the
+terminal like this: `nest scrape [parameters]`.
+
+If you don't expose `nest` globally, you can still use it locally 
+by replacing "nest" with "./bin/nest":
+
+```
+./bin/nest scrape imdb
+./bin/nest scrape github
+./bin/nest work
+```
+
+
+#### Quickstart
+
+To quickly check this up, run:
+
+```
+nest scrape imdb
+```
+
+This will initialize the IMDB data extractor, and start populating your local `nest` mongo database.
+
 
 ## Usage
 
-To quickly check this up:
+```
+// Run the init script for this domain. The scripts are located in /scripts
+nest scrape [domain]
 
-```js
-node scripts/imdb
+// Start a route with the specified query
+nest scrape [domain:route] [query]
+
+// Starts the engine, scrape and spawn pending operations
+nest work
+
 ```
 
-This will initialize the IMDB data extractor, and start populating your local `nest` mongo database. To look at the data, open a terminal and do:
+Examples:
+
+```
+nest scrape imdb
+nest scrape github:profile d-oliveros
+nest scrape github
+nest work
+```
+
+To see a more verbose script, run the any extractor with the DEBUG=* argument set:
+
+```
+DEBUG=* nest work
+```
+
+You can view the data from Mongo's CLI, by doing:
 
 ```
 mongo nest
 db.items.find().pretty()
 ```
 
-To see a more verbose script, run the Github data extractor:
+There's also a really sweet [express-based MongoDB UI](https://github.com/andzdroid/mongo-express) you can use in your server,
+if you are planning on having the DB on a server.
 
-```js
-node scripts/github
-node index
-```
-
-#### How does it work?
-
-Try running `DEBUG=* node index` and looking at the console messages. You can also look into the tests in each module to see what everything is doing. I haven't got into writing a proper documentation for this thing, so...
 
 ## Routes
 
-A route is a definition of a website's section, like a search results page, or a post page. A route definition has various components:
+A route must be built before being able to use it with nest.
 
-- Scraper function. Transforms the HTML into structured data.
-- URL generator function. Transforms the query and operation's state into a URL string.
+A route represents a website's section, like a search results page, or a post page. 
+A route definition has various components:
+
+- A Scraper function, which is run in a sandboxed PhantomJS context. This function should transform the HTML into structured data. jQuery is already loaded in this context for you to use it.
+- URL Template. Builds URL string. the `operation` object is available in this context, so you can use the current page, the query string, etc
+- Domain name.
 - Route name.
 - Priority.
-- Test options.
+- Test options. (Optional, if you want to auto-test your route)
+
+
+#### Route usage
 
 A route can be started with a query by doing:
 
@@ -82,13 +132,14 @@ The `Route:start` method returns an `Agent` instance, which will emit events whe
 ```js
 var github = require('./routes/github');
 var agent = github.search.start('nodejs');
-g
+
 agent.on('scraped:page', function(results) {
 	console.log('Got scraped data!', results);
 });
 
 agent.on('operation:finish', function(operation) {
 	console.log('Operation finished!');
+
 	// Stats on operation.stats
 	console.log('Operations created: '+operation.stats.items);
 	console.log(operation.stats.spawned+' new potential routes created!');
@@ -97,13 +148,6 @@ agent.on('operation:finish', function(operation) {
 
 You don't have to manually save the results into the DB; The agent will save all the scraped results in the database for you, and will make sure it doesn't accidentally scrape the same link twice.
 
-## Engine
-
-Normally, a scraping op will spawn a bunch of other scraping operations. That's when the engine comes in handy. By default, the engine will create x amount of workers, where x is the amount of CPU cores you have. Each worker will query for an operation, sorted by priority, run that operation (and spawn a bunch of other operations), and query for another operation again.
-
-Only 1 worker will be querying for an operation at a given time. That is to avoid having multiple workers working on the same op. If there are no unfinished operations, the worker will keep on querying for new ops every 600ms.
-
-The `Worker` class is a sub-class of the Agent class. The Agent class is extending EventEmitter. The Agent class has the ability to add external EventEmitters and emit events to them, and can also spawn phantomJS processes and open URLs and do a bunch of cool stuff.
 
 ## Creating new routes
 
@@ -111,7 +155,7 @@ The `Route` class makes it dead-simple to program crawlers on new sites. You can
 
 ```js
 var someRoute = new Route({
-	provider: 'stackoverflow',
+	provider: 'stackoverflow', // a.k.a. domain
 	name: 'profile',
 	url: 'http://stackoverflow.com/users/<%= query %>',
 	priority: 90,
@@ -151,17 +195,41 @@ someRoute.scraper = function() {
 };
 ```
 
-You can place this new route on the `/routes` folder, and test the route by running `make test`.
+You can place this new route on the `/routes` folder, and test the route by running `npm test`.
 
-You can start some initial routes from a script file by doing `someRoute.start(queryParameter)`. You can place those on `/scripts` for now.
+You can create a domain initialization script file and put those on `/scripts`.
+To run a domain init script, just do `nest scrape [domain]` without a route name.
+Nest will look in the /scripts directory for an init script that matches the domain name.
 
 The most basic and direct example is found on `scripts/imdb.js`. It is able to scrape all IMDB movies (at least the most popular 100k) in one night.
 
 You can also do a script to create a bunch of operations, and let the engine scrape it all. See `scripts/github.js`.
 
-## Adding your own environment (database)
 
-Copy config/environments/default.js to /config/environments/local.js, /config/environments/production.js, /config/environments/test.js etc, and set up the database host and credentials.
+## Modules
+
+A module is a middleware function that gets executed after scraping and sanitizing a web page. Right now, there's only one module `human` that adds metadata for items that have the "type" property set to "user". The properties it adds are: 
+
+- `nameIsHuman`: Flag to determine if a name is a real human name
+
+
+## Engine
+
+Normally, a scraping op will spawn a bunch of other scraping operations. That's when the engine comes in handy. By default, the engine will create x amount of workers, where x is the amount of CPU cores you have. Each worker will query for an operation, sorted by priority, run that operation (and spawn a bunch of other operations), and query for another operation again.
+
+Only 1 worker will be querying for an operation at a given time. That is to avoid having multiple workers working on the same op. If there are no unfinished operations, the worker will keep on querying for new ops every 600ms.
+
+The `Worker` class is a sub-class of the Agent class. The Agent class is extending EventEmitter. The Agent class has the ability to add external EventEmitters and emit events to them, and can also spawn phantomJS processes and open URLs and do a bunch of cool stuff.
+
+
+## How does it work?
+
+Try running `DEBUG=* nest work` and looking at the console messages. You can also look into the tests in each module to see what everything is doing.
+
+
+## Adding your own environment (database, cloud environment, etc)
+
+Copy config/environments/default.js to /config/environments/local.js, /config/environments/test.js, /config/environments/production.js etc, and set up the database host and credentials.
 
 If you don't do this, the default environment is used. This environment is using the database "nest" on localhost, default port.
 

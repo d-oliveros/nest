@@ -54,6 +54,6 @@ function startOperation(op, callback) {
 function onFinish(err) {
 	if (err) return console.error(err);
 	console.log(ops.length+' operations created. Script finished.');
-	console.log('Now, start the engine. ( hint: node index )');
+	console.log('Now, start the engine. ( hint: nest work )');
 	process.exit(0);
 }

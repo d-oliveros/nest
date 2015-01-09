@@ -2,6 +2,9 @@
 # Environments
 config/environments/*
 
+# Data
+framework/modules/human/names.*
+
 # Logs
 logs
 *.log

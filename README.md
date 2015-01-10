@@ -47,7 +47,7 @@ by replacing "nest" with "./bin/nest":
 ```
 ./bin/nest scrape imdb
 ./bin/nest scrape github
-./bin/nest work
+./bin/nest scrape reddit
 ```
 
 
@@ -211,6 +211,15 @@ You can also do a script to create a bunch of operations, and let the engine scr
 A module is a middleware function that gets executed after scraping and sanitizing a web page. Right now, there's only one module `human` that adds metadata for items that have the "type" property set to "user". The properties it adds are: 
 
 - `nameIsHuman`: Flag to determine if a name is a real human name
+
+This module is disabled by default. To enable this module,
+you need to provide a names.json file containing an array of names.
+
+You can use this names list, it has 37.6k names:
+
+https://gist.github.com/d-oliveros/3693a104a0dc82695324
+
+create the file ./framework/modules/human/names.json with that data to enable the module.
 
 
 ## Engine

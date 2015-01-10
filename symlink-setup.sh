@@ -6,4 +6,4 @@ chmod +x ${SOURCE}
 sudo ln -s ${SOURCE} ${TARGET}
 
 echo "Done. Now you can use nest from your terminal."
-echo "Usage: nest [scrape|work] [provider:route] [query]"
+nest

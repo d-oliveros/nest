@@ -43,17 +43,21 @@ _.each(reposQueries, function(query) {
 });
 
 // Initialize the scraping operations on Nest
+console.log('Initializing '+ops.length+' search routes...');
+
 var githubSearchRoute = require('../routes/github/search');
 async.eachLimit(ops, 10, startOperation, onFinish);
 
 function startOperation(op, callback) {
-	console.log('Starting op: github:search ('+op+')');
 	githubSearchRoute.initialize(op, callback);
 }
 
 function onFinish(err) {
 	if (err) return console.error(err);
+
 	console.log(ops.length+' operations created. Script finished.');
-	console.log('Now, start the engine. ( hint: nest work )');
-	process.exit(0);
+	console.log('Starting the data extraction engine now...');
+
+	var engine = require('../framework/engine');
+	engine.start();
 }

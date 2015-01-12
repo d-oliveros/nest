@@ -4,6 +4,7 @@ var _ = require('lodash');
 
 var Operation = require('../lib/models/Operation');
 var Item      = require('../lib/models/Item');
+var Route     = require('../lib/route');
 
 describe('Routes', function() {
 	this.timeout(300000); // 5 mins
@@ -21,8 +22,10 @@ describe('Routes', function() {
 		describe(domainName, function() {
 
 			_.each(domain, function(route) {
+				if ( !(route instanceof Route) ) return;
+
 				if (!route.test)
-					console.warn('Hint: Write test for '+route.provider+'->'+route.name+' ;)');
+					console.warn('Hint: Enable test for '+route.provider+'->'+route.name+' ;)');
 
 				else 
 					createRouteTest(domain, route);

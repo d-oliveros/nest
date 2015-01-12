@@ -6,7 +6,6 @@ config/environments/*
 lib/modules/human/names.*
 
 # Logs
-logs
 *.log
 
 # Runtime data

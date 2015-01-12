@@ -3,7 +3,6 @@ var jshint = require('gulp-jshint');
 
 var files = [
 	'index.js',
-	'logger.js',
 	'bin/**/*',
 	'scripts/**/*.js',
 	'routes/**/*.js',

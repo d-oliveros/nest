@@ -6,11 +6,10 @@ A data extraction framework on NodeJS. Replicate another site's data without tou
 
 #### Features
 
-  * PhantomJS parallel scraping.
-  * Persistent scraping state.
-  * Dead-simple interface for scripting new domains.
-  * Automated route scraping tests
-
+  * PhantomJS scraping
+  * Persistent state.
+  * Automated scraping route tests.
+  * Workers.
 
 #### Requirements
 
@@ -29,25 +28,21 @@ sudo npm install -g phantomjs
 npm install
 ```
 
-Run the tests to see if everything's OK with your setup:
+The main executable file is bin/nest. You can run nest locally, or expose it globally by running the `symlink-setup.sh` script. 
+This will create a symlink in /usr/local/bin, and will let you run nest from the terminal.
 
-```
-npm test
-```
-
-There's a bin file (executable) you can use in bin/nest.
-
-You can expose the executable globally by running the `symlink-setup.sh` script. 
-This will create a symlink in /usr/local/bin, and will let you run nest from the
-terminal like this: `nest scrape [parameters]`.
-
-If you don't expose `nest` globally, you can still use it locally 
-by replacing "nest" with "./bin/nest":
-
-```
+```bash
+# When used locally
 ./bin/nest scrape imdb
-./bin/nest scrape github
-./bin/nest scrape reddit
+
+# When used globally
+nest scrape github
+```
+
+You should run the tests to see if everything's OK with your setup:
+
+```
+nest test
 ```
 
 
@@ -64,74 +59,85 @@ This will initialize the IMDB data extractor, and start populating your local `n
 
 ## Usage
 
-```
-// Run the init script for this domain. The scripts are located in /scripts
+```bash
+# Runs the init script for this domain
 nest scrape [domain]
 
-// Start a route with the specified query
+# Start a route with the specified query
 nest scrape [domain:route] [query]
 
-// Starts the engine, scrape and spawn pending operations
+# Lists available routes to use
+nest list
+
+# Tests a route
+nest test [domain:route]
+
+# Tests all routes from [domain]
+nest test [domain]
+
+# Starts the engine, scrape and spawn pending operations
+# You don't need to run this to start nest. This is to continue scraping where it left
 nest work
 
 ```
 
 Examples:
 
-```
+```bash
+
+# Starts extracting movie data from IMDB
 nest scrape imdb
+
+# Tests the "github:profile" route
+nest test github:profile
+
+# Scrapes a github profile
 nest scrape github:profile d-oliveros
+
+# Scrapes all github lol
 nest scrape github
+
+# Continue previous operations
 nest work
 ```
 
-To see a more verbose script, run the any extractor with the DEBUG=* argument set:
+To see a more verbose script, run nest with `DEBUG=*`:
 
-```
+```bash
 DEBUG=* nest work
 ```
 
 You can view the data from Mongo's CLI, by doing:
 
-```
+```bash
 mongo nest
-db.items.find().pretty()
+> db.items.find().pretty()
 ```
 
-There's also a really sweet [express-based MongoDB UI](https://github.com/andzdroid/mongo-express) you can use in your server,
-if you are planning on having the DB on a server.
+There's also a really sweet [express-based MongoDB UI](https://github.com/andzdroid/mongo-express) you can use.
 
 
 ## Routes
 
-A route must be built before being able to use it with nest.
+A route represents a website's section, and is generally accompanied by an ID. For example, /users/:userId, or /posts/:id?sort=asc. In `Nest`, the routes are predefined, and are stored under the `/routes` folder. For `Nest` to load the route correctly, the routes must be organized by providers, and can optionally have a `init.js` script located in the root of the domain's directory.
 
-A route represents a website's section, like a search results page, or a post page. 
-A route definition has various components:
-
-- A Scraper function, which is run in a sandboxed PhantomJS context. This function should transform the HTML into structured data. jQuery is already loaded in this context for you to use it.
-- URL Template. Builds URL string. the `operation` object is available in this context, so you can use the current page, the query string, etc
-- Domain name.
-- Route name.
-- Priority.
-- Test options. (Optional, if you want to auto-test your route)
-
-
-#### Route usage
-
-A route can be started with a query by doing:
+The routes inside the `/routes` folder are independent, meaning you can require them in your modules, and they should work just fine (There's also a bin command allowing you to start routes easily: `nest scrape`).
 
 ```js
-var github = require('./routes/github');
+var githubSearch = require('./routes/github/search');
 var query = 'nodejs';
-github.search.start(query);
+githubSearch.start(query);
 ```
+
+When starting a route, a `PhantomJS` instance will be created, and it will scrape the route's URL using the query string provided, and the scraping state, like the current page, and misc data provided by previous scraping operations on the same route. For example, if the section is paginated, the route will continue scraping the next pages, until all the pages are processed. If the process is stopped while running a route, it will save its state so it can be resumed on later on. See `nest work`.
+
+After extracting data from a page, `Nest` saves the data in the `items` mongo collection, and spawns new operations based on the results of the scraping function. `Nest` also keeps track of the pages it has scraped, and it never repeats itself. This can potentially lead to an infinite crawling loop that would only end when every single page on the website is scraped (or completely disconnected).
 
 The `Route:start` method returns an `Agent` instance, which will emit events when things happen:
 
 ```js
-var github = require('./routes/github');
-var agent = github.search.start('nodejs');
+var githubSearch = require('./routes/github/search');
+var agent = githubSearch.start('nodejs');
 
 agent.on('scraped:page', function(results) {
 	console.log('Got scraped data!', results);
@@ -146,12 +152,7 @@ agent.on('operation:finish', function(operation) {
 });
 ```
 
-You don't have to manually save the results into the DB; The agent will save all the scraped results in the database for you, and will make sure it doesn't accidentally scrape the same link twice.
-
-
-## Creating new routes
-
-The `Route` class makes it dead-simple to program crawlers on new sites. You can create a new Route like this:
+You can create a new route by creating a file in `./routes/[somedomain]/[routename].js`
 
 ```js
 var someRoute = new Route({
@@ -160,10 +161,8 @@ var someRoute = new Route({
 	url: 'http://stackoverflow.com/users/<%= query %>',
 	priority: 90,
 
-	// Optional: 
-	// If you want to test your crawler without having to 
-	// actually write a test for it, set up this property and
-	// run npm test. It will automatically test this route.
+	// Optional. If you want to automatically test your scraper,
+	// set up this property and run `nest test domain:route`.
 	test: {
 		query: '2803446/david-oliveros',
 		shouldCreateItems: true, // Are we expecting new items out of this route?
@@ -172,7 +171,7 @@ var someRoute = new Route({
 
 });
 
-// This function is executed in the PhantomJS contex;
+// This function is executed in the PhantomJS context
 // we have no access to the context out of this function
 someRoute.scraper = function() {
 	var data = {
@@ -195,15 +194,17 @@ someRoute.scraper = function() {
 };
 ```
 
-You can place this new route on the `/routes` folder, and test the route by running `npm test`.
+You can test if your route work by doing `nest test [domain]:[route]`. 
+If `shouldCreateItems` is set to `true`, the test runs the scraper, and expects new items to be created.
+If `shouldSpawnOperations` is set to `true`, the test expects new operations to be created.
 
-You can create a domain initialization script file and put those on `/scripts`.
-To run a domain init script, just do `nest scrape [domain]` without a route name.
-Nest will look in the /scripts directory for an init script that matches the domain name.
+To start the route, you can do `nest scrape [mydomain]:[myroute] [query]`. `[query]` is optional.
 
-The most basic and direct example is found on `scripts/imdb.js`. It is able to scrape all IMDB movies (at least the most popular 100k) in one night.
+You can also create a domain scraping initialization script file. You can do so by adding a file names `init.js` to the root of the folder containing the domain's routes. To run a domain init script, just do `nest scrape [domain]` without a route name.
 
-You can also do a script to create a bunch of operations, and let the engine scrape it all. See `scripts/github.js`.
+The most basic and direct example is found on `routes/imdb/init.js`. It is able to scrape all IMDB movies (at least the most popular 100k) in one night.
+
+You can also do a script to create a bunch of operations, and let the engine scrape it all. See `routes/github/init.js`.
 
 
 ## Modules
@@ -236,9 +237,9 @@ The `Worker` class is a sub-class of the Agent class. The Agent class is extendi
 Try running `DEBUG=* nest work` and looking at the console messages. You can also look into the tests in each module to see what everything is doing.
 
 
-## Adding your own environment (database, cloud environment, etc)
+## Environment
 
-Copy config/environments/default.js to /config/environments/local.js, /config/environments/test.js, /config/environments/production.js etc, and set up the database host and credentials.
+To limit the number of workers, change your database host / settings, or override any config-level variable, copy config/environments/default.js to /config/environments/local.js, /config/environments/test.js, /config/environments/production.js etc, and change the variables 
 
 If you don't do this, the default environment is used. This environment is using the database "nest" on localhost, default port.
 

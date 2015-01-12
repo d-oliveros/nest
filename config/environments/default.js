@@ -5,3 +5,8 @@ exports.mongo = {
 	// user: 'mongo',
 	// pass: 'password'
 };
+
+//Hard-set the number of concurrent workers
+// exports.engine = {
+// 	workers: 1,
+// };	

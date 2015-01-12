@@ -11,7 +11,7 @@ var route = new Route({
 	}
 });
 
-// This function is executed in the PhantomJS contex;
+// This function is executed in the PhantomJS context
 // we have no access to the context out of this function
 route.scraper = function() {
 	var data = {

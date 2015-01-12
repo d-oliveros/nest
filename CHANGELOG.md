@@ -2,6 +2,13 @@
 Changelog
 ==============
 
+#### v0.1.2
+
+- Added `test` command
+- Added `list` command
+- Removed /logs folder
+- Refactored file structure
+
 #### v0.1.1
 
 - Auto-start the engine on domain init scripts

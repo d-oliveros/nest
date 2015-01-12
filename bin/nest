@@ -1,24 +1,37 @@
 #!/usr/bin/env node
-var route, routeName, domain, parts, path, 
+var route, routeName, domain, routeParts, path, routeId,
 	query, engine, debug, argv, cmd, root;
+
+function displayUsage() {
+	console.log(
+		'Usage: nest [command] [routeID] ([query])\n\n'+
+		'Available commands: \nscrape \nlist \ntest \nwork \n\n'+
+		'Hint: try `nest scrape imdb`\n');
+}
 
 path = require('path');
 debug = require('debug');
 
-// enable Worker messages
-debug.enable('Worker');
-debug.enable('Agent*');
-
 argv = process.argv;
 
-if ( argv.length > 5 || argv.length < 3 ) {
+if ( argv.length < 3 ) {
 	displayUsage();
 	process.exit(0);
 }
 
-root = path.normalize( path.join(__dirname, '..') );
-engine = require(root+'/lib/engine');
-cmd = argv[2];
+root   = path.normalize( path.join(__dirname, '..') );
+
+cmd     = argv[2];
+routeId = argv[3];
+query   = argv[4];
+
+
+// Get the route domain and name
+if ( routeId ) {
+	routeParts = routeId.split(':');
+	domain = routeParts[0];
+	routeName = routeParts[1] ? routeParts[1] : 'init';
+}
 
 
 switch (cmd) {
@@ -26,15 +39,15 @@ switch (cmd) {
 	case 'scrape':
 
 		if ( argv.length === 3 ) {
-			console.log('Please, specify the domain and route to scrape.');
+			route = require(root+'/routes');
+			console.log('Please, specify the route ID to scrape.');
+			console.log('\nAvailable routes:\n'+route.list());
 			process.exit(0);
 		}
 
-		// load the route (or init script)
-		parts = argv[3].split(':');
-		domain = parts[0];
-		routeName = parts[1] ? parts[1] : 'init';
-		query = argv[4] ? argv[4] : undefined;
+		// enable Worker messages
+		debug.enable('Worker');
+		debug.enable('Agent*');
 
 		try {
 			route = require(root+'/routes/'+domain+'/'+routeName);
@@ -58,18 +71,40 @@ switch (cmd) {
 
 		break;
 
+	case 'test':
+		if ( routeId ) {
+			if ( routeName === 'init' ) {
+				process.env.TEST_DOMAIN = domain;
+			} else {
+				process.env.TEST_ROUTE = routeId;
+			}
+
+			process.argv[2] = root+'/test/routes.test';
+			process.argv.splice(3, 1);
+		}
+		require(root+'/node_modules/mocha/bin/_mocha');
+		break;
+
+	case 'list':
+		route = require(root+'/routes');
+		console.log(route.list());
+		process.exit(0);
+		break;
+
 	case 'work':
+
+		// enable Worker messages
+		debug.enable('Worker');
+		debug.enable('Agent*');
+
+		// start the engine
+		engine = require(root+'/lib/engine');
 		engine.start();
+
 		break;
 
 	default:
 		console.log('Unknown command '+cmd);
 		displayUsage();
 		process.exit(0);
-}
-
-function displayUsage() {
-	console.log(
-		'Usage: nest [scrape | work] [[domain:route] | [domain]] ([query])\n'+
-		'ej. nest scrape imdb');
 }

@@ -4,7 +4,6 @@ var jshint = require('gulp-jshint');
 var files = [
 	'index.js',
 	'bin/**/*',
-	'scripts/**/*.js',
 	'routes/**/*.js',
 	'lib/**/*.js',
 	'config/**/*.js',
@@ -12,7 +11,6 @@ var files = [
 ];
 
 gulp.task('lint', function() {
-
 	return gulp.src(files)
 		.pipe(jshint())
 		.pipe(jshint.reporter('jshint-stylish'));

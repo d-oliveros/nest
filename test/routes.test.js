@@ -2,9 +2,12 @@ process.env.NODE_ENV = 'test';
 
 var _ = require('lodash');
 
-var Operation = require('../lib/models/Operation');
-var Item      = require('../lib/models/Item');
-var Route     = require('../lib/route');
+var Route      = require('../lib/route');
+var Item       = require('../lib/models/Item');
+var Operation  = require('../lib/models/Operation');
+
+var testRoute  = process.env.TEST_ROUTE || false;
+var testDomain = process.env.TEST_DOMAIN || false;
 
 describe('Routes', function() {
 	this.timeout(300000); // 5 mins
@@ -19,13 +22,21 @@ describe('Routes', function() {
 	var domains = require('../routes');
 	
 	_.each(domains, function(domain, domainName) {
+		
+		if ( testDomain && testDomain !== domainName )
+			return;
+
 		describe(domainName, function() {
 
-			_.each(domain, function(route) {
-				if ( !(route instanceof Route) ) return;
+			_.each(domain, function(route, routeName) {
+				var routeId = domainName+':'+routeName;
+				var shouldTest = !testRoute || testRoute === routeId;
 
-				if (!route.test)
-					console.warn('Hint: Enable test for '+route.provider+'->'+route.name+' ;)');
+				if ( !(route instanceof Route) || !shouldTest ) 
+					return;
+
+				if ( !route.test )
+					console.warn('Hint: Enable test for '+route.provider+':'+route.name+' ;)');
 
 				else 
 					createRouteTest(domain, route);

@@ -7,7 +7,7 @@ var files = [
 	'bin/**/*',
 	'scripts/**/*.js',
 	'routes/**/*.js',
-	'framework/**/*.js',
+	'lib/**/*.js',
 	'config/**/*.js',
 	'test/**/*.js',
 ];

@@ -2,7 +2,7 @@ process.env.NODE_ENV = 'test';
 
 var _ = require('lodash');
 
-var Item = require('../framework/models/Item');
+var Item = require('../lib/models/Item');
 var dummyItem = require('./data/profile.json');
 
 describe('Item', function() {

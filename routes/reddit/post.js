@@ -1,4 +1,4 @@
-var Route = require('../../framework/route');
+var Route = require('../../lib/route');
 
 var route = new Route({
 	provider: 'reddit',

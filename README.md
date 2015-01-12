@@ -219,7 +219,7 @@ You can use this names list, it has 37.6k names:
 
 https://gist.github.com/d-oliveros/3693a104a0dc82695324
 
-create the file ./framework/modules/human/names.json with that data to enable the module.
+create the file ./lib/modules/human/names.json with that data to enable the module.
 
 
 ## Engine

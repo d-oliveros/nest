@@ -5,6 +5,6 @@ debug.enable('Worker');
 debug.enable('Agent*');
 
 // Start the engine
-require('./framework/engine').start();
+require('./lib/engine').start();
 
 console.log('Engine started');

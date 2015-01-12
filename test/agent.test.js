@@ -1,7 +1,7 @@
 process.env.NODE_ENV = 'test';
 var should = require('chai').should(); // jshint ignore:line
 var expect = require('chai').expect;
-var Agent = require('../framework/agent');
+var Agent = require('../lib/agent');
 var EventEmitter = require('events').EventEmitter;
 
 describe('Agent', function() {

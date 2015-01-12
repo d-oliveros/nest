@@ -1,6 +1,6 @@
 process.env.NODE_ENV = 'test';
 
-var Operation = require('../framework/models/Operation');
+var Operation = require('../lib/models/Operation');
 var dummyParams = require('./data/params.json');
 
 describe('Operation', function() {

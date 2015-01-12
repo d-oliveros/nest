@@ -17,7 +17,7 @@ if ( argv.length > 5 || argv.length < 3 ) {
 }
 
 root = path.normalize( path.join(__dirname, '..') );
-engine = require(root+'/framework/engine');
+engine = require(root+'/lib/engine');
 cmd = argv[2];
 
 

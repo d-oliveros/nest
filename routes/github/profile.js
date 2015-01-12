@@ -1,4 +1,4 @@
-var Route = require('../../framework/route');
+var Route = require('../../lib/route');
 var _ = require('lodash');
 
 var route = new Route({

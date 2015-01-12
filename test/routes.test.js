@@ -2,8 +2,8 @@ process.env.NODE_ENV = 'test';
 
 var _ = require('lodash');
 
-var Operation = require('../framework/models/Operation');
-var Item      = require('../framework/models/Item');
+var Operation = require('../lib/models/Operation');
+var Item      = require('../lib/models/Item');
 
 describe('Routes', function() {
 	this.timeout(300000); // 5 mins

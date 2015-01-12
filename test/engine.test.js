@@ -1,8 +1,8 @@
 process.env.NODE_ENV = 'test';
 var should = require('chai').should(); // jshint ignore:line
-var Operation = require('../framework/models/Operation');
-var Item = require('../framework/models/Item');
-var engine = require('../framework/engine');
+var Operation = require('../lib/models/Operation');
+var Item = require('../lib/models/Item');
+var engine = require('../lib/engine');
 
 var dummyParams = require('./data/params.json');
 

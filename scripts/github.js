@@ -58,6 +58,6 @@ function onFinish(err) {
 	console.log(ops.length+' operations created. Script finished.');
 	console.log('Starting the data extraction engine now...');
 
-	var engine = require('../framework/engine');
+	var engine = require('../lib/engine');
 	engine.start();
 }

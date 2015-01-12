@@ -76,7 +76,7 @@ nest test [domain:route]
 nest test [domain]
 
 # Starts the engine, scrape and spawn pending operations
-# You don't need to run this to start nest. This is to continue scraping where it left
+# You don't need to run this to start nest. This continues where it left
 nest work
 
 ```
@@ -165,8 +165,8 @@ var someRoute = new Route({
 	// set up this property and run `nest test domain:route`.
 	test: {
 		query: '2803446/david-oliveros',
-		shouldCreateItems: true, // Are we expecting new items out of this route?
-		shouldSpawnOperations: true, // Are we expecting new operations out of this route?
+		shouldCreateItems: true, // Are we expecting new items from this route?
+		shouldSpawnOperations: true, // Are we expecting new operations?
 	},
 
 });

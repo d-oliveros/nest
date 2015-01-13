@@ -10,7 +10,7 @@ var testRoute  = process.env.TEST_ROUTE || false;
 var testDomain = process.env.TEST_DOMAIN || false;
 
 describe('Routes', function() {
-	this.timeout(300000); // 5 mins
+	this.timeout(15000); // 15 secs
 
 	beforeEach( function(done) {
 		Operation.remove(function(err) {

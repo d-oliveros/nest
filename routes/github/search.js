@@ -5,7 +5,8 @@ var route = new Route({
 	provider: 'github',
 	name:  'search',
 	url:   'https://github.com/search?p=<%= state.currentPage %>&type=Users&q=<%= query %>',
-	priority: 80,
+	priority: 100,
+	concurrency: 2,
 	test: {
 		query: 'nodejs',
 		shouldCreateItems:  true,

@@ -48,6 +48,7 @@ switch (cmd) {
 		// enable Worker messages
 		debug.enable('Worker');
 		debug.enable('Agent*');
+		debug.enable('Item*');
 
 		try {
 			route = require(root+'/routes/'+domain+'/'+routeName);
@@ -87,7 +88,7 @@ switch (cmd) {
 
 	case 'list':
 		route = require(root+'/routes');
-		console.log(route.list());
+		console.log( route.list() );
 		process.exit(0);
 		break;
 
@@ -96,6 +97,7 @@ switch (cmd) {
 		// enable Worker messages
 		debug.enable('Worker');
 		debug.enable('Agent*');
+		debug.enable('Item*');
 
 		// start the engine
 		engine = require(root+'/lib/engine');

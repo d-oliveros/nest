@@ -5,7 +5,7 @@ var route = new Route({
 	provider: 'github',
 	name:  'profile',
 	url:   'https://github.com/<%- query %>',
-	priority: 100,
+	priority: 80,
 	test: {
 		query: 'isaacs',
 		shouldCreateItems:  true,

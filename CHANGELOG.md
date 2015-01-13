@@ -2,6 +2,12 @@
 Changelog
 ==============
 
+#### v0.1.3
+
+- Added route concurrency treshold
+- Added routeId to Operation schema
+- Added engine.stop method
+
 #### v0.1.2
 
 - Added `test` command

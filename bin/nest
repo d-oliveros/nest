@@ -4,9 +4,8 @@ var route, routeName, domain, routeParts, path, routeId,
 
 function displayUsage() {
 	console.log(
-		'Usage: nest [command] [routeID] ([query])\n\n'+
-		'Available commands: \nscrape \nlist \ntest \nwork \n\n'+
-		'Hint: try `nest scrape imdb`\n');
+		'Usage: nest COMMAND [ROUTEID] [QUERY]\n\n'+
+		'Available commands: \nscrape \nlist \ntest \nwork \n\n');
 }
 
 path = require('path');
@@ -80,7 +79,7 @@ switch (cmd) {
 				process.env.TEST_ROUTE = routeId;
 			}
 
-			process.argv[2] = root+'/test/routes.test';
+			process.argv[2] = root+'/test/routes.spec';
 			process.argv.splice(3, 1);
 		}
 		require(root+'/node_modules/mocha/bin/_mocha');

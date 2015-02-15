@@ -3,9 +3,11 @@ var removeDiacritics = require('diacritic').clean;
 
 var route = new Route({
 	provider: 'reporteindigo',
-	name: 'search',
-	url: 'http://www.reporteindigo.com/search/apachesolr_search/<%= query %>?page=<%= state.currentPage - 1 %>',
+	name:     'search',
+	url:      'http://www.reporteindigo.com/search/apachesolr_search/<%= query %>?page=<%= state.currentPage - 1 %>',
+	dynamic:  false,
 	priority: 80,
+
 	test: {
 		query: 'taxi',
 		shouldCreateItems:  true,
@@ -13,12 +15,7 @@ var route = new Route({
 	}
 });
 
-// This function is executed in the PhantomJS scope:
-// PhantomJS will open the URL, inject jQuery, and execute this function.
-
-// * we have no access to the scope out of this function. Do not try to use
-// * variables defined outside of this function.
-route.scraper = function() {
+route.scraper = function($) {
 
 	// The scraping function will return this object to Nest. Nest will then:
 	// - Scrape the next page is 'hasNextPage' is true,

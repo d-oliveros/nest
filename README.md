@@ -133,17 +133,17 @@ When starting a route, a `PhantomJS` instance will be created, and it will scrap
 
 After extracting data from a page, `Nest` saves the data in the `items` mongo collection, and spawns new operations based on the results of the scraping function. `Nest` also keeps track of the pages it has scraped, and it never repeats itself. This can potentially lead to an infinite crawling loop that would only end when every single page on the website is scraped (or completely disconnected).
 
-The `Route:start` method returns an `Agent` instance, which will emit events when things happen:
+The `Route:start` method returns an `Spider` instance, which will emit events when things happen:
 
 ```js
 var githubSearch = require('./routes/github/search');
-var agent = githubSearch.start('nodejs');
+var spider = githubSearch.start('nodejs');
 
-agent.on('scraped:page', function(results) {
+spider.on('scraped:page', function(results) {
 	console.log('Got scraped data!', results);
 });
 
-agent.on('operation:finish', function(operation) {
+spider.on('operation:finish', function(operation) {
 	console.log('Operation finished!');
 
 	// Stats on operation.stats
@@ -229,7 +229,7 @@ Normally, a scraping op will spawn a bunch of other scraping operations. That's 
 
 Only 1 worker will be querying for an operation at a given time. That is to avoid having multiple workers working on the same op. If there are no unfinished operations, the worker will keep on querying for new ops every 600ms.
 
-The `Worker` class is a sub-class of the Agent class. The Agent class is extending EventEmitter. The Agent class has the ability to add external EventEmitters and emit events to them, and can also spawn phantomJS processes and open URLs and do a bunch of cool stuff.
+The `Worker` class is a sub-class of the Spider class. The Spider class is extending EventEmitter. The Spider class has the ability to add external EventEmitters and emit events to them, and can also spawn phantomJS processes and open URLs and do a bunch of cool stuff.
 
 
 ## How does it work?

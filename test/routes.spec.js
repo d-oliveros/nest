@@ -65,14 +65,14 @@ function createRouteTest(domain, route) {
 		}
 
 		it('should '+responsabilities.join(' and '), function(done) {
-			var agent, togo;
+			var spider, togo;
 
-			agent = route.start(testParams.query);
+			spider = route.start(testParams.query);
 			togo = 0;
 
 			if ( testParams.shouldSpawnOperations ) {
 				togo++;
-				agent.once('operations:created', function(operations) {
+				spider.once('operations:created', function(operations) {
 					if ( !operations.length ) {
 						console.error(operations);
 
@@ -87,7 +87,7 @@ function createRouteTest(domain, route) {
 
 			if ( testParams.shouldCreateItems ) {
 				togo++;
-				agent.once('scraped:page', function(results, operation) {
+				spider.once('scraped:page', function(results, operation) {
 					if ( results.created <= 0 ) {
 						console.error(results, operation);
 						
@@ -103,7 +103,7 @@ function createRouteTest(domain, route) {
 			function next() {
 				togo--;
 				if ( togo === 0 ) {
-					agent.stop(true);
+					spider.stop(true);
 					done();
 				}
 			}

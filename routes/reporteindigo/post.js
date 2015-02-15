@@ -5,9 +5,9 @@ var route = new Route({
 	provider: 'reporteindigo',
 	name:     'post',
 	url:      'http://www.reporteindigo.com/<%= query %>',
+	dynamic:  false,
 	priority: 90,
 
-	// Test params
 	test: {
 		query: 'reporte/mexico/paseo-de-las-carpas',
 		shouldCreateItems:  true,
@@ -15,12 +15,7 @@ var route = new Route({
 	}
 });
 
-// This function is executed in the PhantomJS scope:
-// PhantomJS will open the URL, inject jQuery, and execute this function.
-//
-// * we have no access to the scope out of this function. Do not try to use
-// * variables defined outside of this function.
-route.scraper = function() {
+route.scraper = function($) {
 
 	// The scraping function will return this object to Nest. Nest will then:
 	// - Scrape the next page is 'hasNextPage' is true,
@@ -29,8 +24,7 @@ route.scraper = function() {
 	var data = {
 		items: [],
 	};
-
-	var itemUrl = window.location.href;
+	var itemUrl = this.location.href;
 	var itemAuthor = $('.article-author').text();
 
 	data.items.push({

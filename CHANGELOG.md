@@ -2,6 +2,12 @@
 Changelog
 ==============
 
+#### v0.1.4
+
+- Added Static Spider using cheerio and request
+- Added "reporteindigo" domain
+
+
 #### v0.1.3
 
 - Added route concurrency treshold

@@ -1,8 +1,8 @@
 {
   "name": "nest",
   "version": "0.1.4",
-  "description": "Data extraction framework.",
-  "main": "lib/engine/index.j",
+  "description": "Data extraction framework",
+  "main": "lib/engine/index.js",
   "repository": "https://github.com/d-oliveros/nest",
   "scripts": {
     "test": "./node_modules/.bin/mocha -b"
@@ -11,7 +11,7 @@
     "nest": "bin/nest"
   },
   "author": "David Oliveros",
-  "license": "",
+  "license": "MIT",
   "dependencies": {
     "async": "^0.9.0",
     "cheerio": "^0.18.0",

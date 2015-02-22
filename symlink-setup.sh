@@ -1,9 +1,12 @@
 #!/bin/bash
-SOURCE=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/bin/nest
+SOURCE=$(sed -r 's:\.?/symlink-setup.sh:/bin/nest:' <<< "$PWD""$0")
 TARGET=/usr/local/bin/nest
 
-chmod +x ${SOURCE}
-sudo ln -s ${SOURCE} ${TARGET}
+# Modify nest's permissions to be executed
+chmod 755 "$SOURCE"
+
+# Create symbolic link
+sudo ln -s "$SOURCE" $TARGET
 
 echo "Done. Now you can use nest from your terminal."
 nest

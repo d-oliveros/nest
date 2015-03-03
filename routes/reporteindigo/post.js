@@ -5,7 +5,6 @@ var route = new Route({
 	provider: 'reporteindigo',
 	name:     'post',
 	url:      'http://www.reporteindigo.com/<%= query %>',
-	dynamic:  false,
 	priority: 90,
 
 	test: {

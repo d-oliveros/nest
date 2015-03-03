@@ -13,9 +13,7 @@ var route = new Route({
 	}
 });
 
-// This function is executed in the PhantomJS context
-// we have no access to the context out of this function
-route.scraper = function() {
+route.scraper = function($) {
 	var data = {
 		operations: []
 	};
@@ -31,9 +29,8 @@ route.scraper = function() {
 		});
 	});
 
-	if ( hasPagination ) {
-		data.hasNextPage = $('.paginate-container').find('.pagination').children().last().prop("tagName") === 'A';
-	}
+	if ( hasPagination )
+		data.hasNextPage = $('.paginate-container').find('.pagination').children().last().text() === 'Next';
 
 	return data;
 };

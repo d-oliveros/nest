@@ -1,6 +1,11 @@
 
 Changelog
-==============
+================================================
+
+#### v0.1.5
+
+- Dynamic Spiders are no longer isolated in phantomJS's context
+
 
 #### v0.1.4
 
@@ -14,12 +19,14 @@ Changelog
 - Added routeId to Operation schema
 - Added engine.stop method
 
+
 #### v0.1.2
 
 - Added `test` command
 - Added `list` command
 - Removed /logs folder
 - Refactored file structure
+
 
 #### v0.1.1
 

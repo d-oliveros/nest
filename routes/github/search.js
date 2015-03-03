@@ -14,9 +14,7 @@ var route = new Route({
 	}
 });
 
-// This function is executed in the PhantomJS context
-// we have no access to the context out of this function
-route.scraper = function() {
+route.scraper = function($) {
 	var data = {
 		hasNextPage: $('a.next_page').length > 0,
 		items: [],
@@ -119,7 +117,7 @@ route.scraper = function() {
 	return data;
 };
 
-route.checkStatus = function() {
+route.checkStatus = function($) {
 	var status = 'ok';
 
 	$('h1').each( function() {

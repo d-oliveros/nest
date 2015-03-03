@@ -11,9 +11,7 @@ var route = new Route({
 	}
 });
 
-// This function is executed in the PhantomJS context
-// we have no access to the context out of this function
-route.scraper = function() {
+route.scraper = function($) {
 	var data = {
 		hasNextPage: $('.pagination a').length > 0,
 		items: [],
@@ -35,7 +33,7 @@ route.scraper = function() {
 
 			if ( href && href.indexOf('/title/') === 0 ) {
 				item.name = $(this).text();
-				item.key = href.replace(/(\/)(title)?/g, '');
+				item.key = href.replace(/(\/)(title)?/g, '').split('vote?')[0];
 				item.link = 'http://www.imdb.com/title/'+item.key;
 			}
 		});
@@ -60,9 +58,8 @@ route.scraper = function() {
 			return $(this).attr('href').replace('/genre/', '');
 		}).get();
 
-		if ( item.key ) {
+		if ( item.key )
 			data.items.push(item);
-		}
 	});
 
 	return data;

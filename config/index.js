@@ -1,14 +1,12 @@
-var _ = require('lodash'), environment;
+var _ = require('lodash');
+var fs = require('fs');
 var env = process.env.NODE_ENV || 'local';
 
-exports.phantom   = require('./phantom.config');
-exports.interface = require('./interface.config');
-exports.engine    = require('./engine.config');
+var envPath = fs.existsSync(__dirname+'/environments/'+env+'.js') ?
+	__dirname+'/environments/'+env :
+	__dirname+'/environments/default.js';
 
-try {
-	environment = require('./environments/'+env);
-} catch(err) {
-	environment = require('./environments/default');
-}
+exports.phantom = require('./phantom.config');
+exports.engine = require('./engine.config');
 
-_.assign(exports, environment);
+_.assign(exports, require(envPath));

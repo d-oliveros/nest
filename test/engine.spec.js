@@ -1,18 +1,17 @@
 process.env.NODE_ENV = 'test';
+
 var should = require('chai').should(); // jshint ignore:line
 var Operation = require('../lib/models/Operation');
 var Item = require('../lib/models/Item');
 var engine = require('../lib/engine');
 var config = require('../config');
 
-var dummyParams = require('./data/params.json');
-
-describe('engine', function() {
+describe('Engine', function() {
 	this.timeout(15000); // 15 seconds
 
 	describe('workers', function() {
 
-		// Clear the database
+		// Clear the dataAbase
 		before( function(done) {
 			Operation.remove( function(err) {
 				if (err) return done(err);
@@ -31,25 +30,14 @@ describe('engine', function() {
 		it('should start with '+config.engine.workers+' workers', function() {
 			engine.state.workers.length.should.equal(config.engine.workers);
 		});
-
-		it('should pick up an operation after one second', function(done) {
-			engine.emitter.once('operation:start', done.bind(this, null));
-			
-			setTimeout( function() {
-				Operation.findOrCreate(dummyParams, function(err) {
-					if (err) return done(err);
-				});
-			}, 1000);
-		});
-
+		
 		// it should stop the engine
 		after( function(done) {
 			engine.stop( function(err) {
 				if (err) return done(err);
 
-				if ( engine.state.workers.length > 0 ) {
+				if ( engine.state.workers.length > 0 )
 					return done( new Error('Engine did not removed workers.') );
-				}
 
 				done();
 			});
@@ -87,9 +75,8 @@ describe('engine', function() {
 
 				runningWorkers++;
 
-				if ( provider === 'github' && routeName === 'search') {
+				if ( provider === 'github' && routeName === 'search')
 					runningGithubSearchRoutes++;
-				}
 
 				check();
 			};

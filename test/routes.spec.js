@@ -10,7 +10,7 @@ var testRoute  = process.env.TEST_ROUTE || false;
 var testDomain = process.env.TEST_DOMAIN || false;
 
 describe('Routes', function() {
-	this.timeout(15000); // 15 secs
+	this.timeout(20000); // 20 secs
 
 	beforeEach( function(done) {
 		Operation.remove(function(err) {
@@ -56,20 +56,28 @@ function createRouteTest(domain, route) {
 
 		var responsabilities = [];
 
-		if ( testParams.shouldSpawnOperations ) {
+		if ( testParams.shouldSpawnOperations )
 			responsabilities.push('spawn operations');
-		}
 
-		if ( testParams.shouldCreateItems ) {
+		if ( testParams.shouldCreateItems )
 			responsabilities.push('scrape results');
-		}
 
-		it('should '+responsabilities.join(' and '), function(done) {
-			var spider, togo;
+		var testMessage = responsabilities.join(' and ');
 
-			spider = route.start(testParams.query);
-			togo = 0;
+		it('should '+testMessage, function(done) {
+			var spider = route.start(testParams.query);
+			var togo = 0;
 
+			function next() {
+				togo--;
+				if ( togo === 0 ) {
+					spider.stop(true);
+					spider.on('operation:stopped', function() {
+						done();
+					});
+				}
+			}
+			
 			if ( testParams.shouldSpawnOperations ) {
 				togo++;
 				spider.once('operations:created', function(operations) {
@@ -100,13 +108,19 @@ function createRouteTest(domain, route) {
 				});
 			}
 
-			function next() {
-				togo--;
-				if ( togo === 0 ) {
-					spider.stop(true);
+			// Skip this test if the request gets blocked
+			var blockedRetries = 2;
+			spider.on('operation:blocked', function(operation) {
+				if ( blockedRetries === 0 ) {
+					spider.stop();
+					console.log(operation.routeId+' was blocked. Skipping test...');
 					done();
+				} else {
+					console.log( operation.routeId+' was blocked. '+
+						'Retrying '+blockedRetries+' more times...');
+					blockedRetries--;
 				}
-			}
+			});
 		});
 	});
 }

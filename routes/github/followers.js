@@ -13,15 +13,11 @@ var route = new Route({
 	}
 });
 
-// This function is executed in the PhantomJS context
-// we have no access to the context out of this function
-route.scraper = function() {
+route.scraper = function($) {
 	var data = {
 		operations: []
 	};
 	
-	var hasPagination = $('.paginate-container').find('a').length > 0;
-
 	// Get all the usernames in this page
 	$('.follow-list-item').each(function() {
 		data.operations.push({
@@ -31,9 +27,9 @@ route.scraper = function() {
 		});
 	});
 
-	if ( hasPagination ) {
-		data.hasNextPage = $('.paginate-container').find('.pagination').children().last().prop("tagName") === 'A';
-	}
+	var hasPagination = $('.paginate-container').find('a').length > 0;
+	if ( hasPagination )
+		data.hasNextPage = $('.paginate-container').find('.pagination').children().last().text() === 'Next';
 
 	return data;
 };

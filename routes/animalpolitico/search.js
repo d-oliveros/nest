@@ -5,13 +5,12 @@ var route = new Route({
 	provider: 'animalpolitico',
 	name:     'search',
 	url:      'http://www.animalpolitico.com/page/<%= state.currentPage %>/?s=<%= query %>',
-	dynamic:  false,
 	priority: 80,
 
 	test: {
 		query: 'dinero',
 		shouldCreateItems:  true,
-		shouldSpawnOperations: false,
+		shouldSpawnOperations: true,
 	},
 });
 

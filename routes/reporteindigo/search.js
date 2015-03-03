@@ -5,7 +5,6 @@ var route = new Route({
 	provider: 'reporteindigo',
 	name:     'search',
 	url:      'http://www.reporteindigo.com/search/apachesolr_search/<%= query %>?page=<%= state.currentPage - 1 %>',
-	dynamic:  false,
 	priority: 80,
 
 	test: {

@@ -4,22 +4,17 @@ var route = new Route({
 	provider: 'animalpolitico',
 	name:     'post',
 	url:      'http://www.animalpolitico.com/<%= query %>',
-	dynamic:  false,
 	priority: 90,
 
+	// Optional: Enable an automated test for this route
 	test: {
 		query: '2010/08/suprema-corte-avala-matrimonios-gay-en-el-df',
 		shouldCreateItems:  true,
 		shouldSpawnOperations: false,
-	}
+	},
 });
 
 route.scraper = function($) {
-
-	// The scraping function will return this object to Nest. Nest will then:
-	// - Scrape the next page is 'hasNextPage' is true,
-	// - Save the items in the 'data.items' array into a Mongo DB
-	// - Scrape the new routes inside 'data.operations',
 	var data = {
 		items: [],
 	};

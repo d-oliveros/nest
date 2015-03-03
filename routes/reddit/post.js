@@ -12,9 +12,7 @@ var route = new Route({
 	}
 });
 
-// This function is executed in the PhantomJS context
-// we have no access to the context out of this function
-route.scraper = function() {
+route.scraper = function($) {
 	var data = {
 		hasNextPage: false,
 		items: [],
@@ -24,9 +22,10 @@ route.scraper = function() {
 	var $title      = $post.find('a.title');
 	var id          = $post.data('fullname').split('_')[1].trim();
 	var title       = $title.text().trim();
+	var pathname    = this.location.href.replace('http://www.reddit.com', '');
 	var description = $post.find('div.usertext-body p').text().trim();
 	var upvotes     = $post.find('div.score.unvoted').text().trim();
-	var subreddit   = window.location.pathname.split('/')[2];
+	var subreddit   = pathname.split('/')[2];
 
 	var comments    = [];
 

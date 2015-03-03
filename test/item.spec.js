@@ -33,7 +33,7 @@ describe('Item', function() {
 			Item.remove(done);
 		});
 
-		it('should create a new item', function(done) {
+		it('should insert a new item', function(done) {
 			Item.upsert(dummyItem, function(err, op) {
 				if (err) return done(err);
 

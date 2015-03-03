@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-var route, routeName, domain, routeParts, path, routeId,
-	query, engine, debug, argv, cmd, root;
+var route, routeName, domain, routeParts, path, routeId, fs,
+	query, engine, debug, argv, cmd, root, Mocha, mocha;
 
 function displayUsage() {
 	console.log(
@@ -8,6 +8,7 @@ function displayUsage() {
 		'Available commands: \nscrape \nlist \ntest \nwork \n\n');
 }
 
+fs = require('fs');
 path = require('path');
 debug = require('debug');
 
@@ -24,7 +25,6 @@ cmd     = argv[2];
 routeId = argv[3];
 query   = argv[4];
 
-
 // Get the route domain and name
 if ( routeId ) {
 	routeParts = routeId.split(':');
@@ -32,13 +32,13 @@ if ( routeId ) {
 	routeName = routeParts[1] ? routeParts[1] : 'init';
 }
 
-
+// todo: break cli into own folder
 switch (cmd) {
 
 	case 'scrape':
 
 		if ( argv.length === 3 ) {
-			route = require(root+'/routes');
+			route = require( path.join(root, 'routes') );
 			console.log('Please, specify the route ID to scrape.');
 			console.log('\nAvailable routes:\n'+route.list());
 			process.exit(0);
@@ -50,7 +50,7 @@ switch (cmd) {
 		debug.enable('Item*');
 
 		try {
-			route = require(root+'/routes/'+domain+'/'+routeName);
+			route = require( path.join(root, 'routes', domain, routeName) );
 
 		} catch(err) {
 			if ( err.code === 'MODULE_NOT_FOUND' ) {
@@ -72,21 +72,43 @@ switch (cmd) {
 		break;
 
 	case 'test':
-		if ( routeId ) {
-			if ( routeName === 'init' ) {
-				process.env.TEST_DOMAIN = domain;
-			} else {
-				process.env.TEST_ROUTE = routeId;
-			}
+		Mocha = require('mocha');
+		mocha = new Mocha();
 
-			process.argv[2] = root+'/test/routes.spec';
-			process.argv.splice(3, 1);
+		function loadTest(test) {
+			mocha.addFile( path.join(root, 'test', test) );
 		}
-		require(root+'/node_modules/mocha/bin/_mocha');
+
+		if ( !routeId ) {
+
+			// Load all the tests
+			fs.readdirSync( path.join(root, 'test') ).filter( function(file) {
+				return file.substr(-3) === '.js';
+			}).forEach(loadTest);
+
+		}	else {
+
+			// Load the route test
+			loadTest('routes.spec.js');
+
+			// Set route to test in environmental variable
+			if ( routeName === 'init' )
+				process.env.TEST_DOMAIN = domain;
+			else
+				process.env.TEST_ROUTE = routeId;
+		}
+
+		// Run the tests
+		mocha.run( function(failures) {
+			process.on('exit', function () {
+				process.exit(failures);
+			});
+		});
+
 		break;
 
 	case 'list':
-		route = require(root+'/routes');
+		route = require( path.join(root, 'routes') );
 		console.log( route.list() );
 		process.exit(0);
 		break;
@@ -99,13 +121,15 @@ switch (cmd) {
 		debug.enable('Item*');
 
 		// start the engine
-		engine = require(root+'/lib/engine');
+		engine = require( path.join(root, 'lib', 'engine') );
 		engine.start();
 
 		break;
 
 	default:
 		console.log('Unknown command '+cmd);
+
+	case 'help':
 		displayUsage();
 		process.exit(0);
 }

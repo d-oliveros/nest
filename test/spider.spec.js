@@ -17,28 +17,27 @@ describe('Spider', function() {
 	it('should add and emit events to an external emitter', function(done) {
 		var spider = new Spider();
 		var emitter = new EventEmitter();
+		var completed = 0;
+
+		function addOne() {
+			completed++;
+		}
 
 		spider.addEmitter(emitter);
+
 		spider.emitters.should.contain(emitter);
 
-		var completed = 0;
-		spider.once('test:event', function() {
-			completed++;
-			if (completed === 2) done();
-
-			setTimeout( function() {
-				if (completed !== 2) {
-					done( new Error('Emitter did not received event') );
-				}
-			}, 100);
-		});
-
-		emitter.once('test:event', function() {
-			completed++;
-			if (completed === 2) done();
-		});
-
+		spider.once('test:event', addOne);
+		emitter.once('test:event', addOne);
 		spider.emit('test:event');
+
+		setTimeout( function() {
+			if (completed !== 2)
+				return done( new Error('Emitter did not received event') );
+
+			done();
+		}, 100);
+
 	});
 
 	it('should remove external emitter', function() {
@@ -53,9 +52,18 @@ describe('Spider', function() {
 		spider.emitters.length.should.equal(0);
 	});
 
-	it('should open a phantomJS page', function(done) {
+	it('should open a page statically', function(done) {
+		var spider = new Spider();
+
+		spider.open('http://www.github.com', function() {
+			spider.stop();
+			done();
+		});
+	});
+	
+	it('should open a dynamic page with phantomJS', function(done) {
 		globalSpider = new Spider();
-		globalSpider.open('http://www.google.com', done);
+		globalSpider.open('http://www.google.com', true, done);
 	});
 
 	it('should have a phantomJS instance', function() {
@@ -72,27 +80,15 @@ describe('Spider', function() {
 		globalSpider.error('Test error');
 	});
 
-	it('should open a page statically', function(done) {
-		var spider = new Spider();
-
-		spider.open('http://www.github.com', true, function() {
-			spider.stop();
-			done();
-		});
-	});
-
 	it('should stop', function(done) {
 		var spider = new Spider();
 
 		spider.open('http://www.github.com', function() {
 			spider.stop();
-		});
 
-		spider.on('spider:stop', function() {
-			if (spider.phantom) {
+			if (spider.phantom)
 				return done( new Error('Phantom was not cleared') );
-			}
-
+			
 			done();
 		});
 	});

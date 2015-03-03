@@ -89,7 +89,7 @@ Examples:
 
 ```bash
 
-# Starts extracting movie data from reporteindigo
+# Starts extracting articles from reporteindigo
 nest scrape reporteindigo
 
 # Tests the "imdb:search" route

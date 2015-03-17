@@ -30,7 +30,7 @@ routes.list = function() {
 
 			// warn on tests disabled
 			if ( !route.test && routeName !== 'init' ) {
-				string += ' (not  testable)';
+				string += ' (not testable)';
 			}
 
 			string += '\n';

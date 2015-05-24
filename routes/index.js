@@ -1,46 +1,46 @@
-var _ = require('lodash');
-var fs = require('fs');
-var path = require('path');
-var requireAll = require('require-all');
+import {each} from 'lodash';
 
-var files = fs.readdirSync(__dirname);
-var routes = {};
+import fs from'fs';
+import path from'path';
+import requireAll from'require-all';
+
+let files = fs.readdirSync(__dirname);
+let routes = {};
 
 // require all the routes in the directories
-files.forEach( function(domain) {
-	if ( domain.indexOf('.js') < 0 ) {
-		routes[domain] = requireAll(path.join(__dirname, domain));
-	}
+files.forEach((domain) => {
+  if (domain.indexOf('.js') < 0) {
+    routes[domain] = requireAll(path.join(__dirname, domain));
+  }
 });
 
 // returns the routes in a nicely formatted string
-routes.list = function() {
-	var string = '\n';
+routes.list = () => {
+  let string = '\n';
 
-	// for each folder
-	_.each(this, function(domain, domainName) { 
-		if ( domainName === 'list' ) return;
+  // for each folder
+  each(this, (domain, domainName) => {
+    if (domainName === 'list') return;
 
-		string += domainName+'\n';
+    string += `${domainName}\n`;
 
-		// for each route
-		_.each(domain, function(route, routeName) {
+    // for each route
+    each(domain, (route, routeName) => {
 
-			string += '  '+domainName+':'+routeName;
+      string += `  ${domainName}:${routeName}`;
 
-			// warn on tests disabled
-			if ( !route.test && routeName !== 'init' ) {
-				string += ' (not testable)';
-			}
+      // warn on tests disabled
+      if (!route.test && routeName !== 'init')
+        string += ' (not testable)';
 
-			string += '\n';
-		});
-		string += '\n';
-	});
+      string += '\n';
+    });
+    string += '\n';
+  });
 
-	return string;
+  return string;
 };
 
 // Exports: routes
 //
-module.exports = routes;
+export default routes;

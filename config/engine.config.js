@@ -1,6 +1,8 @@
-var os = require('os');
+import os from 'os';
 
-exports.workers = os.cpus().length;
+export default {
+	workers: os.cpus().length,
 
-// This routes will not be processed by the engine.
-exports.disabledRoutes = [];
+	// These routes will not be processed by the engine.
+	disabledRoutes: []
+};

@@ -1,11 +1,11 @@
 {
   "name": "nest",
-  "version": "0.1.5",
+  "version": "0.2.0",
   "description": "Data extraction framework",
   "main": "lib/engine/index.js",
   "repository": "https://github.com/d-oliveros/nest",
   "scripts": {
-    "test": "./node_modules/.bin/mocha -b"
+    "test": "./node_modules/.bin/mocha"
   },
   "bin": {
     "nest": "bin/nest"
@@ -14,6 +14,7 @@
   "license": "MIT",
   "dependencies": {
     "async": "^0.9.0",
+    "babel": "^5.4.7",
     "cheerio": "^0.18.0",
     "debug": "^2.1.0",
     "diacritic": "0.0.2",
@@ -25,9 +26,10 @@
     "winston": "^0.8.3"
   },
   "devDependencies": {
+    "babel-eslint": "^3.1.8",
     "chai": "^1.10.0",
     "gulp": "^3.8.10",
-    "gulp-jshint": "^1.9.0",
+    "gulp-eslint": "^0.12.0",
     "jshint-stylish": "^1.0.0",
     "mocha": "^2.0.1"
   }

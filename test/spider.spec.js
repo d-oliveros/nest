@@ -1,95 +1,93 @@
-process.env.NODE_ENV = 'test';
-var should = require('chai').should(); // jshint ignore:line
-var expect = require('chai').expect;
-var Spider = require('../lib/spider');
-var EventEmitter = require('events').EventEmitter;
+require('./test-env');
+
+import Spider from '../lib/spider';
+import {EventEmitter} from 'events';
+
+let should = require('chai').should(); // eslint-disable-line no-unused-vars
+let expect = require('chai').expect;
 
 describe('Spider', function() {
-	this.timeout(15000); // 15 seconds
-	var globalSpider;
+  this.timeout(15000); // 15 seconds
+  let globalSpider;
 
-	it('should emit an event', function(done) {
-		var spider = new Spider();
-		spider.on('test:event', done);
-		spider.emit('test:event');
-	});
+  it('should emit an event', (done) => {
+    let spider = new Spider();
+    spider.on('test:event', done);
+    spider.emit('test:event');
+  });
 
-	it('should add and emit events to an external emitter', function(done) {
-		var spider = new Spider();
-		var emitter = new EventEmitter();
-		var completed = 0;
+  it('should add and emit events to an external emitter', (done) => {
+    let spider = new Spider();
+    let emitter = new EventEmitter();
+    let completed = 0;
 
-		function addOne() {
-			completed++;
-		}
+    spider.addEmitter(emitter);
 
-		spider.addEmitter(emitter);
+    spider.emitters.should.contain(emitter);
 
-		spider.emitters.should.contain(emitter);
+    spider.once('test:event', () => completed++);
+    emitter.once('test:event', () => completed++);
+    spider.emit('test:event');
 
-		spider.once('test:event', addOne);
-		emitter.once('test:event', addOne);
-		spider.emit('test:event');
+    setTimeout(() => {
+      if (completed !== 2)
+        return done(new Error('Emitter did not received event'));
 
-		setTimeout( function() {
-			if (completed !== 2)
-				return done( new Error('Emitter did not received event') );
+      done();
+    }, 100);
 
-			done();
-		}, 100);
+  });
 
-	});
+  it('should remove external emitter', () => {
+    let spider = new Spider();
+    let emitter = new EventEmitter();
 
-	it('should remove external emitter', function() {
-		var spider = new Spider();
-		var emitter = new EventEmitter();
+    spider.addEmitter(emitter);
+    expect(spider.emitters).to.contain(emitter);
 
-		spider.addEmitter(emitter);
-		spider.emitters.should.contain(emitter);
+    spider.removeEmitter(emitter);
+    expect(spider.emitters).to.not.contain(emitter);
+    expect(spider.emitters.length).to.equal(0);
+  });
 
-		spider.removeEmitter(emitter);
-		spider.emitters.should.not.contain(emitter);
-		spider.emitters.length.should.equal(0);
-	});
+  it('should open a page statically', (done) => {
+    let spider = new Spider();
 
-	it('should open a page statically', function(done) {
-		var spider = new Spider();
+    spider.open('http://www.github.com', () => {
+      spider.stop();
+      done();
+    });
+  });
 
-		spider.open('http://www.github.com', function() {
-			spider.stop();
-			done();
-		});
-	});
-	
-	it('should open a dynamic page with phantomJS', function(done) {
-		globalSpider = new Spider();
-		globalSpider.open('http://www.google.com', true, done);
-	});
+  it('should open a dynamic page with phantomJS', (done) => {
+    globalSpider = new Spider();
+    globalSpider.open('http://www.google.com', true, done);
+  });
 
-	it('should have a phantomJS instance', function() {
-		expect(globalSpider.phantom).to.be.an('object');
-	});
+  it('should have a phantomJS instance', () => {
+    expect(globalSpider.phantom).to.be.an('object');
+  });
 
-	it('should close a phantomJS instance', function() {
-		globalSpider.stopPhantom();
-		expect(globalSpider.phantom).to.equal(null);
-	});
+  it('should close a phantomJS instance', () => {
+    globalSpider.stopPhantom();
+    expect(globalSpider.phantom).to.equal(null);
+  });
 
-	it('should emit an error', function(done) {
-		globalSpider.once('error', done.bind(this, null));
-		globalSpider.error('Test error');
-	});
+  it('should emit an error', (done) => {
+    globalSpider.once('error', () => done());
+    globalSpider.error('Test error');
+  });
 
-	it('should stop', function(done) {
-		var spider = new Spider();
+  it('should stop', (done) => {
+    let spider = new Spider();
 
-		spider.open('http://www.github.com', function() {
-			spider.stop();
+    spider.open('http://www.github.com', () => {
+      spider.stop();
 
-			if (spider.phantom)
-				return done( new Error('Phantom was not cleared') );
-			
-			done();
-		});
-	});
+      if (spider.phantom)
+        return done(new Error('Phantom was not cleared'));
+
+      done();
+    });
+  });
 });

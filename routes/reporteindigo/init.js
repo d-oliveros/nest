@@ -3,14 +3,14 @@
 //
 // Starts extracting data from reporteindigo
 // by searching the word "que", and spawning crawlers to the tags and posts
-// 
+//
 exports.start = function() {
-	console.log('Initializing reporteindigo...');
+  console.log('Initializing reporteindigo...');
 
-	var searchRoute = require('./search');
-	var engine = require('../../lib/engine');
-	
-	searchRoute.initialize('que', function() {
-		engine.start();
-	});
+  var searchRoute = require('./search');
+  var engine = require('../../lib/engine');
+
+  searchRoute.initialize('que', function() {
+    engine.start();
+  });
 };

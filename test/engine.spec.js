@@ -1,132 +1,133 @@
-process.env.NODE_ENV = 'test';
+require('./test-env');
 
-var should = require('chai').should(); // jshint ignore:line
-var Operation = require('../lib/models/Operation');
-var Item = require('../lib/models/Item');
-var engine = require('../lib/engine');
-var config = require('../config');
+import Operation from '../lib/models/Operation';
+import Item from '../lib/models/Item';
+import engine from '../lib/engine';
+import config from '../config';
+
+let should = require('chai').should(); // eslint-disable-line no-unused-vars
+let expect = require('chai').expect;
 
 describe('Engine', function() {
-	this.timeout(15000); // 15 seconds
+  this.timeout(15000); // 15 seconds
 
-	describe('workers', function() {
+  describe('workers', function() {
 
-		// Clear the dataAbase
-		before( function(done) {
-			Operation.remove( function(err) {
-				if (err) return done(err);
-				Item.remove( function(err) {
-					if (err) return done(err);
-					engine.start();
-					done();
-				});
-			});
-		});
+    // Clear the dataAbase
+    before((done) => {
+      Operation.remove((err) => {
+        if (err) return done(err);
+        Item.remove((err) => {
+          if (err) return done(err);
+          engine.start();
+          done();
+        });
+      });
+    });
 
-		it('should start with 0 operations', function() {
-			engine.state.operationIds.length.should.equal(0);
-		});
+    it('should start with 0 operations', () => {
+      expect(engine.state.operationIds.length).to.equal(0);
+    });
 
-		it('should start with '+config.engine.workers+' workers', function() {
-			engine.state.workers.length.should.equal(config.engine.workers);
-		});
-		
-		// it should stop the engine
-		after( function(done) {
-			engine.stop( function(err) {
-				if (err) return done(err);
+    it(`should start with ${config.engine.workers} workers`, () => {
+      expect(engine.state.workers.length).to.equal(config.engine.workers);
+    });
 
-				if ( engine.state.workers.length > 0 )
-					return done( new Error('Engine did not removed workers.') );
+    // it should stop the engine
+    after((done) => {
+      engine.stop((err) => {
+        if (err) return done(err);
 
-				done();
-			});
-		});
-	});
+        if (engine.state.workers.length > 0)
+          return done(new Error('Engine did not removed workers.'));
 
-	describe('concurrency', function() {
+        done();
+      });
+    });
+  });
 
-		// Clear the database
-		beforeEach( function(done) {
-			Operation.remove( function(err) {
-				if (err) return done(err);
-				Item.remove( function(err) {
-					if (err) return done(err);
-					engine.start();
-					done();
-				});
-			});
-		});
+  describe('concurrency', function() {
 
-		it('should respect the concurrency limit of routes', function(done) {
-			var workers = config.engine.workers;
+    // Clear the database
+    beforeEach((done) => {
+      Operation.remove((err) => {
+        if (err) return done(err);
+        Item.remove((err) => {
+          if (err) return done(err);
+          engine.start();
+          done();
+        });
+      });
+    });
 
-			if ( workers < 2 ) 
-				return done('This test requires at least 2 engine workers.');
+    it('should respect the concurrency limit of routes', (done) => {
+      let workers = config.engine.workers;
 
-			var githubSearchRoute = require('../routes/github/search');
-			var runningGithubSearchRoutes = 0;
-			var runningWorkers = 0;
-			var finished = false;
+      if (workers < 2)
+        return done('This test requires at least 2 engine workers.');
 
-			var checkOperation = function(operation) {
-				var provider = operation.provider;
-				var routeName = operation.route;
+      let githubSearchRoute = require('../routes/github/search');
+      let runningGithubSearchRoutes = 0;
+      let runningWorkers = 0;
+      let finished = false;
 
-				runningWorkers++;
+      let checkOperation = (operation) => {
+        let provider = operation.provider;
+        let routeName = operation.route;
 
-				if ( provider === 'github' && routeName === 'search')
-					runningGithubSearchRoutes++;
+        runningWorkers++;
 
-				check();
-			};
+        if (provider === 'github' && routeName === 'search')
+          runningGithubSearchRoutes++;
 
-			var onNoop = function() {
-				runningWorkers = workers;
-				check();
-			};
+        check();
+      };
 
-			// hard-set the concurrency limit
-			githubSearchRoute.concurrency = 1;
+      let onNoop = () => {
+        runningWorkers = workers;
+        check();
+      };
 
-			// initialize two search routes
-			githubSearchRoute.start(githubSearchRoute.test.query);
-			githubSearchRoute.start(githubSearchRoute.test.query+'test');
+      // hard-set the concurrency limit
+      githubSearchRoute.concurrency = 1;
 
-			// when an operation starts, this event is emitted
-			engine.emitter.on('operation:start', checkOperation);
+      // initialize two search routes
+      githubSearchRoute.start(githubSearchRoute.test.query);
+      githubSearchRoute.start(githubSearchRoute.test.query+'test');
 
-			// when there are no pending operations, this event is emitted
-			engine.emitter.once('operation:noop', onNoop);
+      // when an operation starts, this event is emitted
+      engine.emitter.on('operation:start', checkOperation);
 
-			function check() {
-				if ( runningWorkers < workers || finished ) return;
+      // when there are no pending operations, this event is emitted
+      engine.emitter.once('operation:noop', onNoop);
 
-				finished = true;
+      function check() {
+        if (runningWorkers < workers || finished) return;
 
-				if ( runningGithubSearchRoutes > 1 ) {
-					return done( new Error('Went over concurrency limit.') );
-				}
+        finished = true;
 
-				engine.emitter.removeListener('operation:start', checkOperation);
-				engine.emitter.removeListener('operation:noop', onNoop);
+        if (runningGithubSearchRoutes > 1) {
+          return done(new Error('Went over concurrency limit.'));
+        }
 
-				done();
-			}
-		});
+        engine.emitter.removeListener('operation:start', checkOperation);
+        engine.emitter.removeListener('operation:noop', onNoop);
 
-		// it should stop the engine
-		after( function(done) {
-			engine.stop( function(err) {
-				if (err) return done(err);
+        done();
+      }
+    });
 
-				if ( engine.state.workers.length > 0 ) {
-					return done( new Error('Engine did not removed workers.') );
-				}
+    // it should stop the engine
+    after((done) => {
+      engine.stop((err) => {
+        if (err) return done(err);
 
-				done();
-			});
-		});
-	});
+        if (engine.state.workers.length > 0)
+          return done(new Error('Engine did not removed workers.'));
+
+        done();
+      });
+    });
+  });
 
 });

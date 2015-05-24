@@ -2,6 +2,11 @@
 Changelog
 ================================================
 
+#### v0.2.0
+
+- Refactored to EcmaSript 6
+
+
 #### v0.1.5
 
 - Dynamic Spiders are no longer isolated in phantomJS's context

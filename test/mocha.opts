@@ -1,0 +1,3 @@
+--require test/test-env
+--ui bdd
+--recursive

@@ -1,7 +1,7 @@
 {
-	"key":  "testing@test.com",
-	"name": "Test User",
-	"link": "https://www.testingdomain.com/user/test",
-	"provider": "test",
-	"route": "profile"
+  "key":  "testing@test.com",
+  "name": "Test User",
+  "link": "https://www.testingdomain.com/user/test",
+  "provider": "test",
+  "route": "profile"
 }

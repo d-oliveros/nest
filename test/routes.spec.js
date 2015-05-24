@@ -1,126 +1,117 @@
-process.env.NODE_ENV = 'test';
+require('./test-env');
 
-var _ = require('lodash');
+import {each} from 'lodash';
+import Route from '../lib/route';
+import Item from '../lib/models/Item';
+import Operation from '../lib/models/Operation';
 
-var Route      = require('../lib/route');
-var Item       = require('../lib/models/Item');
-var Operation  = require('../lib/models/Operation');
-
-var testRoute  = process.env.TEST_ROUTE || false;
-var testDomain = process.env.TEST_DOMAIN || false;
+let testRoute  = process.env.TEST_ROUTE || false;
+let testDomain = process.env.TEST_DOMAIN || false;
 
 describe('Routes', function() {
-	this.timeout(20000); // 20 secs
+  this.timeout(20000); // 20 secs
 
-	beforeEach( function(done) {
-		Operation.remove(function(err) {
-			if (err) return done(err);
-			Item.remove(done);
-		});
-	});
+  beforeEach((done) => {
+    Operation.remove((err) => {
+      if (err) return done(err);
+      Item.remove(done);
+    });
+  });
 
-	var domains = require('../routes');
-	
-	_.each(domains, function(domain, domainName) {
-		
-		if ( testDomain && testDomain !== domainName )
-			return;
+  let domains = require('../routes');
 
-		describe(domainName, function() {
+  each(domains, (domain, domainName) => {
+    if (testDomain && testDomain !== domainName)
+      return;
 
-			_.each(domain, function(route, routeName) {
-				var routeId = domainName+':'+routeName;
-				var shouldTest = !testRoute || testRoute === routeId;
+    describe(domainName, function() {
 
-				if ( !(route instanceof Route) || !shouldTest ) 
-					return;
+      each(domain, (route, routeName) => {
+        let routeId = `${domainName}:${routeName}`;
+        let shouldTest = !testRoute || testRoute === routeId;
 
-				if ( !route.test )
-					console.warn('Hint: Enable test for '+route.provider+':'+route.name+' ;)');
+        if (!(route instanceof Route) || !shouldTest)
+          return;
 
-				else 
-					createRouteTest(domain, route);
-			});
-		});
-	});
+        if (!route.test) {
+          let {provider, name} = route;
+          console.warn(`Hint: Enable test for ${provider}:${name} ;)`);
+        }
+
+        else
+          createRouteTest(domain, route);
+      });
+    });
+  });
 });
 
 function createRouteTest(domain, route) {
-	var testParams = route.test;
+  let testParams = route.test;
 
-	describe(route.name, function() {
+  describe(route.name, function() {
 
-		before( function(done) {
-			Item.remove(done);
-		});
+    before((done) => Item.remove(done));
 
-		var responsabilities = [];
+    let responsabilities = [];
 
-		if ( testParams.shouldSpawnOperations )
-			responsabilities.push('spawn operations');
+    if (testParams.shouldSpawnOperations)
+      responsabilities.push('spawn operations');
 
-		if ( testParams.shouldCreateItems )
-			responsabilities.push('scrape results');
+    if (testParams.shouldCreateItems)
+      responsabilities.push('scrape results');
 
-		var testMessage = responsabilities.join(' and ');
+    it(`should ${responsabilities.join(' and ')}`, (done) => {
+      let spider = route.start(testParams.query);
+      let togo = 0;
 
-		it('should '+testMessage, function(done) {
-			var spider = route.start(testParams.query);
-			var togo = 0;
+      function next() {
+        togo--;
+        if (togo === 0) {
+          spider.stop(true);
+          spider.on('operation:stopped', () => done());
+        }
+      }
 
-			function next() {
-				togo--;
-				if ( togo === 0 ) {
-					spider.stop(true);
-					spider.on('operation:stopped', function() {
-						done();
-					});
-				}
-			}
-			
-			if ( testParams.shouldSpawnOperations ) {
-				togo++;
-				spider.once('operations:created', function(operations) {
-					if ( !operations.length ) {
-						console.error(operations);
+      if (testParams.shouldSpawnOperations) {
+        togo++;
+        spider.once('operations:created', (operations) => {
+          if (!operations.length) {
+            console.error(operations);
+            let errorMsg = 'New crawling operations were not spawned.';
+            return done(new Error(errorMsg));
+          }
 
-						return done( new Error(
-							'New crawling operations were not spawned.'
-						));
-					}
+          next();
+        });
+      }
 
-					next();
-				});
-			}
+      if (testParams.shouldCreateItems) {
+        togo++;
+        spider.once('scraped:page', (results, operation) => {
+          if (results.created <= 0) {
+            console.error(results, operation);
 
-			if ( testParams.shouldCreateItems ) {
-				togo++;
-				spider.once('scraped:page', function(results, operation) {
-					if ( results.created <= 0 ) {
-						console.error(results, operation);
-						
-						return done( new Error(
-							'No results scraped from page.'
-						));
-					}
+            let errorMsg = 'No results scraped from page.';
+            return done(new Error(errorMsg));
+          }
 
-					next();
-				});
-			}
+          next();
+        });
+      }
 
-			// Skip this test if the request gets blocked
-			var blockedRetries = 2;
-			spider.on('operation:blocked', function(operation) {
-				if ( blockedRetries === 0 ) {
-					spider.stop();
-					console.log(operation.routeId+' was blocked. Skipping test...');
-					done();
-				} else {
-					console.log( operation.routeId+' was blocked. '+
-						'Retrying '+blockedRetries+' more times...');
-					blockedRetries--;
-				}
-			});
-		});
-	});
+      // Skip this test if the request gets blocked
+      let blockedRetries = 2;
+      spider.on('operation:blocked', (operation) => {
+        if (blockedRetries === 0) {
+          spider.stop();
+          console.log(`${operation.routeId} was blocked. Skipping test...`);
+          done();
+        } else {
+          console.log(`${operation.routeId} was blocked. `+
+            `Retrying ${blockedRetries} more times...`);
+          blockedRetries--;
+        }
+      });
+    });
+  });
 }

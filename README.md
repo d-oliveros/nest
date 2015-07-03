@@ -130,7 +130,7 @@ You can create a new route by creating a file in `./routes/[somedomain]/[routena
 The file should look like this:
 
 ```js
-import Route from '../../lib/Route';
+import Route from '../../src/Route';
 
 export default new Route({
 
@@ -257,7 +257,7 @@ You can use this names list, it has 37.6k names:
 
 https://gist.github.com/d-oliveros/3693a104a0dc82695324
 
-create the file ./lib/modules/human/names.json with that data to enable the module.
+create the file ./src/modules/human/names.json with that data to enable the module.
 
 Try running `DEBUG=* nest work` and looking at the console messages. You can also look into the tests in each module to see what everything is doing.
 

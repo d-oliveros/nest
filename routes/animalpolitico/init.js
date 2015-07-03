@@ -8,7 +8,7 @@ exports.start = function() {
   console.log('Initializing animalpolitico...');
 
   var searchRoute = require('./search');
-  var engine = require('../../lib/engine');
+  var engine = require('../../src/engine');
 
   searchRoute.initialize('que', function() {
     engine.start();

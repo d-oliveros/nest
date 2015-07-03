@@ -8,7 +8,7 @@ exports.start = function() {
   console.log('Initializing periodicoabc...');
 
   var newsRoute = require('./news');
-  var engine = require('../../lib/engine');
+  var engine = require('../../src/engine');
 
   newsRoute.initialize(null, function() {
     engine.start();

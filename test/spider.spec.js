@@ -1,6 +1,6 @@
 require('./test-env');
 
-import Spider from '../lib/Spider';
+import Spider from '../src/Spider';
 import {EventEmitter} from 'events';
 
 let should = require('chai').should(); // eslint-disable-line no-unused-vars

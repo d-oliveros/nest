@@ -1,4 +1,4 @@
-import Route from '../../lib/Route';
+import Route from '../../src/Route';
 
 export default new Route({
 

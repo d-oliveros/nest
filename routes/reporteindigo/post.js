@@ -1,4 +1,4 @@
-var Route = require('../../lib/Route');
+var Route = require('../../src/Route');
 var removeDiacritics = require('diacritic').clean;
 
 var route = new Route({

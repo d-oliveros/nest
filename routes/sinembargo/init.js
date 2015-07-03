@@ -8,7 +8,7 @@ exports.start = function() {
   console.log('Initializing sinembargo...');
 
   var searchRoute = require('./search');
-  var engine = require('../../lib/engine');
+  var engine = require('../../src/engine');
 
   searchRoute.initialize('taco', function() {
     engine.start();

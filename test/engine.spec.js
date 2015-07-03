@@ -1,8 +1,8 @@
 require('./test-env');
 
-import Operation from '../lib/Operation';
-import Item from '../lib/Item';
-import engine from '../lib/engine';
+import Operation from '../src/Operation';
+import Item from '../src/Item';
+import engine from '../src/engine';
 import config from '../config';
 
 let should = require('chai').should(); // eslint-disable-line no-unused-vars

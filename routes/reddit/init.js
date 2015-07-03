@@ -23,7 +23,7 @@ exports.start = function() {
     console.log(subreddits.length+' operations created. Script finished.');
     console.log('Starting the data extraction engine now...');
 
-    var engine = require('../../lib/engine');
+    var engine = require('../../src/engine');
     engine.start();
   });
 };

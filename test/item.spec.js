@@ -1,7 +1,7 @@
 require('./test-env');
 
 import {extend, clone} from 'lodash';
-import Item from '../lib/Item';
+import Item from '../src/Item';
 import dummyItem from './data/profile.json';
 
 describe('Item', function() {

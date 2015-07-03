@@ -1,7 +1,7 @@
 require('./test-env');
 
-import Operation from '../lib/models/Operation';
-import Item from '../lib/models/Item';
+import Operation from '../lib/Operation';
+import Item from '../lib/Item';
 import engine from '../lib/engine';
 import config from '../config';
 

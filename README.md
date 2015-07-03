@@ -19,7 +19,7 @@ A scraping and data extraction framework on NodeJS.
 If you don't have PhantomJS installed already, you can install it by doing:
 
 ```
-sudo npm install -g phantomjs
+npm install -g phantomjs
 ```
 
 
@@ -130,7 +130,7 @@ You can create a new route by creating a file in `./routes/[somedomain]/[routena
 The file should look like this:
 
 ```js
-import Route from '../../lib/route';
+import Route from '../../lib/Route';
 
 export default new Route({
 

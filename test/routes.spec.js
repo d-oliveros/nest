@@ -1,9 +1,9 @@
 require('./test-env');
 
 import {each} from 'lodash';
-import Route from '../lib/route';
-import Item from '../lib/models/Item';
-import Operation from '../lib/models/Operation';
+import Route from '../lib/Route';
+import Item from '../lib/Item';
+import Operation from '../lib/Operation';
 
 let testRoute  = process.env.TEST_ROUTE || false;
 let testDomain = process.env.TEST_DOMAIN || false;

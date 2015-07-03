@@ -1,4 +1,4 @@
-var Route = require('../../lib/route');
+var Route = require('../../lib/Route');
 
 var routeURL =
   'http://www.reddit.com/r/<%= query %>/new/'+

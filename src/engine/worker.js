@@ -6,7 +6,7 @@ import routes from '../../routes';
 import state from './state';
 import logger from '../logger';
 
-let debug = logger.debug('Worker');
+const debug = logger.debug('Worker');
 
 // Exports: Worker
 //
@@ -21,7 +21,7 @@ export default class Worker extends Spider {
     this.route = null;
 
     // Bind the methods to itself
-    this.isRunning          = this.isRunning.bind(this);
+    this.isRunning = this.isRunning.bind(this);
     this.startNextOperation = this.startNextOperation.bind(this);
 
     // Debugging listeners
@@ -40,7 +40,7 @@ export default class Worker extends Spider {
 
   // start this worker
   start() {
-    let self = this;
+    const self = this;
 
     // Keep processing operations while this worker is alive
     async.whilst(self.isRunning, loadOperation, onStop);
@@ -50,17 +50,17 @@ export default class Worker extends Spider {
         if (err) throw err;
         if (!spider) return callback();
 
-        spider.once('error', (err) => {
-          console.error(err);
+        spider.once('error', (spiderError) => {
+          logger.error(spiderError);
           self.operation = null;
           callback();
         });
 
         spider.once('operation:finish', (operation) => {
           debug(
-            `Operation finished: ${operation.route}. `+
-            `${operation.stats.item} items created. `+
-            `${operation.stats.updated} items updated. `+
+            `Operation finished: ${operation.route}. ` +
+            `${operation.stats.item} items created. ` +
+            `${operation.stats.updated} items updated. ` +
             `${operation.stats.spawned} operations created.`
          );
 
@@ -86,8 +86,9 @@ export default class Worker extends Spider {
 
     debug('Stopping worker.');
 
-    if (this.spider)
+    if (this.spider) {
       this.spider.emit('spider:stop');
+    }
 
     this.once('worker:stopped', () => {
       debug('Worker stopped.');
@@ -98,8 +99,9 @@ export default class Worker extends Spider {
   // gets and starts the next operation, and returns a running spider
   startNextOperation(callback) {
     Operation.getNext(state, (err, operation) => {
-      if (err || !this.running)
+      if (err || !this.running) {
         return callback(err);
+      }
 
       // if there are no new operations to process,
       // keep on quering for them each second.
@@ -114,14 +116,14 @@ export default class Worker extends Spider {
         return;
       }
 
-      let routeName = operation.route;
-      let provider  = operation.provider;
-      let query     = operation.query;
-      let route     = routes[provider][routeName];
+      const routeName = operation.route;
+      const provider = operation.provider;
+      const query = operation.query;
+      const route = routes[provider][routeName];
 
       debug(`Got operation: ${provider}->${routeName}. Query: ${query}`);
 
-      let spider = new Spider();
+      const spider = new Spider();
       spider.verbose();
       spider.addEmitter(this);
       spider.scrape(operation);

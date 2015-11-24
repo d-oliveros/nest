@@ -1,5 +1,2 @@
-import mongoClient from './mongo';
 
-export default {
-	mongo: mongoClient
-};
+export default require('require-all')(__dirname);

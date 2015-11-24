@@ -1,5 +1,4 @@
-// Make sure the database is initialized
-require('../database');
+import '../database';
 
 import mongoose from 'mongoose';
 import schema from './schema';

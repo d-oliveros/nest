@@ -1,6 +1,6 @@
-var Route = require('../../src/Route');
+import Route from '../../src/Route';
 
-var route = new Route({
+const route = new Route({
   provider: 'reddit',
   name:  'post',
   url:   'http://www.reddit.com/<%= query %>',
@@ -13,27 +13,27 @@ var route = new Route({
 });
 
 route.scraper = function($) {
-  var data = {
+  const data = {
     hasNextPage: false,
     items: []
   };
 
-  var $post       = $('.linklisting div.thing');
-  var $title      = $post.find('a.title');
-  var id          = $post.data('fullname').split('_')[1].trim();
-  var title       = $title.text().trim();
-  var pathname    = this.location.href.replace('http://www.reddit.com', '');
-  var description = $post.find('div.usertext-body p').text().trim();
-  var upvotes     = $post.find('div.score.unvoted').text().trim();
-  var subreddit   = pathname.split('/')[2];
+  const $post       = $('.linklisting div.thing');
+  const $title      = $post.find('a.title');
+  const id          = $post.data('fullname').split('_')[1].trim();
+  const title       = $title.text().trim();
+  const pathname    = this.location.href.replace('http://www.reddit.com', '');
+  const description = $post.find('div.usertext-body p').text().trim();
+  const upvotes     = $post.find('div.score.unvoted').text().trim();
+  const subreddit   = pathname.split('/')[2];
 
-  var comments    = [];
+  const comments    = [];
 
   // get the post comments
   $('.nestedlisting div.thing').each(function() {
-    var $comment = $(this);
-    var commentBody = $comment.find('.usertext-body p').text();
-    var author = $('.tagline .author').text();
+    const $comment = $(this);
+    const commentBody = $comment.find('.usertext-body p').text();
+    const author = $('.tagline .author').text();
 
     comments.push({
       body: commentBody,
@@ -55,4 +55,4 @@ route.scraper = function($) {
   return data;
 };
 
-module.exports = route;
+export default route;

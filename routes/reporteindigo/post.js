@@ -1,7 +1,7 @@
-var Route = require('../../src/Route');
-var removeDiacritics = require('diacritic').clean;
+import Route from '../../src/Route';
+import { clean as removeDiacritics } from 'diacritic';
 
-var route = new Route({
+const route = new Route({
   provider: 'reporteindigo',
   name:     'post',
   url:      'http://www.reporteindigo.com/<%= query %>',
@@ -20,11 +20,11 @@ route.scraper = function($) {
   // - Scrape the next page is 'hasNextPage' is true,
   // - Save the items in the 'data.items' array into a Mongo DB
   // - Scrape the new routes inside 'data.operations',
-  var data = {
+  const data = {
     items: []
   };
-  var itemUrl = this.location.href;
-  var itemAuthor = $('.article-author').text();
+  const itemUrl = this.location.href;
+  const itemAuthor = $('.article-author').text();
 
   data.items.push({
     url:       itemUrl,
@@ -58,4 +58,4 @@ route.middleware = function(data, callback) {
   callback(null, data);
 };
 
-module.exports = route;
+export default route;

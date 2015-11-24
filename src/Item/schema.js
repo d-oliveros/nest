@@ -1,13 +1,12 @@
 import mongoose from 'mongoose';
-import {extend} from 'lodash';
+import { extend } from 'lodash';
 import * as statics from './statics';
 
-// Schema
-let schemaOptions = {
+const schemaOptions = {
   strict: false
 };
 
-let schema = new mongoose.Schema({
+const schema = new mongoose.Schema({
   name: {
     type: String,
     trim: true

@@ -1,7 +1,7 @@
-var Route = require('../../src/Route');
-var removeDiacritics = require('diacritic').clean;
+import Route from '../../src/Route';
+const removeDiacritics = require('diacritic').clean;
 
-var route = new Route({
+const route = new Route({
   provider: 'animalpolitico',
   name:     'search',
   url:      'http://www.animalpolitico.com/page/<%= state.currentPage %>/?s=<%= query %>',
@@ -15,7 +15,7 @@ var route = new Route({
 });
 
 route.scraper = function($) {
-  var data = {
+  const data = {
     hasNextPage: $('.nextpostslink').length > 0,
     items: [],
     operations: []
@@ -24,11 +24,12 @@ route.scraper = function($) {
   // We are mapping each search result to actual, valuable information,
   // and adding the search result to the items array
   data.items = $('#content article').map(function() {
-    var $item = $(this);
-    var itemUrl = $item.find('.entry-title a').attr('href');
+    const $item = $(this);
+    let itemUrl = $item.find('.entry-title a').attr('href');
 
-    if (itemUrl[itemUrl.length-1] === '/')
-      itemUrl = itemUrl.substr(0, itemUrl.length-1);
+    if (itemUrl[itemUrl.length - 1] === '/') {
+      itemUrl = itemUrl.substr(0, itemUrl.length - 1);
+    }
 
     return {
       name:  $item.find('.entry-title a').text(),
@@ -62,4 +63,4 @@ route.middleware = function(data, callback) {
   callback(null, data);
 };
 
-module.exports = route;
+export default route;

@@ -1,6 +1,6 @@
-var Route = require('../../src/Route');
+import Route from '../../src/Route';
 
-var route = new Route({
+const route = new Route({
   provider: 'sinembargo',
   name:     'post',
   url:      'http://www.sinembargo.mx/<%= query %>',
@@ -15,15 +15,15 @@ var route = new Route({
 });
 
 route.scraper = function($) {
-  var data = {
+  const data = {
     items: []
   };
 
-  var itemUrl = this.location.href;
-  var posted = $('.date').text();
+  const itemUrl = this.location.href;
+  const posted = $('.date').text();
 
-  var body = $('.post_text_inner p').map(function() {
-    var $p = $(this);
+  const body = $('.post_text_inner p').map(function() {
+    const $p = $(this);
     return $p.text().trim();
   }).get().join('\n');
 
@@ -38,4 +38,4 @@ route.scraper = function($) {
   return data;
 };
 
-module.exports = route;
+export default route;

@@ -1,13 +1,13 @@
-var Route = require('../../src/Route');
+import Route from '../../src/Route';
 
-var routeURL =
-  'http://www.reddit.com/r/<%= query %>/new/'+
-    '?count=<%= ((state.currentPage-1) * 25) %>'+
-    '<% if (state.data.lastId) {%>'+
-      '&after=t3_<%= state.data.lastId %>'+
+const routeURL =
+  'http://www.reddit.com/r/<%= query %>/new/' +
+    '?count=<%= ((state.currentPage-1) * 25) %>' +
+    '<% if (state.data.lastId) {%>' +
+      '&after=t3_<%= state.data.lastId %>' +
     '<% } %>';
 
-var route = new Route({
+const route = new Route({
   provider: 'reddit',
   name: 'wall',
   url: routeURL,
@@ -20,33 +20,29 @@ var route = new Route({
 });
 
 route.scraper = function($) {
-  var $posts = $('#siteTable div.thing');
+  const $posts = $('#siteTable div.thing');
 
-  var data = {
+  const data = {
     hasNextPage: !!$('.nav-buttons a[rel="nofollow next"]').length,
     items: [],
     operations: [],
     state: {}
   };
 
-  var pathname = this.location.href.replace('http://www.reddit.com', '');
+  const pathname = this.location.href.replace('http://www.reddit.com', '');
 
   $posts.each(function() {
-    var $post, $title, id, title, upvotes, subreddit;
-
-    $post  = $(this);
-    $title = $post.find('a.title');
-
-    id        = $post.data('fullname').split('_')[1].trim();
-    title     = $title.text().trim();
-    upvotes   = $post.find('div.score.unvoted').text().trim();
-    subreddit = pathname.split('/')[2];
+    const $post = $(this);
+    const $title = $post.find('a.title');
+    const id = $post.data('fullname').split('_')[1].trim();
+    const title = $title.text().trim();
+    const upvotes = $post.find('div.score.unvoted').text().trim();
+    const subreddit = pathname.split('/')[2];
 
     data.items.push({
       name: title,
       key: id,
-      link: 'http://www.reddit.com/'+id,
-
+      link: `http://www.reddit.com/${id}`,
       upvotes: upvotes,
       subreddit: subreddit
     });
@@ -63,4 +59,4 @@ route.scraper = function($) {
   return data;
 };
 
-module.exports = route;
+export default route;

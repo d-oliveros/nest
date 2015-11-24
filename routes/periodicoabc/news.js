@@ -1,11 +1,10 @@
-var Route = require('../../src/Route');
+import Route from '../../src/Route';
 
-var route = new Route({
+const route = new Route({
   provider: 'periodicoabc',
   name:     'news',
   url:      'http://www.periodicoabc.mx/functions/jsonHome-news.php?pagina=<%= state.currentPage %>',
   priority: 80,
-
 
   test: {
     query: '',
@@ -14,16 +13,16 @@ var route = new Route({
   }
 });
 
-route.scraper = function($, html) {
-  var data;
+route.scraper = function(json) {
+  let data;
 
   try {
-    data = JSON.parse(html);
+    data = JSON.parse(json);
   } catch (e) {
     throw new Error('Invalid JSON');
   }
 
-  var items = data.map(function(item) {
+  const items = data.map((item) => {
     return {
       title: item.titulo,
       posted: new Date(item.fecha.replace(' de', '').replace(' del', '')),
@@ -32,7 +31,7 @@ route.scraper = function($, html) {
     };
   });
 
-  var operations = items.map(function(item) {
+  const operations = items.map((item) => {
     return {
       provider: 'periodicoabc',
       route: 'post',
@@ -49,4 +48,4 @@ route.scraper = function($, html) {
   return data;
 };
 
-module.exports = route;
+export default route;

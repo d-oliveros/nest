@@ -1,24 +1,23 @@
-require('./test-env');
-
+import './testenv';
 import Spider from '../src/Spider';
-import {EventEmitter} from 'events';
+import { EventEmitter } from 'events';
 
-let should = require('chai').should(); // eslint-disable-line no-unused-vars
-let expect = require('chai').expect;
+const should = require('chai').should(); // eslint-disable-line no-unused-vars
+const expect = require('chai').expect;
 
 describe('Spider', function() {
   this.timeout(15000); // 15 seconds
   let globalSpider;
 
   it('should emit an event', (done) => {
-    let spider = new Spider();
+    const spider = new Spider();
     spider.on('test:event', done);
     spider.emit('test:event');
   });
 
   it('should add and emit events to an external emitter', (done) => {
-    let spider = new Spider();
-    let emitter = new EventEmitter();
+    const spider = new Spider();
+    const emitter = new EventEmitter();
     let completed = 0;
 
     spider.addEmitter(emitter);
@@ -30,8 +29,9 @@ describe('Spider', function() {
     spider.emit('test:event');
 
     setTimeout(() => {
-      if (completed !== 2)
+      if (completed !== 2) {
         return done(new Error('Emitter did not received event'));
+      }
 
       done();
     }, 100);
@@ -39,8 +39,8 @@ describe('Spider', function() {
   });
 
   it('should remove external emitter', () => {
-    let spider = new Spider();
-    let emitter = new EventEmitter();
+    const spider = new Spider();
+    const emitter = new EventEmitter();
 
     spider.addEmitter(emitter);
     expect(spider.emitters).to.contain(emitter);
@@ -51,7 +51,7 @@ describe('Spider', function() {
   });
 
   it('should open a page statically', (done) => {
-    let spider = new Spider();
+    const spider = new Spider();
 
     spider.open('http://www.github.com', () => {
       spider.stop();
@@ -59,9 +59,9 @@ describe('Spider', function() {
     });
   });
 
-  it('should open a dynamic page with phantomJS', (done) => {
+  it('should open a dynamic page with phantomJS', async () => {
     globalSpider = new Spider();
-    globalSpider.open('http://www.google.com', true, done);
+    await globalSpider.open('http://www.google.com', true);
   });
 
   it('should have a phantomJS instance', () => {
@@ -78,16 +78,14 @@ describe('Spider', function() {
     globalSpider.error('Test error');
   });
 
-  it('should stop', (done) => {
-    let spider = new Spider();
+  it('should stop', async () => {
+    const spider = new Spider();
 
-    spider.open('http://www.github.com', () => {
-      spider.stop();
+    await spider.open('http://www.github.com');
+    spider.stop();
 
-      if (spider.phantom)
-        return done(new Error('Phantom was not cleared'));
-
-      done();
-    });
+    if (spider.phantom) {
+      throw new Error('Phantom was not cleared');
+    }
   });
 });

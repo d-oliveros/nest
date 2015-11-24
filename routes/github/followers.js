@@ -1,6 +1,6 @@
-var Route = require('../../src/Route');
+import Route from '../../src/Route';
 
-var route = new Route({
+const route = new Route({
   provider: 'github',
   name:  'followers',
   url:   'https://github.com/<%- query %>/followers?page=<%= state.currentPage %>',
@@ -14,7 +14,7 @@ var route = new Route({
 });
 
 route.scraper = function($) {
-  var data = {
+  const data = {
     operations: []
   };
 
@@ -27,11 +27,12 @@ route.scraper = function($) {
     });
   });
 
-  var hasPagination = $('.paginate-container').find('a').length > 0;
-  if (hasPagination)
+  const hasPagination = $('.paginate-container').find('a').length > 0;
+  if (hasPagination) {
     data.hasNextPage = $('.paginate-container').find('.pagination').children().last().text() === 'Next';
+  }
 
   return data;
 };
 
-module.exports = route;
+export default route;

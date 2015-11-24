@@ -1,11 +1,11 @@
+/* eslint-disable key-spacing, no-multi-spaces */
 import mongoose from 'mongoose';
-import {extend} from 'lodash';
+import { extend } from 'lodash';
 import * as statics from './statics';
 
-let Mixed = mongoose.Schema.Types.Mixed;
+const Mixed = mongoose.Schema.Types.Mixed;
 
-// Schema
-let schema = new mongoose.Schema({
+const schema = new mongoose.Schema({
   provider:     { type: String, required: true },
   route:        { type: String, required: true },
   routeId:      { type: String, required: true },

@@ -1,6 +1,6 @@
-var Route = require('../../src/Route');
+import Route from '../../src/Route';
 
-var route = new Route({
+const route = new Route({
   provider: 'periodicoabc',
   name:     'post',
   url:      'http://www.periodicoabc.mx/<%= query %>',
@@ -15,11 +15,11 @@ var route = new Route({
 });
 
 route.scraper = function($) {
-  var data = {
+  const data = {
     items: []
   };
 
-  var itemUrl = this.location.href;
+  const itemUrl = this.location.href;
 
   $('article.media').remove();
 
@@ -33,4 +33,4 @@ route.scraper = function($) {
   return data;
 };
 
-module.exports = route;
+export default route;

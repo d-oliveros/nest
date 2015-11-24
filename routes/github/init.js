@@ -1,12 +1,12 @@
-var async = require('async');
-var _ = require('lodash');
+const async = require('async');
+const _ = require('lodash');
 
-var githubSearchRoute = require('../github/search');
-var queries = [];
-var ops = [];
+const githubSearchRoute = require('../github/search');
+const queries = [];
+const ops = [];
 
 // Define the languages filters to use
-var languages = [
+const languages = [
   'l=JavaScript',
   'l=Java',
   'l=PHP',
@@ -20,7 +20,7 @@ var languages = [
 ];
 
 // Define the sort option
-var sorts = [
+const sorts = [
   '',
   's=followers&o=desc',
   's=followers&o=asc',
@@ -33,14 +33,14 @@ var sorts = [
 // Define the search queries to search for
 queries.push('repos%3A>50');
 
-for(var i = 50; i >= 0; i--) {
-  queries.push('repos%3A'+i);
+for (let i = 50; i >= 0; i--) {
+  queries.push('repos%3A' + i);
 }
 
 _.each(queries, function(query) {
   _.each(languages, function(language) {
     _.each(sorts, function(sort) {
-      ops.push(query+'&'+language+(sort ? '&'+sort : ''));
+      ops.push(query + '&' + language + (sort ? '&' + sort : ''));
     });
   });
 });
@@ -53,15 +53,15 @@ _.each(queries, function(query) {
 exports.start = function() {
 
   // initialize the links to scrape using the github extractor
-  console.log('Initializing '+ops.length+' search routes...');
+  console.log('Initializing ' + ops.length + ' search routes...');
 
   async.eachLimit(ops, 10, githubSearchRoute.initialize, function(err) {
     if (err) return console.error(err);
 
-    console.log(ops.length+' operations created. Script finished.');
+    console.log(ops.length + ' operations created. Script finished.');
     console.log('Starting the data extraction engine now...');
 
-    var engine = require('../../src/engine');
+    const engine = require('../../src/engine');
     engine.start();
   });
 };

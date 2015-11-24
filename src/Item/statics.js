@@ -1,42 +1,46 @@
-import async from 'async';
 import logger from '../logger';
 
-let debug = logger.debug('Item:statics');
+const debug = logger.debug('Item:statics');
 
-// Applies `Item.upsert` to `items` in series,
-// returns an object with operation stats
-export function eachUpsert(items, callback) {
-  let stats = {
+/**
+ * Applies `Item.upsert` to `items` in parallel
+ * @param  {Array}  items  Items to upsert
+ * @return {Object}        Object with operation stats
+ */
+
+export const eachUpsert = async function(items) {
+  const stats = {
     created: 0,
     updated: 0,
     ignored: 0
   };
 
-  async.each(items, (item, cb) => {
-    this.upsert(item, (err, op) => {
-      if (err) return cb(err);
-      stats[op]++;
-      cb();
-    });
-  }, (err) => callback(err, stats));
-}
+  const promises = items.map(async (item) => {
+    const op = await this.upsert(item);
+    stats[op]++;
+  });
 
-export function upsert(data, callback) {
-  debug(`Upsert: Finding Item ${data.key}`);
+  await Promise.all(promises);
 
-  this
-    .update({ key: data.key }, data, { upsert: true })
-    .exec((err, updated, n) => {
-      let isNew = !updated.nModified;
-      let op    = isNew ? 'created' : 'updated';
+  return stats;
+};
 
-      if (err) {
-        console.error(err);
-        return callback(null, 'ignored');
-      }
+/**
+ * Creates or updates a scraped item in the database
+ * @param  {Object}  item  The item to be upserted
+ * @return {String}        Operation type. Either 'created' or 'updated'.
+ */
+export const upsert = async function(item) {
+  debug(`Upsert: Finding Item ${item.key}`);
 
-      debug((isNew ? 'Created item:' : 'Updated item:') + ` ${data.key}`);
+  const query = { key: item.key };
+  const options = { upsert: true };
 
-      callback(null, op);
-    });
-}
+  const updated = await this.update(query, item, options).exec();
+  const isNew = !updated.nModified;
+  const op = isNew ? 'created' : 'updated';
+
+  debug((isNew ? 'Created item:' : 'Updated item:') + ` ${item.key}`);
+
+  return op;
+};

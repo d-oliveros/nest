@@ -1,9 +1,9 @@
 import invariant from 'invariant';
-import {template} from 'lodash';
-import Operation from '../Operation';
-import logger from '../logger';
+import { template } from 'lodash';
+import Operation from './Operation';
+import logger from './logger';
 
-let debug = logger.debug('Route');
+const debug = logger.debug('Route');
 
 // Exports: Route
 //
@@ -14,55 +14,50 @@ export default class Route {
 
     debug('Creating new route', params);
 
-    this.title       = params.title;
-    this.provider    = params.provider;
-    this.name        = params.name;
-    this.isDynamic   = params.dynamic || false;
+    this.title = params.title;
+    this.provider = params.provider;
+    this.name = params.name;
+    this.isDynamic = params.dynamic || false;
 
     // template generation function. Takes an operation for input
     this.urlTemplate = template(params.url);
 
     // scraping function that should return an object with scraped data
-    this.scraper     = params.scraper || this.scraper;
+    this.scraper = params.scraper || this.scraper;
 
     // route-specific middleware to be executed after scraping data from a page
-    this.middleware  = params.middleware || this.middleware;
+    this.middleware = params.middleware || this.middleware;
 
     // scraping function that should return either 'ok' or 'blocked'
     this.checkStatus = params.checkStatus || this.checkStatus;
 
     // auto-testing options
-    this.test        = params.test || null;
+    this.test = params.test || null;
 
     // limit the amount of workers that can work on this route at the same time
     this.concurrency = params.concurrency || null;
 
     // bind the initialize method to itself
-    this.initialize  = this.initialize.bind(this);
+    this.initialize = this.initialize.bind(this);
 
     // routes with higher priority will be processed first by the workers
-    this.priority    = params.priority;
+    this.priority = params.priority;
 
-    if (typeof this.priority !== 'number')
+    if (typeof this.priority !== 'number') {
       this.priority = 50;
+    }
   }
 
   // creates an operation to this route with the provided query argument
-  initialize(query, callback) {
-    let operationQuery = {
-      query:     query,
-      provider:  this.provider,
-      route:     this.name,
-      priority:  this.priority
-    };
-
-    Operation.findOrCreate(operationQuery, callback);
+  async initialize(query) {
+    const { provider, name, priority } = this;
+    return await Operation.findOrCreate({ provider, name, priority, query });
   }
 
   // starts this route, and return a running spider
   start(query) {
-    let Spider = require('../spider');
-    let spider = new Spider();
+    const Spider = require('../spider');
+    const spider = new Spider();
 
     this.initialize(query, (err, operation) => {
       if (err) return spider.error(err);
@@ -83,8 +78,8 @@ export default class Route {
   }
 
   // default middleware
-  middleware(scraped, callback) {
-    callback(null, scraped);
+  async middleware(scraped) {
+    return scraped;
   }
 
   // default status checker.

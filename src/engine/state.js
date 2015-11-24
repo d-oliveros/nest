@@ -1,7 +1,7 @@
 
 // Exports: Engine state object
-let engineState = {
-	workers: []
+const engineState = {
+  workers: []
 };
 
 // worker objects being executed right now
@@ -11,8 +11,9 @@ engineState.workers = [];
 Object.defineProperty(engineState, 'operationIds', {
   get: () => {
     return engineState.workers.reduce((ids, worker) => {
-      if (worker.operation)
+      if (worker.operation) {
         ids.push(worker.operation.id);
+      }
 
       return ids;
     }, []);

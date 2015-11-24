@@ -1,6 +1,6 @@
-import {noop} from 'lodash';
+import { noop } from 'lodash';
 
-let phantomConfig = {};
+const phantomConfig = {};
 
 phantomConfig.parameters = {
   'load-images': 'no',

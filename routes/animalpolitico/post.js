@@ -1,6 +1,6 @@
-var Route = require('../../src/Route');
+import Route from '../../src/Route';
 
-var route = new Route({
+const route = new Route({
   provider: 'animalpolitico',
   name:     'post',
   url:      'http://www.animalpolitico.com/<%= query %>',
@@ -15,19 +15,19 @@ var route = new Route({
 });
 
 route.scraper = function($) {
-  var data = {
+  const data = {
     items: []
   };
 
-  var itemUrl = this.location.href;
-  //var posted = $('.entry-date').text().trim();
+  const itemUrl = this.location.href;
+  // const posted = $('.entry-date').text().trim();
 
   // Clear the body
   $('.entry-content a').remove();
   $('.entry-content div').remove();
 
-  var body = $('.entry-content p').map(function() {
-    var $p = $(this);
+  const body = $('.entry-content p').map(function() {
+    const $p = $(this);
     return $p.text().trim();
   }).get().join('\n');
 
@@ -36,10 +36,10 @@ route.scraper = function($) {
     key:       itemUrl.replace('http://www.animalpolitico.com/', ''),
     name:      $('.entry-title').text(),
     body:      body
-    //posted:    new Date($('.article-date').text().replace(/de /g, '')),
+    // posted:    new Date($('.article-date').text().replace(/de /g, '')),
   });
 
   return data;
 };
 
-module.exports = route;
+export default route;

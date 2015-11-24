@@ -1,11 +1,10 @@
-import {each} from 'lodash';
-
+import { each } from 'lodash';
 import fs from'fs';
 import path from'path';
 import requireAll from'require-all';
 
-let files = fs.readdirSync(__dirname);
-let routes = {};
+const files = fs.readdirSync(__dirname);
+const routes = {};
 
 // require all the routes in the directories
 files.forEach((domain) => {
@@ -30,8 +29,9 @@ routes.list = () => {
       string += `  ${domainName}:${routeName}`;
 
       // warn on tests disabled
-      if (!route.test && routeName !== 'init')
+      if (!route.test && routeName !== 'init') {
         string += ' (not testable)';
+      }
 
       string += '\n';
     });
@@ -41,6 +41,4 @@ routes.list = () => {
   return string;
 };
 
-// Exports: routes
-//
 export default routes;

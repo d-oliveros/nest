@@ -1,193 +1,145 @@
-import {defer, each, toArray, assign} from 'lodash';
-import async from 'async';
+import { each, toArray, assign } from 'lodash';
 import Item from '../Item';
 import modules from '../modules';
 import logger from '../logger';
 import routes from '../../routes';
 
-let debug = logger.debug('Spider:scrape');
+const debug = logger.debug('Spider:scrape');
 
-// Exports: Scraper function
-//
-export default function scrape(operation) {
-  let spider     = this;
-  let state      = operation.state;
+export default async function scrape(operation) {
+  const state = operation.state;
 
-  let routeName  = operation.route;
-  let provider   = operation.provider;
-  let route      = routes[provider][routeName];
+  const routeName = operation.route;
+  const provider = operation.provider;
+  const route = routes[provider][routeName];
 
-  let _isBlocked  = false;
-
-  debug(`Starting operation: ${operation.routeId}`+
+  debug(`Starting operation: ${operation.routeId}` +
     (operation.query ? ` ${operation.query}` : ''));
 
   // save the starting time of this operation
-  if (spider.iteration === 0) {
-    operation.state.startedDate = operation.wasNew ?
-      operation.created :
-      Date.now();
+  if (this.iteration === 0) {
+    const startedDate = operation.wasNew ? operation.created : Date.now();
+    operation.state.startedDate = startedDate;
   }
 
   // create the URL using the operation's parameters
-  let url = route.urlTemplate(operation);
+  const url = route.urlTemplate(operation);
 
-  spider.emit('operation:start', operation, url);
+  this.emit('operation:start', operation, url);
 
   // check if this operation is actually finished
   if (state.finished) {
-    defer(() => spider.emit('operation:finish', operation));
-    return spider;
+    this.emit('operation:finish', operation);
+    return operation;
   }
 
-  async.waterfall([
-    function openURL(callback) {
-      spider.open(url, route.isDynamic, callback);
-    },
-    function checkStatus(page, callback) {
-      page.evaluate(route.checkStatus, (status) => {
-        switch (status) {
-          case 'blocked':
-            _isBlocked = true;
-            onFinish();
-            break;
+  // opens the page
+  const page = await this.open(url, { dynamic: route.isDynamic });
+  const status = await page.evaluate(route.checkStatus);
 
-          default:
-          case 'ok':
-            callback(null, page);
-        }
-      });
-    },
-    function scrapePage(page, callback) {
-      page.evaluate(route.scraper, (scraped) => {
-        spider.emit('scraped:raw', scraped, operation);
-        callback(null, scraped);
-      });
-    },
-    function sanitize(scraped, callback) {
-      let sanitized = spider.sanitizeScraped(scraped);
-      callback(null, sanitized);
-    },
-    function setItemsMeta(scraped, callback) {
-      each(scraped.items, (item) => {
-        item.provider    = provider;
-        item.route       = routeName;
-        item.routeWeight = route.priority;
-      });
+  if (status === 'blocked') {
+    // IP has been blocked
+    debug('Operation blocked. Retrying in 5s...');
+    this.emit('operation:blocked', operation, url);
+    await sleep(5000);
+    return await this.scrape(operation);
+  }
 
-      callback(null, scraped);
-    },
-    function runMiddleware(scraped, callback) {
+  // scapes the page
+  let scraped = await page.evaluate(route.scraper);
+  this.emit('scraped:raw', scraped, operation);
 
-      // route-specific middleware
-      route.middleware(scraped, callback);
+  scraped = this.sanitizeScraped(scraped);
 
-    },
-    function runModules(scraped, callback) {
+  each(scraped.items, (item) => {
+    item.provider = provider;
+    item.route = routeName;
+    item.routeWeight = route.priority;
+  });
 
-      // apply the modules to this scraped data
-      async.eachSeries(toArray(modules), (module, cb) => {
-        module(scraped, cb);
-      }, (err) => {
-        if (err) return callback(err);
-        return callback(null, scraped);
-      });
-    },
-    function spawnOperations(scraped, callback) {
-      if (scraped.operations.length === 0) {
-        debug('No operations to spawn.');
-        return callback(null, scraped);
-      }
+  // apply modules and route-specific middleware
+  scraped = await route.middleware(scraped);
 
-      debug('Spawning operations.');
-      let operations = [];
-
-      async.each(scraped.operations, (params, cb) => {
-        let targetRouteId = `${params.provider}:${params.route}`;
-        let targetRoute = routes[params.provider][params.route];
-
-        if (!targetRoute) {
-          debug(
-            `Warning: ${operation.routeId} `+
-            `wanted to scrape ${targetRouteId}, `+
-            `but that route does not exists`);
-          return cb();
-        }
-
-        targetRoute.initialize(params.query, (err, operation) => {
-          if (err) return cb(err);
-          operations.push(operation);
-          cb();
-        });
-      }, (err) => {
-        if (err) return callback(err);
-
-        operation.stats.spawned += operations.length;
-
-        debug(`Operations spawned: ${operations.length} operations.`);
-        spider.emit('operations:created', operations);
-
-        return callback(null, scraped);
-      });
-    },
-    function setOperationState(scraped, callback) {
-      if (scraped.hasNextPage)
-        state.currentPage++;
-
-      else {
-        state.finished = true;
-        state.finishedDate = Date.now();
-      }
-
-      if (scraped.state) {
-        state.data = state.data || {};
-        assign(state.data, scraped.state);
-      }
-
-      state.lastLink = url;
-
-      callback(null, scraped);
-    },
-    function saveItems(scraped, callback) {
-      Item.eachUpsert(scraped.items, callback);
-    },
-    function saveOperation(results, callback) {
-      spider.iteration++;
-      operation.stats.pages++;
-      operation.stats.items   += results.created;
-      operation.stats.updated += results.updated;
-
-      spider.emit('scraped:page', results, operation);
-      spider.stopPhantom();
-
-      debug('Saving operation.');
-      operation.save(callback);
-    }
-  ], onFinish);
-
-  function onFinish(err) {
-    if (err) return spider.error(err);
-
-    // if the operation has been stopped
-    if (!spider.running)
-      spider.emit('operation:stopped', operation);
-
-    // if the operation has finished
-    if (!spider.running || state.finished)
-      spider.emit('operation:finish', operation);
-
-    // if the IP has been blocked
-    else if (_isBlocked) {
-      debug('Operation blocked. Retrying in 5s...');
-      spider.emit('operation:blocked', operation, url);
-
-      setTimeout(() => spider.scrape(operation), 5000);
-    }
-
-    // if the operation has not finished
-    else {
-      spider.emit('operation:next', operation);
-      spider.scrape(operation);
+  for (const mod of toArray(modules)) {
+    try {
+      scraped = await mod(scraped) || scraped;
+    } catch (err) {
+      logger.error(err);
     }
   }
+
+  // spawn new scraping operations
+  if (scraped.operations.length === 0) {
+    debug('No operations to spawn');
+  } else {
+    debug('Spawning operations');
+    const promises = scraped.operations.map(async ({ provider, route, query }) => {
+      const targetRouteId = `${provider}:${route}`;
+      const targetRoute = routes[provider][route];
+
+      if (!targetRoute) {
+        debug(
+          `Warning: ${operation.routeId} ` +
+          `wanted to scrape ${targetRouteId}, ` +
+          `but that route does not exists`);
+      } else {
+        const newOperation = await targetRoute.initialize(query);
+        return newOperation;
+      }
+    });
+
+    const newOperations = await Promise.all(promises);
+
+    debug(`Operations spawned: ${newOperations.length} operations.`);
+    this.emit('operations:created', newOperations);
+
+    operation.stats.spawned += newOperations.length;
+  }
+
+  // change state
+  if (scraped.hasNextPage) {
+    state.currentPage++;
+  } else {
+    state.finished = true;
+    state.finishedDate = Date.now();
+  }
+
+  if (scraped.state) {
+    state.data = assign(state.data || {}, scraped.state);
+  }
+
+  state.lastLink = url;
+
+  const results = await Item.eachUpsert(scraped.items);
+
+  this.iteration++;
+  operation.stats.pages++;
+  operation.stats.items += results.created;
+  operation.stats.updated += results.updated;
+
+  this.emit('scraped:page', results, operation);
+  this.stopPhantom();
+
+  debug('Saving operation');
+  await operation.save();
+
+  // if the operation has been stopped
+  if (!this.running) {
+    this.emit('operation:stopped', operation);
+  }
+
+  // Operation finished
+  if (!this.running || state.finished) {
+    this.emit('operation:finish', operation);
+  } else {
+    // Operation has not finished finished
+    this.emit('operation:next', operation);
+    return await this.scrape(operation);
+  }
+
+  return operation;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

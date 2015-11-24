@@ -17,7 +17,7 @@ if (fs.existsSync('./names.json')) {
 export default function checkIfHumanName(string) {
   if (names.length === 0) return null;
 
-  let words = string.split(' ');
+  const words = string.split(' ');
   let isHuman = false;
 
   for (let i = 0, len = words.length; i < len; i++) {
@@ -28,4 +28,4 @@ export default function checkIfHumanName(string) {
   }
 
   return isHuman;
-};
+}

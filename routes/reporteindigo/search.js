@@ -1,7 +1,7 @@
-var Route = require('../../src/Route');
-var removeDiacritics = require('diacritic').clean;
+import Route from '../../src/Route';
+import { clean as removeDiacritics } from 'diacritic';
 
-var route = new Route({
+const route = new Route({
   provider: 'reporteindigo',
   name:     'search',
   url:      'http://www.reporteindigo.com/search/apachesolr_search/<%= query %>?page=<%= state.currentPage - 1 %>',
@@ -20,7 +20,7 @@ route.scraper = function($) {
   // - Scrape the next page is 'hasNextPage' is true,
   // - Save the items in the 'data.items' array into a Mongo DB
   // - Scrape the new routes inside 'data.operations',
-  var data = {
+  const data = {
     hasNextPage: $('.pager-next a').length > 0,
     items: [],
     operations: []
@@ -29,8 +29,8 @@ route.scraper = function($) {
   // We are mapping each search result to actual, valuable information,
   // and adding the search result to the items array
   data.items = $('.search-result').map(function() {
-    var $item = $(this);
-    var itemUrl = $item.find('a.search-result-title').attr('href');
+    const $item = $(this);
+    const itemUrl = $item.find('a.search-result-title').attr('href');
 
     return {
       name:  $item.find('.search-result-title').text(),
@@ -69,4 +69,4 @@ route.middleware = function(data, callback) {
   callback(null, data);
 };
 
-module.exports = route;
+export default route;

@@ -1,7 +1,7 @@
-var Route = require('../../src/Route');
-var removeDiacritics = require('diacritic').clean;
+import Route from '../../src/Route';
+const removeDiacritics = require('diacritic').clean;
 
-var route = new Route({
+const route = new Route({
   provider: 'sinembargo',
   name:     'search',
   url:      'http://www.sinembargo.mx/page/<%= state.currentPage %>?s=<%= query %>',
@@ -15,7 +15,7 @@ var route = new Route({
 });
 
 route.scraper = function($) {
-  var data = {
+  const data = {
     hasNextPage: $('.next.next_last').length > 0,
     items: [],
     operations: []
@@ -24,11 +24,12 @@ route.scraper = function($) {
   // We are mapping each search result to actual, valuable information,
   // and adding the search result to the items array
   data.items = $('.post_text_inner').map(function() {
-    var $item = $(this);
-    var itemUrl = $item.find('a').attr('href');
+    const $item = $(this);
+    let itemUrl = $item.find('a').attr('href');
 
-    if (itemUrl[itemUrl.length-1] === '/')
-      itemUrl = itemUrl.substr(0, itemUrl.length-1);
+    if (itemUrl[itemUrl.length - 1] === '/') {
+      itemUrl = itemUrl.substr(0, itemUrl.length - 1);
+    }
 
     return {
       name:  $item.find('a').attr('title'),
@@ -50,15 +51,14 @@ route.scraper = function($) {
 
 // This will be executed before saving the items to the DB.
 // You can use any module here, as this is executed in the main NodeJS process
-route.middleware = function(data, callback) {
-
-  data.items.forEach(function(item) {
+route.middleware = function(data) {
 
     // It would also be handy to save the title without accents
+  data.items.forEach((item) => {
     item.nameSanitized = removeDiacritics(item.name);
   });
 
-  callback(null, data);
+  return data;
 };
 
-module.exports = route;
+export default route;

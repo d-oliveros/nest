@@ -1,28 +1,28 @@
-{
-  "parser": "babel-eslint",
-  "rules": {
-    "quotes": [2, "single"],
-    "strict": [2, "never"],
-    "curly": false,
-    "eol-last": true,
-    "no-underscore-dangle": false,
-    "no-multi-spaces": false,
-    "no-process-exit": false,
-    "camelcase": false,
-    "no-use-before-define": false,
-    "no-shadow": false,
-    "key-spacing": false,
-    "no-loop-func": false,
-    "consistent-return": false,
-    "no-spaced-func": false,
-    "no-alert": false,
-    "new-cap": false,
-    "comma-spacing": false,
-    "yoda": false
-  },
-  "env": {
-    "node": true,
-    "mocha": true,
-    "es6": true
-  },
-}
+---
+parser: babel-eslint
+extends: airbnb/base
+env:
+  mocha: true
+rules:
+  indent:
+    - 2
+    - 2
+    - SwitchCase: 1
+  comma-dangle:
+    - 2
+    - never
+  no-use-before-define:
+    - 2
+    - nofunc
+  consistent-return:
+    - 0
+  padded-blocks:
+    - 0
+  func-names:
+    - 0
+  no-shadow:
+    - 0
+  no-param-reassign:
+    - 0
+  key-spacing:
+    - 0

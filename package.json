@@ -1,10 +1,11 @@
 {
   "name": "nest",
-  "version": "0.2.0",
-  "description": "Data extraction framework",
+  "version": "0.3.0",
+  "description": "Data Extraction & Botnet framework",
   "main": "lib/engine/index.js",
   "repository": "https://github.com/d-oliveros/nest",
   "scripts": {
+    "lint": "eslint .",
     "test": "./node_modules/.bin/mocha"
   },
   "bin": {
@@ -13,15 +14,20 @@
   "author": "David Oliveros",
   "license": "MIT",
   "dependencies": {
+    "assert": "*",
     "async": "*",
-    "babel": "*",
+    "babel-core": "^6.2.1",
+    "babel-polyfill": "^6.2.0",
+    "babel-preset-es2015": "^6.1.18",
+    "babel-preset-stage-2": "^6.1.18",
     "cheerio": "*",
     "debug": "*",
     "diacritic": "*",
-    "invariant": "^2.1.0",
-    "lodash": "*",
+    "invariant": "^2.2.0",
+    "lodash": "^3.10.1",
     "mongoose": "*",
     "phantom": "*",
+    "promisify-node": "^0.3.0",
     "request": "*",
     "require-all": "*",
     "winston": "*"
@@ -29,6 +35,8 @@
   "devDependencies": {
     "babel-eslint": "*",
     "chai": "*",
+    "debug": "^2.2.0",
+    "eslint-config-airbnb": "^1.0.0",
     "gulp": "*",
     "gulp-eslint": "*",
     "jshint-stylish": "*",

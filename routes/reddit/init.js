@@ -1,8 +1,8 @@
-var async = require('async');
+const async = require('async');
 
-var subredditRoute = require('../reddit/wall');
+const subredditRoute = require('../reddit/wall');
 
-var subreddits = [
+const subreddits = [
   'cscareerquestions',
   'compsci',
   'careerguidance',
@@ -15,15 +15,15 @@ var subreddits = [
 // using a really small subset of subreddit groups
 //
 exports.start = function() {
-  console.log('Initializing '+subreddits.length+' subreddit routes...');
+  console.log(`Initializing ${subreddits.length} subreddit routes...`);
 
   async.eachLimit(subreddits, 10, subredditRoute.initialize, function(err) {
     if (err) return console.error(err);
 
-    console.log(subreddits.length+' operations created. Script finished.');
+    console.log(`${subreddits.length} operations created. Script finished`);
     console.log('Starting the data extraction engine now...');
 
-    var engine = require('../../src/engine');
+    const engine = require('../../src/engine');
     engine.start();
   });
 };

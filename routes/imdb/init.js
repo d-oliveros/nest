@@ -1,4 +1,4 @@
-var searchRoute = require('../imdb/search');
+const searchRoute = require('../imdb/search');
 
 // Exports: Scraping initialization script
 //

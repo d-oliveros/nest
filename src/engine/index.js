@@ -1,5 +1,5 @@
 import async from 'async';
-import {noop} from 'lodash';
+import { noop } from 'lodash';
 import Worker from './worker';
 import config from '../../config';
 import emitter from './emitter';
@@ -12,7 +12,7 @@ export default { emitter, state, start, stop, started };
 function start() {
   if (!started) {
     for (let i = 0, len = config.engine.workers; i < len; i++) {
-      let worker = new Worker();
+      const worker = new Worker();
       worker.addEmitter(emitter);
       state.workers.push(worker);
     }
@@ -20,7 +20,7 @@ function start() {
   }
 }
 
-function stop(callback=noop) {
+function stop(callback = noop) {
   async.each(state.workers, stopWorker, () => {
     started = false;
     state.workers = [];

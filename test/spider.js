@@ -50,18 +50,16 @@ describe('Spider', function() {
     expect(spider.emitters.length).to.equal(0);
   });
 
-  it('should open a page statically', (done) => {
+  it('should open a page statically', async () => {
     const spider = new Spider();
 
-    spider.open('http://www.github.com', () => {
-      spider.stop();
-      done();
-    });
+    await spider.open('http://www.github.com');
+    spider.stop();
   });
 
   it('should open a dynamic page with phantomJS', async () => {
     globalSpider = new Spider();
-    await globalSpider.open('http://www.google.com', true);
+    await globalSpider.open('http://www.google.com', { dynamic: true });
   });
 
   it('should have a phantomJS instance', () => {

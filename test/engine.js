@@ -23,12 +23,14 @@ describe('Engine', function() {
     });
 
     // it should stop the engine
-    after(async () => {
-      await engine.stop();
+    after((done) => {
+      engine.stop((err) => {
+        if (!err && engine.state.workers.length > 0) {
+          err = new Error('Engine did not removed workers.');
+        }
 
-      if (engine.state.workers.length > 0) {
-        throw new Error('Engine did not removed workers.');
-      }
+        done(err);
+      });
     });
   });
 
@@ -45,7 +47,7 @@ describe('Engine', function() {
         return this.skip();
       }
 
-      const githubSearchRoute = require('../routes/github/search');
+      const githubSearchRoute = require('../routes/github/search').default;
       let runningGithubSearchRoutes = 0;
       let runningWorkers = 0;
       let finished = false;
@@ -98,12 +100,14 @@ describe('Engine', function() {
     });
 
     // it should stop the engine
-    after(async () => {
-      await engine.stop();
+    after((done) => {
+      engine.stop((err) => {
+        if (!err && engine.state.workers.length > 0) {
+          err = new Error('Engine did not removed workers.');
+        }
 
-      if (engine.state.workers.length > 0) {
-        throw new Error('Engine did not removed workers.');
-      }
+        done(err);
+      });
     });
   });
 });

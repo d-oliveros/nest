@@ -26,3 +26,5 @@ rules:
     - 0
   key-spacing:
     - 0
+  no-loop-func:
+    - 0

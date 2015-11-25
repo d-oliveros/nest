@@ -1,9 +1,8 @@
-import { toArray, each, pull, pick, clone, defaults, identity, compact } from 'lodash';
+import { toArray, each, pull, pick, clone, defaults, isObject, identity, compact } from 'lodash';
 import { EventEmitter } from 'events';
-import promisify from 'promisify-node';
 import invariant from 'invariant';
 import phantom from 'phantom';
-import request from 'request';
+import request from 'request-promise';
 import Page from './Page';
 import config from '../../config';
 import logger from '../logger';
@@ -58,6 +57,8 @@ export default class Spider extends EventEmitter {
   async open(url, options = {}) {
     let html;
 
+    invariant(isObject(options), 'Options needs to be an object');
+
     this.url = url;
 
     if (options.dynamic || process.env.FORCE_DYNAMIC) {
@@ -72,11 +73,7 @@ export default class Spider extends EventEmitter {
   }
 
   async openDynamic(url) {
-    const self = this;
-    const phantom = this.phantom ? this.phantom : await this.createPhantom();
-
-    const page = phantom.createPage();
-    promisify(page);
+    const page = await this.createPage();
 
     if (process.env.PHANTOM_LOG === 'true') {
       page.set('onConsoleMessage', (msg) => {
@@ -85,12 +82,12 @@ export default class Spider extends EventEmitter {
     }
 
     const pageOpenStatus = await page.open(url);
-    invariant(pageOpenStatus, `Could not open url: ${url}`);
+    invariant(pageOpenStatus === 'success', `Could not open url: ${url}`);
 
     const jsInjectionStatus = await this.includeJS(page);
     invariant(jsInjectionStatus, `Could not include JS on url: ${url}`);
 
-    self.emit('page:ready', page);
+    this.emit('page:ready', page);
 
     const html = page.evaluate(() => $('html').html()); // eslint-disable-line
 
@@ -98,8 +95,7 @@ export default class Spider extends EventEmitter {
   }
 
   async openStatic(url) {
-    const response = await promisify(request)(url);
-    const html = response.data;
+    const html = await request(url);
     return new Page(url, html);
   }
 
@@ -107,9 +103,45 @@ export default class Spider extends EventEmitter {
   async createPhantom() {
     debug('Creating PhantomJS instance');
 
-    this.phantom = await promisify(phantom.create)(config.phantom);
+    return await new Promise((resolve) => {
+      phantom.create(config.phantom, (ph) => {
+        this.phantom = ph;
+        resolve(ph);
+      });
+    });
+  }
 
-    return this.phantom;
+  // creates a Page instance
+  async createPage() {
+    const ph = this.phantom || await this.createPhantom();
+
+    return await new Promise((resolve) => {
+      ph.createPage((page) => {
+
+        page._open = page.open;
+
+        page.open = (url) => {
+          return new Promise((resolve) => {
+            page._open(url, (status) => {
+              resolve(status);
+            });
+          });
+        };
+
+        resolve(page);
+      });
+    });
+  }
+
+  // includes javascript <script> tags in opened web page
+  async includeJS(page) {
+    debug('Including JS on page');
+
+    return await new Promise((resolve) => {
+      page.includeJs('https://code.jquery.com/jquery-2.1.4.min.js', (status) => {
+        resolve(status);
+      });
+    });
   }
 
   // stops its phantomJS instance
@@ -120,12 +152,6 @@ export default class Spider extends EventEmitter {
     }
 
     this.phantom = null;
-  }
-
-  // includes javascript <script> tags in opened web page
-  async includeJS(page) {
-    debug('Including JS on page');
-    await page.includeJs('https://code.jquery.com/jquery-2.1.1.min.js');
   }
 
   // stops the spider, optionally clearing the listeners
@@ -211,4 +237,4 @@ export default class Spider extends EventEmitter {
 }
 
 // runs an operation
-Spider.prototype.scrape = require('./scrape');
+Spider.prototype.scrape = require('./scrape').default;

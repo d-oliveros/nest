@@ -7,8 +7,6 @@ import state from './state';
 
 let started = false;
 
-export default { emitter, state, start, stop, started };
-
 function start() {
   if (!started) {
     for (let i = 0, len = config.engine.workers; i < len; i++) {
@@ -31,3 +29,5 @@ function stop(callback = noop) {
 function stopWorker(worker, callback) {
   worker.stop(callback);
 }
+
+export default { emitter, state, start, stop, started };

@@ -1,10 +1,10 @@
-import { noop } from 'lodash';
+var noop = require('lodash').noop;
 
-const phantomConfig = {};
-
-phantomConfig.parameters = {
-  'load-images': 'no',
-  'ignore-ssl-errors': 'yes'
+var phantomConfig = {
+  parameters: {
+    'load-images': 'no',
+    'ignore-ssl-errors': 'yes'
+  }
 };
 
 // Enables console.log's on PhantomJS scraping functions
@@ -13,4 +13,4 @@ if (process.env.PHANTOM_LOG !== 'true') {
   phantomConfig.onStderr = noop;
 }
 
-export default phantomConfig;
+module.exports = phantomConfig;

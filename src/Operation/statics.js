@@ -4,7 +4,7 @@ import logger from '../logger';
 
 const debug = logger.debug('Operation:statics');
 
-export async function findOrCreate(query) {
+export const findOrCreate = async function(query) {
   invariant(isObject(query), 'Invalid params');
   invariant(query.route, 'Route is required.');
   invariant(query.provider, 'Provider is required.');
@@ -28,9 +28,9 @@ export async function findOrCreate(query) {
   }
 
   return operation;
-}
+};
 
-export async function getNext(state) {
+export const getNext = async function(state) {
   const runningOperations = state.operationIds;
   const disabledRoutes = [];
   const runningRoutes = {};
@@ -63,4 +63,4 @@ export async function getNext(state) {
   }
 
   return await this.findOne(query).sort({ 'priority': -1 }).exec();
-}
+};

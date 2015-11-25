@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = 0;
-require('babel/register');
+require('babel-polyfill');
+require('babel-core/register');
+require('../loadenv');
 
 var route, routeName, domain, routeParts, path, routeId, fs,
   query, engine, debug, argv, cmd, root, Mocha, mocha;
@@ -22,7 +24,7 @@ if (argv.length < 3) {
   process.exit(0);
 }
 
-root   = path.normalize(path.join(__dirname, '..'));
+root    = path.normalize(path.join(__dirname, '..'));
 
 cmd     = argv[2];
 routeId = argv[3];
@@ -111,7 +113,7 @@ switch (cmd) {
     break;
 
   case 'list':
-    route = require(path.join(root, 'routes'));
+    route = require(path.join(root, 'routes')).default;
     console.log(route.list());
     process.exit(0);
     break;

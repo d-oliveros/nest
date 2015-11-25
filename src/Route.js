@@ -56,7 +56,7 @@ export default class Route {
 
   // starts this route, and return a running spider
   start(query) {
-    const Spider = require('../spider');
+    const Spider = require('./Spider').default;
     const spider = new Spider();
 
     this.initialize(query, (err, operation) => {

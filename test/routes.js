@@ -4,6 +4,7 @@ import { each } from 'lodash';
 import Route from '../src/Route';
 import Item from '../src/Item';
 import Operation from '../src/Operation';
+import domains from '../routes';
 
 const testRoute = process.env.TEST_ROUTE || false;
 const testDomain = process.env.TEST_DOMAIN || false;
@@ -15,8 +16,6 @@ describe('Routes', function() {
     await Operation.remove();
     await Item.remove();
   });
-
-  const domains = require('../routes');
 
   // Test each route in each domain
   each(domains, (domain, domainName) => {

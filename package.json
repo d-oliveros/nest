@@ -30,6 +30,7 @@
     "phantom": "*",
     "request-promise": "^1.0.2",
     "require-all": "*",
+    "util-inspect": "^0.1.8",
     "winston": "*"
   },
   "devDependencies": {

@@ -1,5 +1,5 @@
 import invariant from 'invariant';
-import { each, pick, isObject, extend } from 'lodash';
+import { pick, isString, isObject, extend } from 'lodash';
 import logger from '../logger';
 
 const debug = logger.debug('Operation:statics');
@@ -30,37 +30,32 @@ export const findOrCreate = async function(query) {
   return operation;
 };
 
-export const getNext = async function(state) {
-  const runningOperations = state.operationIds;
-  const disabledRoutes = [];
-  const runningRoutes = {};
-
+export const getNext = async function(params) {
   const query = {
     'state.finished': false
   };
 
-  // disables routes if the concurrency treshold is met
-  each(state.workers, (worker) => {
-    if (!worker.route) return;
-
-    const { provider, name, concurrency } = worker.route;
-    const routeId = `${provider}:${name}`;
-
-    runningRoutes[routeId] = runningRoutes[routeId] || 0;
-    runningRoutes[routeId]++;
-
-    if (runningRoutes[routeId] === concurrency) {
-      disabledRoutes.push(routeId);
-    }
-  });
-
-  if (runningOperations.length) {
-    query._id = { $nin: runningOperations };
+  if (params.operationIds) {
+    query._id = { $nin: params.operationIds };
   }
 
-  if (disabledRoutes.length) {
-    query.routeId = { $nin: disabledRoutes };
+  if (params.disabledRoutes.length) {
+    query.routeId = { $nin: params.disabledRoutes };
   }
 
   return await this.findOne(query).sort({ 'priority': -1 }).exec();
+};
+
+/**
+ * Creates an operation to this route with the provided query argument
+ * @param  {String}  query  The query to use with this route
+ * @param  {Object}  route  The route to use
+ * @return {Object}         The operation stats
+ */
+export const initialize = async function(query, route) {
+  invariant(isString(query), 'Query is not a string');
+  invariant(isObject(route), 'Route is not an object');
+
+  const { provider, name, priority } = route;
+  return await this.findOrCreate({ provider, name, priority, query });
 };

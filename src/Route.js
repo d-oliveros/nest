@@ -1,12 +1,9 @@
 import invariant from 'invariant';
 import { template } from 'lodash';
-import Operation from './Operation';
 import logger from './logger';
 
 const debug = logger.debug('Route');
 
-// Exports: Route
-//
 export default class Route {
   constructor(params) {
     invariant(params.name, 'Name is required.');
@@ -37,34 +34,12 @@ export default class Route {
     // limit the amount of workers that can work on this route at the same time
     this.concurrency = params.concurrency || null;
 
-    // bind the initialize method to itself
-    this.initialize = this.initialize.bind(this);
-
     // routes with higher priority will be processed first by the workers
     this.priority = params.priority;
 
     if (typeof this.priority !== 'number') {
       this.priority = 50;
     }
-  }
-
-  // creates an operation to this route with the provided query argument
-  async initialize(query) {
-    const { provider, name, priority } = this;
-    return await Operation.findOrCreate({ provider, name, priority, query });
-  }
-
-  // starts this route, and return a running spider
-  start(query) {
-    const Spider = require('./Spider').default;
-    const spider = new Spider();
-
-    this.initialize(query, (err, operation) => {
-      if (err) return spider.error(err);
-      spider.scrape(operation);
-    });
-
-    return spider;
   }
 
   // default scraper

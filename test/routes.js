@@ -9,7 +9,7 @@ import domains from '../routes';
 const testRoute = process.env.TEST_ROUTE || false;
 const testDomain = process.env.TEST_DOMAIN || false;
 
-describe('Routes', function() {
+xdescribe('Routes', function() {
   this.timeout(20000); // 20 secs
 
   beforeEach(async () => {

@@ -6,7 +6,7 @@ import Item from '../src/Item';
 import engine from '../src/engine';
 import config from '../config';
 
-describe('Engine', function() {
+xdescribe('Engine', function() {
   this.timeout(15000); // 15 seconds
 
   describe('workers', function() {

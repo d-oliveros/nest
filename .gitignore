@@ -33,3 +33,5 @@ node_modules
 
 # Editor specific project files
 .idea
+
+.DS_Store

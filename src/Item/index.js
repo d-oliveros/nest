@@ -1,5 +1,4 @@
-import '../database';
-
+import '../db';
 import mongoose from 'mongoose';
 import schema from './schema';
 

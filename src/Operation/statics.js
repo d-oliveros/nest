@@ -30,17 +30,17 @@ export const findOrCreate = async function(query) {
   return operation;
 };
 
-export const getNext = async function(params) {
+export const getNext = async function({ operationIds, disabledRoutes }) {
   const query = {
     'state.finished': false
   };
 
-  if (params.operationIds) {
-    query._id = { $nin: params.operationIds };
+  if (operationIds) {
+    query._id = { $nin: operationIds };
   }
 
-  if (params.disabledRoutes.length) {
-    query.routeId = { $nin: params.disabledRoutes };
+  if (disabledRoutes && disabledRoutes.length) {
+    query.routeId = { $nin: disabledRoutes };
   }
 
   return await this.findOne(query).sort({ 'priority': -1 }).exec();

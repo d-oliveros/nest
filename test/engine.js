@@ -3,10 +3,14 @@ import './testenv';
 import { expect } from 'chai';
 import Operation from '../src/Operation';
 import Item from '../src/Item';
-import engine from '../src/engine';
+import Engine from '../src/engine';
 import config from '../config';
+import routes from '../routes';
+import plugins from '../plugins';
 
-xdescribe('Engine', function() {
+const engine = new Engine(routes, plugins);
+
+describe('Engine', function() {
   this.timeout(15000); // 15 seconds
 
   describe('workers', function() {
@@ -15,22 +19,20 @@ xdescribe('Engine', function() {
     before(clearDatabase);
 
     it('should start with 0 operations', () => {
-      expect(engine.state.operationIds.length).to.equal(0);
+      expect(engine.operationIds.length).to.equal(0);
     });
 
     it(`should start with ${config.engine.workers} workers`, () => {
-      expect(engine.state.workers.length).to.equal(config.engine.workers);
+      expect(engine.workers.length).to.equal(config.engine.workers);
     });
 
     // it should stop the engine
-    after((done) => {
-      engine.stop((err) => {
-        if (!err && engine.state.workers.length > 0) {
-          err = new Error('Engine did not removed workers.');
-        }
+    after(async () => {
+      await engine.stop();
 
-        done(err);
-      });
+      if (engine.workers.length > 0) {
+        throw new Error('Engine did not removed workers.');
+      }
     });
   });
 
@@ -100,14 +102,11 @@ xdescribe('Engine', function() {
     });
 
     // it should stop the engine
-    after((done) => {
-      engine.stop((err) => {
-        if (!err && engine.state.workers.length > 0) {
-          err = new Error('Engine did not removed workers.');
-        }
-
-        done(err);
-      });
+    after(async () => {
+      await engine.stop();
+      if (engine.workers.length > 0) {
+        throw new Error('Engine did not removed workers.');
+      }
     });
   });
 });

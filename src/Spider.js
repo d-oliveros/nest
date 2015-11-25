@@ -216,7 +216,7 @@ export default class Spider extends EventEmitter {
    * Scraper functions
    */
 
-  async scrape(operation, routes, plugins) {
+  async scrape(operation, { routes, plugins }) {
     const { state, route: routeName, provider } = operation;
     const route = routes[provider][routeName];
 

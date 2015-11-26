@@ -1,4 +1,8 @@
-const searchRoute = require('../imdb/search');
+import Operation from '../../src/Operation';
+import Spider from '../../src/Spider';
+import routes from '../../routes';
+import plugins from '../../plugins';
+import searchRoute from '../imdb/search';
 
 // Exports: Scraping initialization script
 //
@@ -7,5 +11,11 @@ const searchRoute = require('../imdb/search');
 //
 exports.start = function() {
   console.log('IMDB Movie Search Route Starting...');
-  searchRoute.start();
+  startOperation(null, searchRoute);
 };
+
+async function startOperation(query, route) {
+  const spider = new Spider();
+  const operation = await Operation.findOrCreate(query, route);
+  return await spider.scrape(operation, { routes, plugins });
+}

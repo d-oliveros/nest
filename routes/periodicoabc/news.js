@@ -1,3 +1,5 @@
+import invariant from 'invariant';
+import { isObject } from 'lodash';
 import Route from '../../src/Route';
 
 const route = new Route({
@@ -13,14 +15,8 @@ const route = new Route({
   }
 });
 
-route.scraper = function(json) {
-  let data;
-
-  try {
-    data = JSON.parse(json);
-  } catch (e) {
-    throw new Error('Invalid JSON');
-  }
+route.scraper = function(data) {
+  invariant(isObject(data), 'Data is not valid');
 
   const items = data.map((item) => {
     return {

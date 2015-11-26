@@ -3,20 +3,22 @@ import './testenv';
 import { each } from 'lodash';
 import Route from '../src/Route';
 import Item from '../src/Item';
+import Spider from '../src/Spider';
 import Operation from '../src/Operation';
+import domains from '../routes';
+import routes from '../routes';
+import plugins from '../plugins';
 
 const testRoute = process.env.TEST_ROUTE || false;
 const testDomain = process.env.TEST_DOMAIN || false;
 
-describe('Routes', function() {
+xdescribe('Routes', function() {
   this.timeout(20000); // 20 secs
 
   beforeEach(async () => {
     await Operation.remove();
     await Item.remove();
   });
-
-  const domains = require('../routes');
 
   // Test each route in each domain
   each(domains, (domain, domainName) => {
@@ -64,7 +66,14 @@ function createRouteTest(domain, route) {
     }
 
     it(`should ${responsabilities.join(' and ')}`, (done) => {
-      const spider = route.start(testParams.query);
+      const spider = new Spider();
+
+      Operation.findOrCreate(testParams.query, route)
+        .then((operation) => {
+          return spider.scrape(operation, { routes, plugins });
+        })
+        .catch(done);
+
       let togo = 0;
 
       function next() {

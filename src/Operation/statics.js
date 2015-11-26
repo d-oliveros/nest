@@ -1,26 +1,36 @@
 import invariant from 'invariant';
-import { each, pick, isObject, extend } from 'lodash';
+import { isObject, extend } from 'lodash';
+import inspect from 'util-inspect';
 import logger from '../logger';
 
 const debug = logger.debug('Operation:statics');
 
-export async function findOrCreate(query) {
-  invariant(isObject(query), 'Invalid params');
-  invariant(query.route, 'Route is required.');
-  invariant(query.provider, 'Provider is required.');
+/**
+ * Creates or find an operation to this route with the provided query argument.
+ */
+export const findOrCreate = async function(query, route) {
+  invariant(isObject(route), 'Route is not an object');
+  invariant(route.name, 'Route name is required.');
+  invariant(route.provider, 'Provider is required.');
 
-  const params = extend({}, query, {
-    routeId: `${query.provider}:${query.route}`
-  });
+  const key = {
+    routeId: `${route.provider}:${route.name}`,
+    query: query || ''
+  };
 
-  const key = pick(params, 'route', 'provider', 'routeId', 'query');
-
-  debug('findOrCreate with params', key);
+  debug(`findOrCreate with params\n${inspect(key)}`);
 
   let operation = await this.findOne(key).exec();
 
   if (!operation) {
-    debug('Creating operation with params', params);
+    const params = extend({}, key, {
+      provider: route.provider,
+      route: route.name,
+      priority: route.priority
+    });
+
+    debug(`Creating operation with params:\n${inspect(params)}`);
+
     operation = await this.create(params);
     operation.wasNew = true;
   } else {
@@ -28,39 +38,28 @@ export async function findOrCreate(query) {
   }
 
   return operation;
-}
+};
 
-export async function getNext(state) {
-  const runningOperations = state.operationIds;
-  const disabledRoutes = [];
-  const runningRoutes = {};
+export const getNext = async function(params) {
+  invariant(isObject(params), 'Invalid params');
+
+  const { operationIds, disabledRoutes } = params;
 
   const query = {
     'state.finished': false
   };
 
-  // disables routes if the concurrency treshold is met
-  each(state.workers, (worker) => {
-    if (!worker.route) return;
-
-    const { provider, name, concurrency } = worker.route;
-    const routeId = `${provider}:${name}`;
-
-    runningRoutes[routeId] = runningRoutes[routeId] || 0;
-    runningRoutes[routeId]++;
-
-    if (runningRoutes[routeId] === concurrency) {
-      disabledRoutes.push(routeId);
-    }
-  });
-
-  if (runningOperations.length) {
-    query._id = { $nin: runningOperations };
+  if (operationIds) {
+    query._id = { $nin: operationIds };
   }
 
-  if (disabledRoutes.length) {
+  if (disabledRoutes && disabledRoutes.length) {
     query.routeId = { $nin: disabledRoutes };
   }
 
+  debug(`Getting next operation.\n` +
+    `Query: ${inspect(query)}\n` +
+    `Params: ${inspect(params)}`);
+
   return await this.findOne(query).sort({ 'priority': -1 }).exec();
-}
+};

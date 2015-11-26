@@ -1,3 +1,3 @@
-node_modules
-routes
+config
 gulpfile.js
+loadenv.js

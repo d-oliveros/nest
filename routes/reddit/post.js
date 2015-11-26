@@ -18,16 +18,15 @@ route.scraper = function($) {
     items: []
   };
 
-  const $post       = $('.linklisting div.thing');
-  const $title      = $post.find('a.title');
-  const id          = $post.data('fullname').split('_')[1].trim();
-  const title       = $title.text().trim();
-  const pathname    = this.location.href.replace('http://www.reddit.com', '');
+  const $post = $('.linklisting div.thing');
+  const $title = $post.find('a.title');
+  const id = $post.data('fullname').split('_')[1].trim();
+  const title = $title.text().trim();
+  const pathname = this.location.href.replace('http://www.reddit.com', '');
   const description = $post.find('div.usertext-body p').text().trim();
-  const upvotes     = $post.find('div.score.unvoted').text().trim();
-  const subreddit   = pathname.split('/')[2];
-
-  const comments    = [];
+  const upvotes = $post.find('div.score.unvoted').text().trim();
+  const subreddit = pathname.split('/')[2];
+  const comments = [];
 
   // get the post comments
   $('.nestedlisting div.thing').each(function() {
@@ -44,7 +43,7 @@ route.scraper = function($) {
   data.items.push({
     name: title,
     key: id,
-    link: 'http://www.reddit.com/'+id,
+    link: 'http://www.reddit.com/' + id,
 
     description: description,
     upvotes: upvotes,

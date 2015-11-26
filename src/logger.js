@@ -2,27 +2,9 @@ import winston, { Logger } from 'winston';
 import debug from 'debug';
 import path from 'path';
 
-const logPath = path.resolve(__dirname, '..', '..', 'nest.log');
+const logPath = path.resolve(__dirname, '..', 'nest.log');
 const { NEST_LOG, NODE_ENV } = process.env;
 const { Console, File } = winston.transports;
-
-const levels = {
-  verbose: 1,
-  debug: 2,
-  info: 3,
-  event: 4,
-  warn: 5,
-  error: 6
-};
-
-const colors = {
-  verbose: 'cyan',
-  debug: 'blue',
-  info: 'green',
-  event: 'orange',
-  warn: 'yellow',
-  error: 'red'
-};
 
 const transports = [
   new Console({
@@ -39,13 +21,18 @@ if (NEST_LOG === 'true') {
   }));
 }
 
-const logger = new Logger({ transports, levels, colors });
+const logger = new Logger({ transports });
 
 logger.debug = (key) => {
   const debugMessage = debug(key);
 
   return (message, meta) => {
-    logger.log('debug', `${key}: ${message}`, meta);
+    const args = ['debug', `${key}: ${message}`];
+
+    if (typeof meta !== 'undefined') {
+      args.push(meta);
+    }
+    logger.log(...args);
     debugMessage(message);
   };
 };

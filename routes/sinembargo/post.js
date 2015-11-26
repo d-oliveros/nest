@@ -1,6 +1,6 @@
-import Route from '../../src/Route';
+import createRoute from '../../src/route';
 
-const route = new Route({
+const route = createRoute({
   provider: 'sinembargo',
   name:     'post',
   url:      'http://www.sinembargo.mx/<%= query %>',

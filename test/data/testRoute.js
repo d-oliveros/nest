@@ -1,6 +1,6 @@
-import Route from '../../src/Route';
+import createRoute from '../../src/route';
 
-export default new Route({
+export default createRoute({
 
   // The route's domain, for example wikipedia
   provider: 'wikipedia',

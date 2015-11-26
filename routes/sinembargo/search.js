@@ -1,7 +1,7 @@
-import Route from '../../src/Route';
+import createRoute from '../../src/route';
 import { clean as removeDiacritics } from 'diacritic';
 
-export default new Route({
+export default createRoute({
   provider: 'sinembargo',
   name:     'search',
   url:      'http://www.sinembargo.mx/page/<%= state.currentPage %>?s=<%= query %>',

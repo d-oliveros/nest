@@ -1,7 +1,7 @@
-import Route from '../../src/Route';
+import createRoute from '../../src/route';
 const _ = require('lodash');
 
-const route = new Route({
+const route = createRoute({
   provider: 'github',
   name:  'search',
   url:   'https://github.com/search?p=<%= state.currentPage %>&type=Users&q=<%= query %>',

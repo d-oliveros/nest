@@ -1,4 +1,4 @@
-import Route from '../../src/Route';
+import createRoute from '../../src/route';
 
 const routeURL =
   'http://www.reddit.com/r/<%= query %>/new/' +
@@ -7,7 +7,7 @@ const routeURL =
       '&after=t3_<%= state.data.lastId %>' +
     '<% } %>';
 
-const route = new Route({
+const route = createRoute({
   provider: 'reddit',
   name: 'wall',
   url: routeURL,

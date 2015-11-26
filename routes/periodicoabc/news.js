@@ -1,8 +1,8 @@
 import invariant from 'invariant';
 import { isObject } from 'lodash';
-import Route from '../../src/Route';
+import createRoute from '../../src/route';
 
-const route = new Route({
+const route = createRoute({
   provider: 'periodicoabc',
   name:     'news',
   url:      'http://www.periodicoabc.mx/functions/jsonHome-news.php?pagina=<%= state.currentPage %>',

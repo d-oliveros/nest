@@ -1,6 +1,6 @@
-import Route from '../../src/Route';
+import createRoute from '../../src/route';
 
-const route = new Route({
+const route = createRoute({
   provider: 'github',
   name:  'followers',
   url:   'https://github.com/<%- query %>/followers?page=<%= state.currentPage %>',

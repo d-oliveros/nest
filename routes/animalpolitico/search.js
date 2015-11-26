@@ -1,7 +1,7 @@
-import Route from '../../src/Route';
+import createRoute from '../../src/route';
 const removeDiacritics = require('diacritic').clean;
 
-const route = new Route({
+const route = createRoute({
   provider: 'animalpolitico',
   name:     'search',
   url:      'http://www.animalpolitico.com/page/<%= state.currentPage %>/?s=<%= query %>',

@@ -1,7 +1,6 @@
 /* eslint-disable no-console */
 import './testenv';
-import { each } from 'lodash';
-import Route from '../src/Route';
+import { each, isObject, isFunction } from 'lodash';
 import Item from '../src/Item';
 import createSpider from '../src/spider';
 import Operation from '../src/Operation';
@@ -32,7 +31,7 @@ xdescribe('Routes', function() {
         const routeId = `${domainName}:${routeName}`;
         const shouldTest = !testRoute || testRoute === routeId;
 
-        if (!(route instanceof Route) || !shouldTest) {
+        if (!isObject(route) || !isFunction(route.scraper) || !shouldTest) {
           return;
         }
 

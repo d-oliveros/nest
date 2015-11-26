@@ -1,6 +1,6 @@
-import Route from '../../src/Route';
+import createRoute from '../../src/route';
 
-const route = new Route({
+const route = createRoute({
   provider: 'imdb',
   name:  'search',
   url:   'http://www.imdb.com/search/title?at=0&count=100&sort=num_votes&start=<%= (1 +((state.currentPage-1) * 100)) %>&title_type=feature,tv_movie',

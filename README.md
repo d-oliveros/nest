@@ -130,9 +130,9 @@ You can create a new route by creating a file in `./routes/[somedomain]/[routena
 The file should look like this:
 
 ```js
-import Route from '../../src/Route';
+import createRoute from '../../src/createRoute';
 
-export default new Route({
+export default createRoute({
 
   // The route's domain, for example wikipedia
   provider: 'wikipedia',
@@ -219,7 +219,7 @@ var githubSearch = require('./routes/github/search');
 // This will search github for "nodejs", and scrape the results into structured data
 var spider = githubSearch.start('nodejs');
 
-// Emitted every time a page is scraped. For paginated pages like 
+// Emitted every time a page is scraped. For paginated pages like
 // a search result page, this event is fired multiple times
 spider.on('scraped:page', function(results) {
   console.log('Got scraped data!', results);
@@ -246,7 +246,7 @@ The `Worker` class is a sub-class of the Spider class. The Spider class is exten
 
 ## Modules
 
-A module is a middleware function that gets executed after scraping and sanitizing a web page. Right now, there's only one module `human` that adds metadata for items that have the "type" property set to "user". The properties it adds are: 
+A module is a middleware function that gets executed after scraping and sanitizing a web page. Right now, there's only one module `human` that adds metadata for items that have the "type" property set to "user". The properties it adds are:
 
 - `nameIsHuman`: Flag to determine if a name is a real human name
 
@@ -264,7 +264,7 @@ Try running `DEBUG=* nest work` and looking at the console messages. You can als
 
 ## Environment
 
-To limit the number of workers, change your database host / settings, or override any config-level variable, copy config/environments/default.js to /config/environments/local.js, /config/environments/test.js, /config/environments/production.js etc, and change the variables 
+To limit the number of workers, change your database host / settings, or override any config-level variable, copy config/environments/default.js to /config/environments/local.js, /config/environments/test.js, /config/environments/production.js etc, and change the variables
 
 If you don't do this, the default environment is used. This environment is using the database "nest" on localhost, default port.
 

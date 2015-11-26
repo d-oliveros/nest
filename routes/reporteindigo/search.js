@@ -1,7 +1,7 @@
-import Route from '../../src/Route';
+import createRoute from '../../src/route';
 import { clean as removeDiacritics } from 'diacritic';
 
-const route = new Route({
+const route = createRoute({
   provider: 'reporteindigo',
   name:     'search',
   url:      'http://www.reporteindigo.com/search/apachesolr_search/<%= query %>?page=<%= state.currentPage - 1 %>',

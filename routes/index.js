@@ -25,7 +25,7 @@ routes.list = () => {
   let string = '\n';
 
   // for each folder
-  each(this, (domain, domainName) => {
+  each(routes, (domain, domainName) => {
     if (domainName === 'list') return;
 
     string += `${domainName}\n`;

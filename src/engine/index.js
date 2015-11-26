@@ -1,54 +1,78 @@
-import { each } from 'lodash';
+import { pick } from 'lodash';
 import { EventEmitter } from 'events';
+import inspect from 'util-inspect';
+import Queue from 'promise-queue';
 import Worker from './worker';
 import engineConfig from '../../config/engine';
 import Operation from '../Operation';
 
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const debug = require('debug')('engine');
 
 export default class Engine extends EventEmitter {
   constructor(routes, plugins) {
     super();
 
-    this.started = false;
-    this.busy = false;
     this.workers = [];
+    this.running = false;
     this.routes = routes;
     this.plugins = plugins;
+    this.queue = new Queue(1, Infinity);
+
+    process.on('SIGTERM', () => {
+      this.workers.forEach((worker) => worker.stop());
+    });
   }
 
-  start() {
-    if (this.started) return;
+  async start() {
+    if (this.running) return;
+
+    this.running = true;
 
     for (let i = 0; i < engineConfig.workers; i++) {
       const worker = new Worker(this);
       this.workers.push(worker);
     }
 
-    this.started = true;
+    debug(`Created ${this.workers.length} workers`);
+
+    const workerStartPromises = this.workers.map((worker) => worker.start());
+    const initialOps = await Promise.all(workerStartPromises);
+
+    return initialOps;
   }
 
   async stop() {
-    for (const worker of this.workers) {
-      await worker.stop();
-    }
+    if (!this.running) return;
 
-    this.started = false;
+    this.running = false;
     this.workers = [];
+
+    return await Promise.all(this.workers.map((worker) => worker.stop()));
   }
 
-  async waitForNext() {
-    if (this.busy) {
-      await sleep(30);
-      return await this.waitForNext();
-    }
-    const { disabledRoutes, operationIds } = this;
+  async assignOperation(worker) {
+    return await this.queue.add(async () => {
+      const params = pick(this, 'disabledRoutes', 'operationIds');
+      const operation = await Operation.getNext(params);
 
-    this.busy = true;
-    const operation = await Operation.getNext({ disabledRoutes, operationIds });
-    this.busy = false;
+      if (!operation) {
+        this.emit('operation:noop');
+      } else {
+        const routeName = operation.route;
+        const provider = operation.provider;
+        const query = operation.query;
+        const route = this.routes[provider][routeName];
 
-    return operation;
+        debug(`Got operation: ${provider}->${routeName}. Query: ${query}`);
+
+        worker.operation = operation;
+        worker.route = route;
+      }
+
+      this.emit('operation:assigned', operation, worker);
+
+      return operation;
+    });
   }
 
   get disabledRoutes() {
@@ -56,8 +80,8 @@ export default class Engine extends EventEmitter {
     const runningRoutes = {};
 
     // disables routes if the concurrency treshold is met
-    each(this.workers, (worker) => {
-      if (!worker.route) return;
+    for (const worker of this.workers) {
+      if (!worker.route) continue;
 
       const { provider, name, concurrency } = worker.route;
       const routeId = `${provider}:${name}`;
@@ -68,7 +92,9 @@ export default class Engine extends EventEmitter {
       if (runningRoutes[routeId] === concurrency) {
         disabledRoutes.push(routeId);
       }
-    });
+    }
+
+    debug(`Getting disabled routes: ${inspect(disabledRoutes)}`);
 
     return disabledRoutes;
   }

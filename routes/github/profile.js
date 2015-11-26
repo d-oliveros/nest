@@ -31,7 +31,7 @@ route.scraper = function($) {
     name:  $('.vcard-fullname').text(),
     type: 'user',
     key:   email,
-    link: 'https://github.com/'+username,
+    link: `https://github.com/${username}`,
 
     username: username,
     image: $('img.avatar').attr('src'),
@@ -117,7 +117,7 @@ route.scraper = function($) {
 
 // Route Middleware
 //
-route.middleware = function(scraped, callback) {
+route.middleware = function(scraped) {
   const emailRegex = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
 
   // remove the invalid emails from the scraped results
@@ -125,7 +125,7 @@ route.middleware = function(scraped, callback) {
     return emailRegex.test(item.key);
   });
 
-  callback(null, scraped);
+  return scraped;
 };
 
 export default route;

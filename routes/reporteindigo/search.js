@@ -55,9 +55,9 @@ route.scraper = function($) {
 
 // This will be executed before saving the items to the DB.
 // You can use any module here, as this is executed in the main NodeJS process
-route.middleware = function(data, callback) {
+route.middleware = function(data) {
 
-  data.items.forEach(function(item) {
+  data.items.forEach((item) => {
 
     // We dont want accents in the tag names, so we are removing them here
     item.tag = removeDiacritics(item.tag);
@@ -66,7 +66,7 @@ route.middleware = function(data, callback) {
     item.nameSanitized = removeDiacritics(item.name);
   });
 
-  callback(null, data);
+  return data;
 };
 
 export default route;

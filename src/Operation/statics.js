@@ -1,26 +1,36 @@
 import invariant from 'invariant';
-import { pick, isString, isObject, extend } from 'lodash';
+import { isObject, extend } from 'lodash';
+import inspect from 'util-inspect';
 import logger from '../logger';
 
 const debug = logger.debug('Operation:statics');
 
-export const findOrCreate = async function(query) {
-  invariant(isObject(query), 'Invalid params');
-  invariant(query.route, 'Route is required.');
-  invariant(query.provider, 'Provider is required.');
+/**
+ * Creates or find an operation to this route with the provided query argument.
+ */
+export const findOrCreate = async function(query, route) {
+  invariant(isObject(route), 'Route is not an object');
+  invariant(route.name, 'Route name is required.');
+  invariant(route.provider, 'Provider is required.');
 
-  const params = extend({}, query, {
-    routeId: `${query.provider}:${query.route}`
-  });
+  const key = {
+    routeId: `${route.provider}:${route.name}`,
+    query: query || ''
+  };
 
-  const key = pick(params, 'route', 'provider', 'routeId', 'query');
-
-  debug('findOrCreate with params', key);
+  debug(`findOrCreate with params\n${inspect(key)}`);
 
   let operation = await this.findOne(key).exec();
 
   if (!operation) {
-    debug('Creating operation with params', params);
+    const params = extend({}, key, {
+      provider: route.provider,
+      route: route.name,
+      priority: route.priority
+    });
+
+    debug(`Creating operation with params:\n${inspect(params)}`);
+
     operation = await this.create(params);
     operation.wasNew = true;
   } else {
@@ -30,7 +40,11 @@ export const findOrCreate = async function(query) {
   return operation;
 };
 
-export const getNext = async function({ operationIds, disabledRoutes }) {
+export const getNext = async function(params) {
+  invariant(isObject(params), 'Invalid params');
+
+  const { operationIds, disabledRoutes } = params;
+
   const query = {
     'state.finished': false
   };
@@ -43,19 +57,9 @@ export const getNext = async function({ operationIds, disabledRoutes }) {
     query.routeId = { $nin: disabledRoutes };
   }
 
+  debug(`Getting next operation.\n` +
+    `Query: ${inspect(query)}\n` +
+    `Params: ${inspect(params)}`);
+
   return await this.findOne(query).sort({ 'priority': -1 }).exec();
-};
-
-/**
- * Creates an operation to this route with the provided query argument
- * @param  {String}  query  The query to use with this route
- * @param  {Object}  route  The route to use
- * @return {Object}         The operation stats
- */
-export const initialize = async function(query, route) {
-  invariant(isString(query), 'Query is not a string');
-  invariant(isObject(route), 'Route is not an object');
-
-  const { provider, name, priority } = route;
-  return await this.findOrCreate({ provider, name, priority, query });
 };

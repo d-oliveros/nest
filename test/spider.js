@@ -53,7 +53,9 @@ describe('Spider', function() {
   it('should open a page statically', async () => {
     const spider = new Spider();
 
-    await spider.open('http://www.github.com');
+    const page = await spider.open('http://www.github.com');
+    expect(page.html).to.be.a('string');
+    expect(page.html.length).to.be.gt(0);
     spider.stop();
   });
 

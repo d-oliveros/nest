@@ -6,6 +6,7 @@ import request from 'request-promise';
 import phantomConfig from '../config/phantom';
 import logger from './logger';
 import Item from './Item';
+import Operation from './Operation';
 import createPage from './page';
 
 const debug = logger.debug('Spider');
@@ -17,7 +18,7 @@ export default class Spider extends EventEmitter {
     this.running = true;
     this.isVerbose = false;
     this.phantom = null;
-    this.iterations = 0;
+    this.iteration = 0;
     this.emitters = [];
   }
 
@@ -65,7 +66,6 @@ export default class Spider extends EventEmitter {
       }
     });
   }
-
 
   /**
    * Page functions
@@ -181,7 +181,6 @@ export default class Spider extends EventEmitter {
     });
   }
 
-
   /**
    * Control functions
    */
@@ -224,9 +223,8 @@ export default class Spider extends EventEmitter {
       (operation.query ? ` ${operation.query}` : ''));
 
     // save the starting time of this operation
-    if (this.iteration === 0) {
-      const startedDate = operation.wasNew ? operation.created : Date.now();
-      operation.state.startedDate = startedDate;
+    if (operation.wasNew) {
+      operation.state.startedDate = Date.now();
     }
 
     // create the URL using the operation's parameters
@@ -241,19 +239,42 @@ export default class Spider extends EventEmitter {
     }
 
     // opens the page
-    const page = await this.open(url, { dynamic: route.isDynamic });
-    const status = await page.evaluate(route.checkStatus);
+    let page;
+    let status;
 
-    if (status === 'blocked') {
+    try {
+      page = await this.open(url, { dynamic: route.isDynamic });
+      debug(`Page opened`);
+      status = await page.apply(route.checkStatus);
+    } catch (err) {
+      if (isObject(err) && (err.statusCode === 401 || err.statusCode > 404)) {
+        debug(`Got ${err.statusCode}`);
+        status = 'blocked';
+      } else {
+        throw err;
+      }
+    }
+
+    if (status !== 'blocked') {
+      debug(`Page status is ok`);
+    } else {
       // IP has been blocked
       debug('Operation blocked. Retrying in 5s...');
       this.emit('operation:blocked', operation, url);
+
+      // if the operation has been stopped
+      if (!this.running) {
+        this.emit('operation:stopped', operation);
+        return operation;
+      }
+
+      // Else, wait 5 seconds and try again
       await sleep(5000);
-      return await this.scrape(operation);
+      return await this.scrape(operation, { routes, plugins });
     }
 
     // scapes the page
-    let scraped = await page.evaluate(route.scraper);
+    let scraped = await page.apply(route.scraper);
     this.emit('scraped:raw', scraped, operation);
 
     scraped = this.sanitizeScraped(scraped);
@@ -264,8 +285,10 @@ export default class Spider extends EventEmitter {
       item.routeWeight = route.priority;
     });
 
+    debug(`Scraped ${scraped.items.length} items`);
+
     // apply route-specific middleware
-    scraped = await route.middleware(scraped);
+    scraped = route.middleware(scraped) || scraped;
 
     // apply plugins
     for (const plugin of toArray(plugins)) {
@@ -281,7 +304,7 @@ export default class Spider extends EventEmitter {
       debug('No operations to spawn');
     } else {
       debug('Spawning operations');
-      const promises = scraped.operations.map(async (op) => {
+      const promises = scraped.operations.map((op) => {
         const { provider, route, query } = op;
         const targetRouteId = `${provider}:${route}`;
         const targetRoute = routes[provider][route];
@@ -291,10 +314,11 @@ export default class Spider extends EventEmitter {
             `Warning: ${operation.routeId} ` +
             `wanted to scrape ${targetRouteId}, ` +
             `but that route does not exists`);
-        } else {
-          const newOperation = await targetRoute.initialize(query);
-          return newOperation;
+          return Promise.resolve();
         }
+
+        // Create a new operation
+        return Operation.findOrCreate(query, targetRoute);
       });
 
       const newOperations = await Promise.all(promises);
@@ -345,7 +369,8 @@ export default class Spider extends EventEmitter {
 
     // Operation has next page
     this.emit('operation:next', operation);
-    return await this.scrape(operation);
+    debug(`Scraping next page`);
+    return await this.scrape(operation, { routes, plugins });
   }
 
   // sanitize the raw scraped data
@@ -369,7 +394,7 @@ export default class Spider extends EventEmitter {
     });
 
     // sanitize the operations
-    sanitized.operations = compact(sanitized.items.map((op) => {
+    sanitized.operations = compact(sanitized.operations.map((op) => {
       if (!op.provider || !op.route) return null;
       return op;
     }));

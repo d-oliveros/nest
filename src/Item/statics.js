@@ -9,6 +9,7 @@ const debug = logger.debug('Item:statics');
  */
 
 export const eachUpsert = async function(items) {
+  const Item = this;
   const stats = {
     created: 0,
     updated: 0,
@@ -16,7 +17,7 @@ export const eachUpsert = async function(items) {
   };
 
   const promises = items.map(async (item) => {
-    const op = await this.upsert(item);
+    const op = await Item.upsert(item);
     stats[op]++;
   });
 

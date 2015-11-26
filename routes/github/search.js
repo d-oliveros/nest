@@ -123,15 +123,13 @@ route.checkStatus = function($) {
   return status;
 };
 
-route.middleware = function(scraped, callback) {
+route.middleware = function(scraped) {
   const emailRegex = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
 
   // remove the invalid emails from the scraped results
-  scraped.items = _.filter(scraped.items, function(item) {
-    return emailRegex.test(item.key);
-  });
+  scraped.items = _.filter(scraped.items, (item) => emailRegex.test(item.key));
 
-  callback(null, scraped);
+  return scraped;
 };
 
 export default route;

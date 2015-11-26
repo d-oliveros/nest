@@ -1,17 +1,19 @@
 import { EventEmitter } from 'events';
-import routes from '../../routes';
+import uuid from 'uuid';
+import invariant from 'invariant';
 import Spider from '../Spider';
 import logger from '../logger';
 
-const debug = logger.debug('Worker');
+const debug = logger.debug('engine');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 export default class Worker extends EventEmitter {
   constructor(engine) {
     super();
 
+    this.id = uuid.v4();
     this.engine = engine;
-    this.running = true;
+    this.running = false;
     this.operation = null;
     this.route = null;
 
@@ -24,60 +26,71 @@ export default class Worker extends EventEmitter {
       debug(`Request blocked on: ${url}`);
     });
 
-    // Starts the worker as soon as it is created
-    debug('Starting worker.');
-    this.start();
+    debug(`Worker ${this.id} created`);
   }
 
   // start this worker
   async start() {
-    while (this.running) {
-      const operation = await this.engine.waitForNext();
-      if (!this.running) continue;
+    if (this.running) return;
 
-      // if there are no new operations to process,
-      // keep on quering for them each second.
-      if (!operation) {
-        debug('There are no pending operations. Retrying in 1s');
-        this.emit('operation:noop');
-        await sleep(1000);
-        continue;
+    this.running = true;
+
+    return await new Promise((resolve) => {
+      const self = this;
+      this.engine.on('operation:assigned', onOperationAssigned);
+      this.startLoop();
+
+      function onOperationAssigned(operation, worker) {
+        if (worker === self) {
+          debug(`Worker ${self.id} started`);
+          self.engine.removeListener('operation:assigned', onOperationAssigned);
+          resolve();
+        }
       }
+    });
+  }
 
-      const routeName = operation.route;
-      const provider = operation.provider;
-      const query = operation.query;
-      const route = routes[provider][routeName];
+  async startLoop() {
+    invariant(this.running, 'Worker must be running to start the worker loop');
 
-      debug(`Got operation: ${provider}->${routeName}. Query: ${query}`);
+    do {
+      try {
+        const spider = this.assignSpider();
+        const operation = await this.engine.assignOperation(this);
 
-      const spider = new Spider();
-      spider.verbose();
-      spider.addEmitter(this);
-      spider.addEmitter(this.engine);
+        if (!operation) {
+          debug('There are no pending operations. Retrying in 1s');
+          await sleep(1000); // keeps quering every second
+          continue;
+        }
 
-      this.operation = operation;
-      this.route = route;
-      this.spider = spider;
+        const res = await spider.scrape(operation, this.engine);
 
-      const res = await spider.scrape(operation, this.engine);
+        debug(
+          `Operation finished: ${res.route}. ` +
+          `${res.stats.item} items created. ` +
+          `${res.stats.updated} items updated. ` +
+          `${res.stats.spawned} operations created.`);
 
-      debug(
-        `Operation finished: ${res.route}. ` +
-        `${res.stats.item} items created. ` +
-        `${res.stats.updated} items updated. ` +
-        `${res.stats.spawned} operations created.`
-     );
+      } catch (err) {
+        logger.error(err);
+      }
+    } while (this.running);
 
-      this.operation = null;
-      this.route = null;
-      this.spider = null;
+    this.operation = null;
+    this.route = null;
+    this.spider = null;
 
-      continue;
-    }
-
-    // todo: pull worker from queue if was in queue
     this.emit('worker:stopped', this);
+  }
+
+  assignSpider() {
+    const spider = new Spider();
+    spider.verbose();
+    spider.addEmitter(this);
+    spider.addEmitter(this.engine);
+    this.spider = spider;
+    return spider;
   }
 
   async stop() {

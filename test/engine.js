@@ -3,6 +3,7 @@ import './testenv';
 import { expect } from 'chai';
 import Operation from '../src/Operation';
 import Item from '../src/Item';
+import Spider from '../src/Spider';
 import Engine from '../src/engine';
 import config from '../config';
 import routes from '../routes';
@@ -11,12 +12,15 @@ import plugins from '../plugins';
 const engine = new Engine(routes, plugins);
 
 describe('Engine', function() {
-  this.timeout(15000); // 15 seconds
+  this.timeout(1500);
 
   describe('workers', function() {
 
-    // Clear the database
-    before(clearDatabase);
+    before(async () => {
+      await Operation.remove();
+      await Item.remove();
+      await engine.start();
+    });
 
     it('should start with 0 operations', () => {
       expect(engine.operationIds.length).to.equal(0);
@@ -38,64 +42,55 @@ describe('Engine', function() {
 
   describe('concurrency', function() {
 
-    // Clear the database
-    beforeEach(clearDatabase);
+    beforeEach(async () => {
+      await Operation.remove();
+      await Item.remove();
+    });
 
     it('should respect the concurrency limit of routes', function(done) {
-      const workers = config.engine.workers;
+      const route = require('../routes/github/search').default;
+      const workers = 3;
 
-      if (workers < 2) {
-        console.warn('This test requires at least 2 engine workers');
-        return this.skip();
-      }
-
-      const githubSearchRoute = require('../routes/github/search').default;
-      let runningGithubSearchRoutes = 0;
       let runningWorkers = 0;
+      let runningScrapers = 0;
       let finished = false;
 
-      const checkOperation = (operation) => {
-        const provider = operation.provider;
-        const routeName = operation.route;
-
-        runningWorkers++;
-
-        if (provider === 'github' && routeName === 'search') {
-          runningGithubSearchRoutes++;
-        }
-
-        check();
-      };
-
-      const onNoop = () => {
-        runningWorkers = workers;
-        check();
-      };
-
       // hard-set the concurrency limit
-      githubSearchRoute.concurrency = 1;
+      route.concurrency = 1;
 
       // initialize two search routes
-      githubSearchRoute.start(githubSearchRoute.test.query);
-      githubSearchRoute.start(githubSearchRoute.test.query + 'test');
+      startOperation(route.test.query, route).catch(done);
+      startOperation(route.test.query + ' test', route).catch(done);
 
       // when an operation starts, this event is emitted
-      engine.emitter.on('operation:start', checkOperation);
+      engine.on('operation:start', onOperationStart);
 
       // when there are no pending operations, this event is emitted
-      engine.emitter.once('operation:noop', onNoop);
+      engine.on('operation:noop', onNoop);
+
+      engine.start();
+
+      function onNoop() {
+        runningWorkers++;
+        check();
+      }
+
+      function onOperationStart() {
+        runningWorkers++;
+        runningScrapers++;
+        check();
+      }
 
       function check() {
         if (runningWorkers < workers || finished) return;
 
+        engine.removeListener('operation:start', onOperationStart);
+        engine.removeListener('operation:noop', onNoop);
         finished = true;
 
-        if (runningGithubSearchRoutes > 1) {
+        if (runningScrapers > 1) {
           return done(new Error('Went over concurrency limit.'));
         }
-
-        engine.emitter.removeListener('operation:start', checkOperation);
-        engine.emitter.removeListener('operation:noop', onNoop);
 
         done();
       }
@@ -111,8 +106,8 @@ describe('Engine', function() {
   });
 });
 
-async function clearDatabase() {
-  await Operation.remove();
-  await Item.remove();
-  engine.start();
+async function startOperation(query, route) {
+  const spider = new Spider();
+  const operation = await Operation.findOrCreate(query, route);
+  return await spider.scrape(operation, { routes, plugins });
 }

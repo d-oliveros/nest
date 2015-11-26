@@ -1,6 +1,6 @@
 import cheerio from 'cheerio';
 import inspect from 'util-inspect';
-import { isString } from 'lodash';
+import { isString, isObject, isFunction } from 'lodash';
 import logger from './logger';
 
 export default function createPage(url, data) {
@@ -13,6 +13,9 @@ export default function createPage(url, data) {
     $: null
   };
 
+  // Checks if the data is JSON
+  // If the data is JSON, parses the json in 'page.data'
+  // Otherwise, load the HTML with cheerio and expose it in 'page.$`
   try {
     page.data = JSON.parse(page.data);
     page.isJSON = true;
@@ -25,6 +28,25 @@ export default function createPage(url, data) {
       page.valid = false;
     }
   }
+
+  // Applies `func` to this page
+  page.apply = (func) => {
+    let res;
+
+    try {
+      res = func.call(page, page.isJSON ? page.data : page.$);
+
+      // Convert sync functions to promises
+      if (!isObject(res) || !isFunction(res.then)) {
+        res = Promise.resolve(res);
+      }
+    } catch (err) {
+      logger.error(err);
+      return Promise.reject(err);
+    }
+
+    return res;
+  };
 
   return page;
 }

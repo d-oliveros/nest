@@ -58,6 +58,7 @@ switch (cmd) {
       route = require(path.join(root, 'routes', domain, routeName));
 
     } catch(err) {
+      console.error(err);
       if (err.code === 'MODULE_NOT_FOUND') {
 
         console.error(routeName === 'init' ?
@@ -94,7 +95,7 @@ switch (cmd) {
     } else {
 
       // Load the route test
-      loadTest('routes.spec.js');
+      loadTest('routes.js');
 
       // Set route to test in environmental variable
       if (routeName === 'init')

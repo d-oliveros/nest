@@ -12,4 +12,8 @@ if (!fs.existsSync(envPath)) {
   envPath += '.default';
 }
 
+process.on('SIGINT', () => {
+  process.exit();
+});
+
 dotenv.load({ path: envPath });

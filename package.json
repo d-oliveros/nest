@@ -6,12 +6,15 @@
   "repository": "https://github.com/d-oliveros/nest",
   "scripts": {
     "lint": "eslint .",
-    "test": "./node_modules/.bin/mocha"
+    "test": "eslint . && ./node_modules/.bin/mocha"
   },
   "bin": {
     "nest": "bin/nest"
   },
   "author": "David Oliveros",
+  "contributors": [
+    "David Oliveros"
+  ],
   "license": "MIT",
   "dependencies": {
     "assert": "*",
@@ -19,7 +22,7 @@
     "babel-core": "^6.2.1",
     "babel-polyfill": "^6.2.0",
     "babel-preset-es2015": "^6.1.18",
-    "babel-preset-stage-2": "^6.1.18",
+    "babel-preset-stage-1": "^6.1.18",
     "cheerio": "*",
     "debug": "*",
     "diacritic": "*",
@@ -28,9 +31,11 @@
     "lodash": "^3.10.1",
     "mongoose": "*",
     "phantom": "*",
+    "promise-queue": "^2.2.0",
     "request-promise": "^1.0.2",
     "require-all": "*",
     "util-inspect": "^0.1.8",
+    "uuid": "^2.0.1",
     "winston": "*"
   },
   "devDependencies": {

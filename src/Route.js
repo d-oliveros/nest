@@ -53,7 +53,7 @@ export default class Route {
   }
 
   // default middleware
-  async middleware(scraped) {
+  middleware(scraped) {
     return scraped;
   }
 

@@ -3,7 +3,7 @@ import './testenv';
 import { each } from 'lodash';
 import Route from '../src/Route';
 import Item from '../src/Item';
-import Spider from '../src/Spider';
+import createSpider from '../src/spider';
 import Operation from '../src/Operation';
 import domains from '../routes';
 import routes from '../routes';
@@ -66,7 +66,7 @@ function createRouteTest(domain, route) {
     }
 
     it(`should ${responsabilities.join(' and ')}`, (done) => {
-      const spider = new Spider();
+      const spider = createSpider();
 
       Operation.findOrCreate(testParams.query, route)
         .then((operation) => {

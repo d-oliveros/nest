@@ -1,33 +1,18 @@
 import { EventEmitter } from 'events';
 import uuid from 'uuid';
 import invariant from 'invariant';
-import Spider from '../Spider';
-import logger from '../logger';
+import createSpider from './spider';
+import logger from './logger';
 
 const debug = logger.debug('engine');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-export default class Worker extends EventEmitter {
-  constructor(engine) {
-    super();
-
-    this.id = uuid.v4();
-    this.engine = engine;
-    this.running = false;
-    this.operation = null;
-    this.route = null;
-
-    // Debugging listeners
-    this.on('operation:start', (operation, url) => {
-      debug(`Scraping: ${url}`);
-    });
-
-    this.on('operation:blocked', (operation, url) => {
-      debug(`Request blocked on: ${url}`);
-    });
-
-    debug(`Worker ${this.id} created`);
-  }
+const workerProto = {
+  id: null,
+  engine: null,
+  running: false,
+  operation: null,
+  route: null,
 
   // start this worker
   async start() {
@@ -48,7 +33,7 @@ export default class Worker extends EventEmitter {
         }
       }
     });
-  }
+  },
 
   async startLoop() {
     invariant(this.running, 'Worker must be running to start the worker loop');
@@ -82,16 +67,7 @@ export default class Worker extends EventEmitter {
     this.spider = null;
 
     this.emit('worker:stopped', this);
-  }
-
-  assignSpider() {
-    const spider = new Spider();
-    spider.verbose();
-    spider.addEmitter(this);
-    spider.addEmitter(this.engine);
-    this.spider = spider;
-    return spider;
-  }
+  },
 
   async stop() {
     if (!this.running) return;
@@ -106,5 +82,36 @@ export default class Worker extends EventEmitter {
         resolve();
       });
     });
+  },
+
+  assignSpider() {
+    const spider = createSpider();
+    spider.verbose();
+    spider.addEmitter(this);
+    spider.addEmitter(this.engine);
+    this.spider = spider;
+    return spider;
   }
+};
+
+const composedProto = Object.assign({}, EventEmitter.prototype, workerProto);
+
+export default function createWorker(engine) {
+  const worker = Object.assign(Object.create(composedProto), {
+    id: uuid.v4(),
+    engine: engine
+  });
+
+  // Debugging listeners
+  worker.on('operation:start', (operation, url) => {
+    debug(`Scraping: ${url}`);
+  });
+
+  worker.on('operation:blocked', (operation, url) => {
+    debug(`Request blocked on: ${url}`);
+  });
+
+  debug(`Worker ${worker.id} created`);
+
+  return worker;
 }

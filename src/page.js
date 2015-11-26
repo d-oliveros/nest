@@ -1,40 +1,22 @@
 import cheerio from 'cheerio';
 import inspect from 'util-inspect';
+import invariant from 'invariant';
 import { isString, isObject, isFunction } from 'lodash';
 import logger from './logger';
 
-export default function createPage(url, data) {
-  const page = {
-    data: data,
-    location: { href: url },
-    isJSON: false,
-    valid: true,
-    html: null,
-    $: null
-  };
+const pageProto = {
+  data: null,
+  location: null,
+  isJSON: false,
+  valid: false,
+  html: null,
+  $: null,
 
-  // Checks if the data is JSON
-  // If the data is JSON, parses the json in 'page.data'
-  // Otherwise, load the HTML with cheerio and expose it in 'page.$`
-  try {
-    page.data = JSON.parse(page.data);
-    page.isJSON = true;
-  } catch (err) {
-    if (data && isString(data)) {
-      page.html = data;
-      page.$ = cheerio.load(data);
-    } else {
-      logger.warn(`[createPage]: Data is not valid: ${inspect(data)}`);
-      page.valid = false;
-    }
-  }
-
-  // Applies `func` to this page
-  page.apply = (func) => {
+  apply(func) {
     let res;
 
     try {
-      res = func.call(page, page.isJSON ? page.data : page.$);
+      res = func.call(this, this.isJSON ? this.data : this.$);
 
       // Convert sync functions to promises
       if (!isObject(res) || !isFunction(res.then)) {
@@ -46,7 +28,35 @@ export default function createPage(url, data) {
     }
 
     return res;
-  };
+  },
 
+  loadData(url, data) {
+    invariant(url && isString(url), 'URL is not a string');
+
+    this.data = data;
+    this.location = { href: url };
+    this.valid = !!data;
+
+    // Checks if the data is JSON
+    // If the data is JSON, parses the json in 'page.data'
+    // Otherwise, load the HTML with cheerio and expose it in 'page.$`
+    try {
+      this.data = JSON.parse(data);
+      this.isJSON = true;
+    } catch (err) {
+      if (data && isString(data)) {
+        this.html = data;
+        this.$ = cheerio.load(data);
+      } else {
+        logger.warn(`[page]: Data is not valid: ${inspect(data)}`);
+        this.valid = false;
+      }
+    }
+  }
+};
+
+export default function createPage(url, data) {
+  const page = Object.create(pageProto);
+  page.loadData(url, data);
   return page;
 }

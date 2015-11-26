@@ -1,5 +1,5 @@
 import './testenv';
-import Spider from '../src/Spider';
+import createSpider from '../src/spider';
 import { EventEmitter } from 'events';
 
 const should = require('chai').should(); // eslint-disable-line no-unused-vars
@@ -10,13 +10,13 @@ describe('Spider', function() {
   let globalSpider;
 
   it('should emit an event', (done) => {
-    const spider = new Spider();
+    const spider = createSpider();
     spider.on('test:event', done);
     spider.emit('test:event');
   });
 
   it('should add and emit events to an external emitter', (done) => {
-    const spider = new Spider();
+    const spider = createSpider();
     const emitter = new EventEmitter();
     let completed = 0;
 
@@ -39,7 +39,7 @@ describe('Spider', function() {
   });
 
   it('should remove external emitter', () => {
-    const spider = new Spider();
+    const spider = createSpider();
     const emitter = new EventEmitter();
 
     spider.addEmitter(emitter);
@@ -51,7 +51,7 @@ describe('Spider', function() {
   });
 
   it('should open a page statically', async () => {
-    const spider = new Spider();
+    const spider = createSpider();
 
     const page = await spider.open('http://www.github.com');
     expect(page.html).to.be.a('string');
@@ -60,7 +60,7 @@ describe('Spider', function() {
   });
 
   it('should open a dynamic page with phantomJS', async () => {
-    globalSpider = new Spider();
+    globalSpider = createSpider();
     await globalSpider.open('http://www.google.com', { dynamic: true });
   });
 
@@ -79,7 +79,7 @@ describe('Spider', function() {
   });
 
   it('should stop', async () => {
-    const spider = new Spider();
+    const spider = createSpider();
 
     await spider.open('http://www.github.com');
     spider.stop();

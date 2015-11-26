@@ -1,5 +1,5 @@
 import Operation from '../../src/Operation';
-import Spider from '../../src/Spider';
+import createSpider from '../../src/spider';
 import routes from '../../routes';
 import plugins from '../../plugins';
 import searchRoute from '../imdb/search';
@@ -15,7 +15,7 @@ exports.start = function() {
 };
 
 async function startOperation(query, route) {
-  const spider = new Spider();
+  const spider = createSpider();
   const operation = await Operation.findOrCreate(query, route);
   return await spider.scrape(operation, { routes, plugins });
 }

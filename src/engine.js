@@ -1,27 +1,14 @@
-import { pick } from 'lodash';
 import { EventEmitter } from 'events';
 import inspect from 'util-inspect';
 import Queue from 'promise-queue';
-import Worker from './worker';
-import engineConfig from '../../config/engine';
-import Operation from '../Operation';
+import engineConfig from '../config/engine';
+import createWorker from './worker';
+import Operation from './Operation';
 
 const debug = require('debug')('engine');
 
-export default class Engine extends EventEmitter {
-  constructor(routes, plugins) {
-    super();
-
-    this.workers = [];
-    this.running = false;
-    this.routes = routes;
-    this.plugins = plugins;
-    this.queue = new Queue(1, Infinity);
-
-    process.on('SIGTERM', () => {
-      this.workers.forEach((worker) => worker.stop());
-    });
-  }
+const engineProto = {
+  running: false,
 
   async start() {
     if (this.running) return;
@@ -29,7 +16,7 @@ export default class Engine extends EventEmitter {
     this.running = true;
 
     for (let i = 0; i < engineConfig.workers; i++) {
-      const worker = new Worker(this);
+      const worker = createWorker(this);
       this.workers.push(worker);
     }
 
@@ -39,7 +26,7 @@ export default class Engine extends EventEmitter {
     const initialOps = await Promise.all(workerStartPromises);
 
     return initialOps;
-  }
+  },
 
   async stop() {
     if (!this.running) return;
@@ -48,11 +35,17 @@ export default class Engine extends EventEmitter {
     this.workers = [];
 
     return await Promise.all(this.workers.map((worker) => worker.stop()));
-  }
+  },
 
   async assignOperation(worker) {
     return await this.queue.add(async () => {
-      const params = pick(this, 'disabledRoutes', 'operationIds');
+      debug(`Queue access`);
+
+      const params = {
+        disabledRoutes: this.getDisabledRoutes(),
+        operationIds: this.getRunningOperationIds()
+      };
+
       const operation = await Operation.getNext(params);
 
       if (!operation) {
@@ -73,9 +66,9 @@ export default class Engine extends EventEmitter {
 
       return operation;
     });
-  }
+  },
 
-  get disabledRoutes() {
+  getDisabledRoutes() {
     const disabledRoutes = [];
     const runningRoutes = {};
 
@@ -97,9 +90,9 @@ export default class Engine extends EventEmitter {
     debug(`Getting disabled routes: ${inspect(disabledRoutes)}`);
 
     return disabledRoutes;
-  }
+  },
 
-  get operationIds() {
+  getRunningOperationIds() {
     return this.workers.reduce((ids, worker) => {
       if (worker.operation) {
         ids.push(worker.operation.id);
@@ -108,4 +101,20 @@ export default class Engine extends EventEmitter {
       return ids;
     }, []);
   }
+};
+
+const composedProto = Object.assign({}, EventEmitter.prototype, engineProto);
+
+export default function createEngine(routes, plugins) {
+  const engine = Object.assign(Object.create(composedProto), {
+    routes: routes,
+    plugins: plugins,
+    workers: [],
+    queue: new Queue(1, Infinity)
+  });
+
+  // Initializes the event emitter in the engine
+  EventEmitter.call(engine);
+
+  return engine;
 }

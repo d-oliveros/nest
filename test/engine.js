@@ -3,13 +3,14 @@ import './testenv';
 import { expect } from 'chai';
 import Operation from '../src/Operation';
 import Item from '../src/Item';
-import Spider from '../src/Spider';
-import Engine from '../src/engine';
+import createSpider from '../src/spider';
+import createEngine from '../src/engine';
 import config from '../config';
 import routes from '../routes';
 import plugins from '../plugins';
 
-const engine = new Engine(routes, plugins);
+const debug = require('debug')('test:engine');
+const engine = createEngine(routes, plugins);
 
 describe('Engine', function() {
   this.timeout(1500);
@@ -23,7 +24,7 @@ describe('Engine', function() {
     });
 
     it('should start with 0 operations', () => {
-      expect(engine.operationIds.length).to.equal(0);
+      expect(engine.getRunningOperationIds().length).to.equal(0);
     });
 
     it(`should start with ${config.engine.workers} workers`, () => {
@@ -71,11 +72,13 @@ describe('Engine', function() {
       engine.start();
 
       function onNoop() {
+        debug('onNoop');
         runningWorkers++;
         check();
       }
 
       function onOperationStart() {
+        debug('onOperationStart');
         runningWorkers++;
         runningScrapers++;
         check();
@@ -107,7 +110,7 @@ describe('Engine', function() {
 });
 
 async function startOperation(query, route) {
-  const spider = new Spider();
+  const spider = createSpider();
   const operation = await Operation.findOrCreate(query, route);
   return await spider.scrape(operation, { routes, plugins });
 }

@@ -12,15 +12,11 @@ import createPage from './page';
 const debug = logger.debug('Spider');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-export default class Spider extends EventEmitter {
-  constructor() {
-    super();
-    this.running = true;
-    this.isVerbose = false;
-    this.phantom = null;
-    this.iteration = 0;
-    this.emitters = [];
-  }
+const spiderProto = {
+  running: true,
+  isVerbose: false,
+  phantom: null,
+  iteration: 0,
 
   // enables "verbose" mode
   verbose() {
@@ -31,7 +27,7 @@ export default class Spider extends EventEmitter {
       this.on('scraped:page', debug.bind(this, 'Scraped a page.'));
       this.isVerbose = true;
     }
-  }
+  },
 
   /**
    * Emitter functions
@@ -40,12 +36,12 @@ export default class Spider extends EventEmitter {
   // adds an external EventEmitter
   addEmitter(emitter) {
     this.emitters.push(emitter);
-  }
+  },
 
   // removes an EventEmitter
   removeEmitter(emitter) {
     pull(this.emitters, emitter);
-  }
+  },
 
   // @override EventEmitter.prototype.emit
   emit() {
@@ -59,13 +55,13 @@ export default class Spider extends EventEmitter {
 
       if (emitter.emitters) {
         // go through this emitter's emitters, if any.
-        Spider.prototype.emit.apply(emitter, args);
+        spiderProto.emit.apply(emitter, args);
       } else {
         // or, emit the event through this emitter
         EventEmitter.prototype.emit.apply(emitter, args);
       }
     });
-  }
+  },
 
   /**
    * Page functions
@@ -89,7 +85,7 @@ export default class Spider extends EventEmitter {
     }
 
     return html;
-  }
+  },
 
   async openDynamic(url) {
     const phantomPage = await this.createPhantomPage();
@@ -112,13 +108,13 @@ export default class Spider extends EventEmitter {
     const page = createPage(url, html);
 
     return page;
-  }
+  },
 
   async openStatic(url) {
     const html = await request(url);
     const page = createPage(url, html);
     return page;
-  }
+  },
 
   // creates a phantomJS instance
   async createPhantom() {
@@ -130,7 +126,7 @@ export default class Spider extends EventEmitter {
         resolve(ph);
       });
     });
-  }
+  },
 
   // stops its phantomJS instance
   stopPhantom() {
@@ -140,7 +136,7 @@ export default class Spider extends EventEmitter {
     }
 
     this.phantom = null;
-  }
+  },
 
   // creates a PhantomJS Page instance
   async createPhantomPage() {
@@ -168,7 +164,7 @@ export default class Spider extends EventEmitter {
         resolve(page);
       });
     });
-  }
+  },
 
   // includes javascript <script> tags in opened web page
   async includeJS(page) {
@@ -179,7 +175,7 @@ export default class Spider extends EventEmitter {
         resolve(status);
       });
     });
-  }
+  },
 
   /**
    * Control functions
@@ -195,7 +191,7 @@ export default class Spider extends EventEmitter {
 
     this.stopPhantom();
     this.running = false;
-  }
+  },
 
   // error handler
   error(error) {
@@ -208,7 +204,7 @@ export default class Spider extends EventEmitter {
 
     this.stopPhantom();
     this.emit('error', error);
-  }
+  },
 
 
   /**
@@ -371,7 +367,7 @@ export default class Spider extends EventEmitter {
     this.emit('operation:next', operation);
     debug(`Scraping next page`);
     return await this.scrape(operation, { routes, plugins });
-  }
+  },
 
   // sanitize the raw scraped data
   sanitizeScraped(scraped) {
@@ -418,4 +414,16 @@ export default class Spider extends EventEmitter {
 
     return sanitized;
   }
+};
+
+const composedProto = Object.assign({}, EventEmitter.prototype, spiderProto);
+
+export default function createSpider() {
+  const spider = Object.assign(Object.create(composedProto), {
+    emitters: []
+  });
+
+  EventEmitter.call(spider);
+
+  return spider;
 }

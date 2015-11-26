@@ -4,61 +4,57 @@ import logger from './logger';
 
 const debug = logger.debug('Route');
 
-export default class Route {
-  constructor(params) {
-    invariant(params.name, 'Name is required.');
-    invariant(params.provider, 'Provider is required.');
+// default scraper
+const defaultScraper = function() {
+  throw new Error('You need to implement your own scraper.');
+};
 
-    debug('Creating new route', params);
+// default urlTemplate
+const defaultUrlTemplate = function() {
+  throw new Error('You need to implement your own URL generator.');
+};
 
-    this.title = params.title;
-    this.provider = params.provider;
-    this.name = params.name;
-    this.isDynamic = params.dynamic || false;
+// default middleware
+const defaultMiddleware = function(scraped) {
+  return scraped;
+};
+
+// default status checker.
+const defaultCheckStatus = function() {
+  return 'ok';
+};
+
+export default function createRoute(params) {
+  invariant(params.name, 'Name is required.');
+  invariant(params.provider, 'Provider is required.');
+
+  debug('Creating new route', params);
+
+  return {
+    title: params.title,
+    provider: params.provider,
+    name: params.name,
+    isDynamic: params.dynamic || false,
 
     // template generation function. Takes an operation for input
-    this.urlTemplate = template(params.url);
+    urlTemplate: params.url ? template(params.url) : defaultUrlTemplate,
 
     // scraping function that should return an object with scraped data
-    this.scraper = params.scraper || this.scraper;
+    scraper: params.scraper || defaultScraper,
 
     // route-specific middleware to be executed after scraping data from a page
-    this.middleware = params.middleware || this.middleware;
+    middleware: params.middleware || defaultMiddleware,
 
     // scraping function that should return either 'ok' or 'blocked'
-    this.checkStatus = params.checkStatus || this.checkStatus;
+    checkStatus: params.checkStatus || defaultCheckStatus,
 
     // auto-testing options
-    this.test = params.test || null;
+    test: params.test || null,
 
     // limit the amount of workers that can work on this route at the same time
-    this.concurrency = params.concurrency || null;
+    concurrency: params.concurrency || null,
 
     // routes with higher priority will be processed first by the workers
-    this.priority = params.priority;
-
-    if (typeof this.priority !== 'number') {
-      this.priority = 50;
-    }
-  }
-
-  // default scraper
-  scraper() {
-    throw new Error('You need to implement your own scraper.');
-  }
-
-  // default urlTemplate
-  urlTemplate() {
-    throw new Error('You need to implement your own URL generator.');
-  }
-
-  // default middleware
-  middleware(scraped) {
-    return scraped;
-  }
-
-  // default status checker.
-  checkStatus() {
-    return 'ok';
-  }
+    priority: isNaN(params.priority) ? 50 : parseInt(params.priority, 10)
+  };
 }

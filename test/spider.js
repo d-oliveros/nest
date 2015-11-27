@@ -71,11 +71,6 @@ describe('Spider', function() {
     expect(globalSpider.phantom).to.equal(null);
   });
 
-  it('should emit an error', (done) => {
-    globalSpider.once('error', () => done());
-    globalSpider.error('Test error');
-  });
-
   it('should stop', async () => {
     const spider = createSpider();
 

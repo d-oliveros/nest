@@ -1,6 +1,7 @@
-import { toArray, each, pick, defaults, isObject, identity, compact } from 'lodash';
+import { toArray, each, pick, defaults, isObject, isFunction, identity, compact } from 'lodash';
 import invariant from 'invariant';
 import phantom from 'phantom';
+import createError from 'http-errors';
 import request from 'request-promise';
 import phantomConfig from '../config/phantom';
 import createEmitter, { emitterProto } from './emitter';
@@ -151,6 +152,8 @@ const baseProto = {
   stop(removeListeners) {
     debug('Stopping Spider');
 
+    this.emit('spider:stopped');
+
     if (removeListeners) {
       this.removeAllListeners();
     }
@@ -159,25 +162,15 @@ const baseProto = {
     this.running = false;
   },
 
-  // error handler
-  error(error) {
-    if (typeof error === 'string') {
-      error = `Spider: ${error}`;
-      error += ` (Iteration: ${this.iteration})`;
-      error += this.url ? ` (URL: ${this.url})` : '';
-      error = new Error(error);
-    }
-
-    this.stopPhantom();
-    this.emit('error', error);
-  },
-
 
   /**
    * Scraper functions
    */
 
-  async scrape(operation, { routes, plugins }) {
+  async scrape(operation, { routes, plugins }, retryCount = 0) {
+    invariant(isObject(operation), 'Operation is not valid');
+    invariant(!operation.finished, 'Operation was already finished');
+
     const { state, route: routeName, provider } = operation;
     const route = routes[provider][routeName];
 
@@ -186,7 +179,7 @@ const baseProto = {
 
     // save the starting time of this operation
     if (operation.wasNew) {
-      operation.state.startedDate = Date.now();
+      state.startedDate = Date.now();
     }
 
     // create the URL using the operation's parameters
@@ -194,48 +187,68 @@ const baseProto = {
 
     this.emit('operation:start', operation, url);
 
-    // check if this operation is actually finished
-    if (state.finished) {
-      this.emit('operation:finish', operation);
-      return operation;
-    }
-
     // opens the page
     let page;
     let status;
 
     try {
       page = await this.open(url, { dynamic: route.isDynamic });
-      debug(`Page opened`);
-      status = await page.apply(route.checkStatus);
+
+      // manually check if the page has been blocked
+      if (isFunction(route.checkStatus)) {
+        status = page.apply(route.checkStatus);
+      }
+
+      status = !isNaN(status)
+        ? parseInt(status, 10)
+        : page.status || 200;
+
     } catch (err) {
-      if (isObject(err) && (err.statusCode === 401 || err.statusCode > 404)) {
-        debug(`Got ${err.statusCode}`);
-        status = 'blocked';
+      if (isObject(err) && !isNaN(err.statusCode)) {
+        status = parseInt(err.statusCode, 10);
       } else {
         throw err;
       }
     }
 
-    if (status !== 'blocked') {
-      debug(`Page status is ok`);
-    } else {
-      // IP has been blocked
-      debug('Operation blocked. Retrying in 5s...');
-      this.emit('operation:blocked', operation, url);
+    debug(`Got ${status}`);
 
-      // if the operation has been stopped
-      if (!this.running) {
-        this.emit('operation:stopped', operation);
-        return operation;
-      }
-
-      // Else, wait 5 seconds and try again
-      await sleep(5000);
-      return await this.scrape(operation, { routes, plugins });
+    // if the operation has been stopped
+    if (!this.running) {
+      this.emit('operation:stopped', operation);
+      return operation;
     }
 
-    // scapes the page
+    // run the route's error handler for 4xx routes
+    if (status >= 400) {
+      const errorHandler = isFunction(route.onError)
+        ? route.onError
+        : this.defaultErrorHandler;
+
+      let newOperation = errorHandler.call(this, operation, retryCount);
+
+      // If the error handler returned a promise, resolve the promise
+      if (isObject(newOperation) && isFunction(newOperation.then)) {
+        newOperation = await newOperation;
+      }
+
+      // if nothing was returned from the error handler, stop
+      if (!newOperation) {
+        this.running = false;
+        this.emit('operation:stopped', operation);
+        throw createError(status);
+      }
+
+      // if the error handler returned `true` or a truthy value,
+      // restart the operation
+      if (!isObject(newOperation)) {
+        newOperation = operation;
+      }
+
+      return await this.scrape(operation, { routes, plugins }, retryCount++);
+    }
+
+    // scapes and sanitizes the page
     let scraped = await page.apply(route.scraper);
     this.emit('scraped:raw', scraped, operation);
 
@@ -291,6 +304,9 @@ const baseProto = {
       operation.stats.spawned += newOperations.length;
     }
 
+    // save and update items
+    const results = await Item.eachUpsert(scraped.items);
+
     // change state
     if (scraped.hasNextPage) {
       state.currentPage++;
@@ -304,14 +320,11 @@ const baseProto = {
     }
 
     state.lastLink = url;
-
-    const results = await Item.eachUpsert(scraped.items);
-
-    this.iteration++;
     operation.stats.pages++;
     operation.stats.items += results.created;
     operation.stats.updated += results.updated;
 
+    this.iteration++;
     this.emit('scraped:page', results, operation);
     this.stopPhantom();
 
@@ -324,15 +337,45 @@ const baseProto = {
     }
 
     // Operation finished
-    if (!this.running || state.finished) {
+    if (state.finished) {
       this.emit('operation:finish', operation);
+      this.running = false;
       return operation;
     }
 
     // Operation has next page
-    this.emit('operation:next', operation);
     debug(`Scraping next page`);
+    this.emit('operation:next', operation);
+
     return await this.scrape(operation, { routes, plugins });
+  },
+
+  defaultErrorHandler(operation, retryCount) {
+    if (retryCount < 3) {
+      debug('Operation blocked. Retrying in 5s...\n' +
+        `Will retry ${3 - retryCount} more times`);
+
+      let resolved = false;
+      return new Promise((resolve) => {
+        function onSpiderStopped() {
+          resolved = true;
+          resolve();
+        }
+
+        this.once('spider:stopped', onSpiderStopped);
+
+        sleep(5000).then(() => {
+          if (!resolved) {
+            resolved = true;
+            this.removeListener('spider:stopped', onSpiderStopped);
+            resolve();
+          }
+        });
+      });
+    }
+
+    debug(`Operation blocked. Aborting.`);
+    return false;
   },
 
   // sanitize the raw scraped data

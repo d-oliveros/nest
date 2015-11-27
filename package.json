@@ -1,7 +1,7 @@
 {
   "name": "nest",
-  "version": "0.3.0",
-  "description": "Data Extraction & Botnet framework",
+  "version": "0.4.0",
+  "description": "Data Extraction & Processing framework",
   "main": "lib/engine/index.js",
   "repository": "https://github.com/d-oliveros/nest",
   "scripts": {

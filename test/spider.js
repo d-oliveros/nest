@@ -1,9 +1,7 @@
 import './testenv';
-import createSpider from '../src/spider';
 import { EventEmitter } from 'events';
-
-const should = require('chai').should(); // eslint-disable-line no-unused-vars
-const expect = require('chai').expect;
+import { expect } from 'chai';
+import createSpider from '../src/spider';
 
 describe('Spider', function() {
   this.timeout(15000); // 15 seconds
@@ -22,7 +20,7 @@ describe('Spider', function() {
 
     spider.addEmitter(emitter);
 
-    spider.emitters.should.contain(emitter);
+    expect(spider.emitters.has(emitter)).to.equal(true);
 
     spider.once('test:event', () => completed++);
     emitter.once('test:event', () => completed++);
@@ -43,11 +41,11 @@ describe('Spider', function() {
     const emitter = new EventEmitter();
 
     spider.addEmitter(emitter);
-    expect(spider.emitters).to.contain(emitter);
+    expect(spider.emitters.has(emitter)).to.equal(true);
 
     spider.removeEmitter(emitter);
-    expect(spider.emitters).to.not.contain(emitter);
-    expect(spider.emitters.length).to.equal(0);
+    expect(spider.emitters.has(emitter)).to.equal(false);
+    expect(spider.emitters.size).to.equal(0);
   });
 
   it('should open a page statically', async () => {

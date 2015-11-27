@@ -1,6 +1,7 @@
 import { EventEmitter } from 'events';
 import uuid from 'uuid';
 import invariant from 'invariant';
+import { isObject } from 'lodash';
 import createSpider from './spider';
 import logger from './logger';
 
@@ -97,6 +98,8 @@ const workerProto = {
 const composedProto = Object.assign({}, EventEmitter.prototype, workerProto);
 
 export default function createWorker(engine) {
+  invariant(isObject(engine), 'Engine is not an object');
+
   const worker = Object.assign(Object.create(composedProto), {
     id: uuid.v4(),
     engine: engine

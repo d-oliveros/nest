@@ -1,9 +1,9 @@
-import { toArray, each, pull, pick, clone, defaults, isObject, identity, compact, assign } from 'lodash';
-import { EventEmitter } from 'events';
+import { toArray, each, pick, defaults, isObject, identity, compact } from 'lodash';
 import invariant from 'invariant';
 import phantom from 'phantom';
 import request from 'request-promise';
 import phantomConfig from '../config/phantom';
+import createEmitter, { emitterProto } from './emitter';
 import logger from './logger';
 import Item from './Item';
 import Operation from './Operation';
@@ -12,7 +12,7 @@ import createPage from './page';
 const debug = logger.debug('Spider');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-const spiderProto = {
+const baseProto = {
   running: true,
   isVerbose: false,
   phantom: null,
@@ -27,40 +27,6 @@ const spiderProto = {
       this.on('scraped:page', debug.bind(this, 'Scraped a page.'));
       this.isVerbose = true;
     }
-  },
-
-  /**
-   * Emitter functions
-   */
-
-  // adds an external EventEmitter
-  addEmitter(emitter) {
-    this.emitters.push(emitter);
-  },
-
-  // removes an EventEmitter
-  removeEmitter(emitter) {
-    pull(this.emitters, emitter);
-  },
-
-  // @override EventEmitter.prototype.emit
-  emit() {
-    const args = toArray(arguments);
-
-    // emit the event through own emitter
-    EventEmitter.prototype.emit.apply(this, args);
-
-    // emit the event through all the attached emitters
-    each(this.emitters, (emitter) => {
-
-      if (emitter.emitters) {
-        // go through this emitter's emitters, if any.
-        spiderProto.emit.apply(emitter, args);
-      } else {
-        // or, emit the event through this emitter
-        EventEmitter.prototype.emit.apply(emitter, args);
-      }
-    });
   },
 
   /**
@@ -334,7 +300,7 @@ const spiderProto = {
     }
 
     if (scraped.state) {
-      state.data = assign(state.data || {}, scraped.state);
+      state.data = Object.assign(state.data || {}, scraped.state);
     }
 
     state.lastLink = url;
@@ -371,7 +337,7 @@ const spiderProto = {
 
   // sanitize the raw scraped data
   sanitizeScraped(scraped) {
-    const sanitized = clone(scraped ? scraped : {});
+    const sanitized = isObject(scraped) ? Object.assign({}, scraped) : {};
 
     debug('Sanitizing scraped');
 
@@ -401,13 +367,11 @@ const spiderProto = {
       // remove empty properties
       item = pick(item, identity);
 
-      each(item, (value, key) => {
-        if (typeof value === 'string') {
-          item[key] = item[key]
-            // .replace(/^\s+|\s+$/g, '') // remove newlines from string edges
-            .trim();
+      for (const key in item) {
+        if (item.hasOwnProperty(key) && typeof item[key] === 'string') {
+          item[key] = item[key].trim();
         }
-      });
+      }
 
       return item;
     });
@@ -416,14 +380,10 @@ const spiderProto = {
   }
 };
 
-const composedProto = Object.assign({}, EventEmitter.prototype, spiderProto);
+const spiderProto = Object.assign({}, emitterProto, baseProto);
 
-export default function createSpider() {
-  const spider = Object.assign(Object.create(composedProto), {
-    emitters: []
-  });
-
-  EventEmitter.call(spider);
-
+export default function createSpider(spider) {
+  spider = spider || Object.create(spiderProto);
+  createEmitter(spider);
   return spider;
 }

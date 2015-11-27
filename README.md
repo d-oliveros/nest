@@ -130,7 +130,7 @@ You can create a new route by creating a file in `./routes/[somedomain]/[routena
 The file should look like this:
 
 ```js
-import createRoute from '../../src/createRoute';
+import createRoute from '../../src/route';
 
 export default createRoute({
 

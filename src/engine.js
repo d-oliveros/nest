@@ -3,7 +3,7 @@ import inspect from 'util-inspect';
 import Queue from 'promise-queue';
 import engineConfig from '../config/engine';
 import createWorker from './worker';
-import Operation from './Operation';
+import Operation from './db/Operation';
 
 const debug = require('debug')('engine');
 

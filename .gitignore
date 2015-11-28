@@ -1,10 +1,4 @@
 
-# Environments
-config/environments/*
-
-# Data
-lib/modules/human/names.*
-
 # Logs
 *.log
 
@@ -34,4 +28,5 @@ node_modules
 # Editor specific project files
 .idea
 
+# OS X BS
 .DS_Store

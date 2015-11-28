@@ -3,11 +3,12 @@ import path from 'path';
 import requireAll from 'require-all';
 import camelCase from 'camelcase';
 import invariant from 'invariant';
-import { isObject, pick, defaults } from 'lodash';
-import mongoConnection from './db';
+import { isObject, defaults } from 'lodash';
+import { populateRoutes } from './route';
+import mongoConnection from './db/connection';
+import Operation from './db/Operation';
 import createEngine from './engine';
 import createSpider from './spider';
-import Operation from './Operation';
 
 const nestProto = {
 
@@ -47,7 +48,11 @@ const nestProto = {
     let source;
 
     if (isObject(root)) {
-      source = pick(root, 'routes', 'plugins', 'workers');
+      source = {
+        routes: populateRoutes(root.routes),
+        plugins: root.plugins,
+        workers: root.workers
+      };
     } else {
       source = getNestModules(root);
     }

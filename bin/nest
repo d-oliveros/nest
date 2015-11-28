@@ -8,9 +8,7 @@ require('../loadenv');
 var program = require('commander');
 var version = require('../package.json').version;
 
-program
-  .version(version)
-  .usage('nestqwe');
+program.version(version);
 
 program
   .command('scrape <route> [query]')

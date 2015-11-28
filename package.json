@@ -32,10 +32,12 @@
     "invariant": "^2.2.0",
     "lodash": "^3.10.1",
     "mongoose": "*",
+    "param-case": "^1.1.1",
     "phantom": "*",
     "promise-queue": "^2.2.0",
     "request-promise": "^1.0.2",
     "require-all": "*",
+    "string.prototype.padstart": "^3.0.0",
     "util-inspect": "^0.1.8",
     "uuid": "^2.0.1",
     "winston": "*"

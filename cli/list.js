@@ -1,11 +1,23 @@
-import { each, toArray, groupBy } from 'lodash';
+import padStart from 'string.prototype.padstart';
+import { each } from 'lodash';
 import { getNestModules } from '../src/nest';
 
 const rootdir = process.cwd();
 
 export default function listCommand() {
   const { routes } = getNestModules(rootdir);
-  console.log(`\n--Available Routes--\n${prettyPrint(routes)}`);
+
+  if (!routes.length) {
+    console.log('No routes available');
+    process.exit(1);
+  }
+
+  console.log(`\n` +
+    `--Available Routes--\n` +
+    `* to scrape a route: nest scrape <route>\n` +
+    prettyPrint(routes)
+  );
+
   process.exit();
 }
 
@@ -17,26 +29,25 @@ export default function listCommand() {
 function prettyPrint(routes) {
   let string = '\n';
 
-  routes = groupBy(toArray(routes), 'provider');
-
   // Pretty print the routes
-  each(routes, (domain, domainName) => {
-    string += `${domainName}\n`;
+  each(routes, (route) => {
 
-    // for each route
-    each(domain, (toPrint) => {
+    string += paddedPrint(13, 'key: ', route.key);
 
-      string += `  ${domainName}:${toPrint.name}`;
+    if (route.name) {
+      string += paddedPrint(13, 'name: ', route.name);
+    }
 
-      // warn on tests disabled
-      if (!toPrint.test) {
-        string += ' (not testable)';
-      }
+    if (route.description) {
+      string += paddedPrint(13, 'description: ', route.description);
+    }
 
-      string += '\n';
-    });
-    string += '\n';
+    string += paddedPrint(13, 'testable: ', route.test ? 'Yes' : 'No');
   });
 
   return string;
+}
+
+function paddedPrint(pad, string, suffix) {
+  return padStart(string, pad) + suffix + '\n';
 }

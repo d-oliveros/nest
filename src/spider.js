@@ -1,4 +1,4 @@
-import { toArray, each, pick, defaults, isObject, isFunction, identity, compact } from 'lodash';
+import { toArray, find, each, pick, defaults, isObject, isFunction, identity, compact, template } from 'lodash';
 import invariant from 'invariant';
 import phantom from 'phantom';
 import createError from 'http-errors';
@@ -169,10 +169,14 @@ const baseProto = {
 
   async scrape(operation, { routes, plugins }, retryCount = 0) {
     invariant(isObject(operation), 'Operation is not valid');
-    invariant(!operation.finished, 'Operation was already finished');
+
+    if (operation.state.finished) {
+      debug('Operation was already finished');
+      return operation;
+    }
 
     const { state, route: routeName, provider } = operation;
-    const route = routes[provider][routeName];
+    const route = find(routes, { provider, name: routeName });
 
     debug(`Starting operation: ${operation.routeId}` +
       (operation.query ? ` ${operation.query}` : ''));
@@ -183,7 +187,7 @@ const baseProto = {
     }
 
     // create the URL using the operation's parameters
-    const url = route.urlTemplate(operation);
+    const url = template(route.url)(operation);
 
     this.emit('operation:start', operation, url);
 
@@ -263,7 +267,9 @@ const baseProto = {
     debug(`Scraped ${scraped.items.length} items`);
 
     // apply route-specific middleware
-    scraped = route.middleware(scraped) || scraped;
+    if (isFunction(route.middleware)) {
+      scraped = route.middleware(scraped) || scraped;
+    }
 
     // apply plugins
     for (const plugin of toArray(plugins)) {

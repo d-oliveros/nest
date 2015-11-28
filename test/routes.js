@@ -1,52 +1,63 @@
 /* eslint-disable no-console */
 import './testenv';
-import { each, isObject, isFunction } from 'lodash';
-import Item from '../src/Item';
+import Mocha, { Test, Suite } from 'mocha';
+import { each, isFunction, chain } from 'lodash';
 import createSpider from '../src/spider';
 import Operation from '../src/Operation';
-import domains from '../routes';
-import routes from '../routes';
-import plugins from '../plugins';
+import Item from '../src/Item';
 
-const testRoute = process.env.TEST_ROUTE || false;
-const testDomain = process.env.TEST_DOMAIN || false;
+/**
+ * Creates a test descriptor that will test each provided route
+ * @param  {Array} routes Routes to test
+ * @return {undefined}
+ */
+export function startRouteTests(routes, plugins = {}) {
+  const mocha = new Mocha();
 
-xdescribe('Routes', function() {
-  this.timeout(20000); // 20 secs
+  routes = chain(routes)
+    .toArray()
+    .filter((route) => {
+      if (!route.test) {
+        const { provider, name } = route;
+        console.warn(`Hint: Enable test for ${provider}:${name} ;)`);
+        return false;
+      }
 
-  beforeEach(async () => {
+      return true;
+    })
+    .groupBy('provider')
+    .value();
+
+  const suite = Suite.create(mocha.suite, 'Routes');
+
+  console.log(suite.__proto__);
+
+  /*
+  suite.timeout(20000); // 20 secs
+
+  suite.beforeEach(async () => {
     await Operation.remove();
     await Item.remove();
   });
 
-  // Test each route in each domain
-  each(domains, (domain, domainName) => {
-    if (testDomain && testDomain !== domainName) {
-      return;
-    }
+    // Test each route in each domain
+    each(routes, (arr, domain) => {
+      describe(domain, function() {
+        each(arr, (route) => {
+          if (!isFunction(route.scraper)) {
+            console.warn(`Route without scraper: ${route.name}`);
+            return;
+          }
 
-    describe(domainName, function() {
-
-      each(domain, (route, routeName) => {
-        const routeId = `${domainName}:${routeName}`;
-        const shouldTest = !testRoute || testRoute === routeId;
-
-        if (!isObject(route) || !isFunction(route.scraper) || !shouldTest) {
-          return;
-        }
-
-        if (!route.test) {
-          const { provider, name } = route;
-          console.warn(`Hint: Enable test for ${provider}:${name} ;)`);
-        } else {
-          createRouteTest(domain, route);
-        }
+          createRouteTest({ domain, route, mocha, routes, plugins });
+        });
       });
     });
   });
-});
+  */
+}
 
-function createRouteTest(domain, route) {
+function createRouteTest({ domain, route, mocha, routes, plugins }) {
   const testParams = route.test;
 
   describe(route.name, function() {

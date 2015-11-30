@@ -1,6 +1,6 @@
 {
   "name": "nest",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Data Extraction & Processing framework",
   "main": "src/nest.js",
   "repository": "https://github.com/d-oliveros/nest",

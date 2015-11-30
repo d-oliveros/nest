@@ -1,141 +1,50 @@
 #!/usr/bin/env node
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = 0;
+
 require('babel-polyfill');
 require('babel-core/register');
 require('../loadenv');
 
-var route, routeName, domain, routeParts, path, routeId, fs,
-  query, engine, debug, argv, cmd, root, Mocha, mocha;
+var program = require('commander');
+var version = require('../package.json').version;
 
-function displayUsage() {
-  console.log(
-    'Usage: nest COMMAND [ROUTEID] [QUERY]\n\n'+
-    'Available commands: \nscrape \nlist \ntest \nwork \n\n');
-}
+program.version(version);
 
-fs = require('fs');
-path = require('path');
-debug = require('debug');
+program
+  .command('scrape <route> [query]')
+  .description('Scrapes a route with an optional query')
+  .action(function() {
+    require('../cli/scrape').default.apply(this, arguments);
+  });
 
-argv = process.argv;
+program
+  .command('run [script]')
+  .description('Runs [script], or "index.js" if [script] is not provided')
+  .action(function() {
+    require('../cli/run').default.apply(this, arguments);
+  });
 
-if (argv.length < 3) {
-  displayUsage();
-  process.exit(0);
-}
+program
+  .command('test [routeId]')
+  .description('Test the route [routeId], or all the routes if [routeId] is not provided')
+  .action(function() {
+    require('../cli/test').default.apply(this, arguments);
+  });
 
-root    = path.normalize(path.join(__dirname, '..'));
+program
+  .command('list')
+  .description('Lists available routes')
+  .action(function() {
+    require('../cli/list').default.apply(this, arguments);
+  });
 
-cmd     = argv[2];
-routeId = argv[3];
-query   = argv[4];
+program.parse(process.argv);
 
-// Get the route domain and name
-if (routeId) {
-  routeParts = routeId.split(':');
-  domain = routeParts[0];
-  routeName = routeParts[1] ? routeParts[1] : 'init';
-}
-
-// todo: break cli into own folder
-switch (cmd) {
-
-  case 'scrape':
-
-    if (argv.length === 3) {
-      route = require(path.join(root, 'routes'));
-      console.log('Please, specify the route ID to scrape.');
-      console.log('\nAvailable routes:\n'+route.list());
-      process.exit(0);
-    }
-
-    // enable Worker messages
-    debug.enable('Worker');
-    debug.enable('Spider*');
-    debug.enable('Item*');
-
-    try {
-      route = require(path.join(root, 'routes', domain, routeName));
-
-    } catch(err) {
-      console.error(err);
-      if (err.code === 'MODULE_NOT_FOUND') {
-
-        console.error(routeName === 'init' ?
-          'No init script for '+domain+'.' :
-          'Route '+argv[3]+' not found.');
-
-        process.exit(1);
-
-      } else {
-        throw err;
-      }
-    }
-
-    // start the route. init scripts may not export a route to start.
-    route.start(query);
-
-    break;
-
-  case 'test':
-    Mocha = require('mocha');
-    mocha = new Mocha();
-
-    function loadTest(test) {
-      mocha.addFile(path.join(root, 'test', test));
-    }
-
-    if (!routeId) {
-
-      // Load all the tests
-      fs.readdirSync(path.join(root, 'test')).filter(function(file) {
-        return file.substr(-3) === '.js';
-      }).forEach(loadTest);
-
-    } else {
-
-      // Load the route test
-      loadTest('routes.js');
-
-      // Set route to test in environmental variable
-      if (routeName === 'init')
-        process.env.TEST_DOMAIN = domain;
-      else
-        process.env.TEST_ROUTE = routeId;
-    }
-
-    // Run the tests
-    mocha.run(function(failures) {
-      process.on('exit', function () {
-        process.exit(failures);
-      });
-    });
-
-    break;
-
-  case 'list':
-    route = require(path.join(root, 'routes')).default;
-    console.log(route.list());
-    process.exit(0);
-    break;
-
-  case 'work':
-
-    // enable Worker messages
-    debug.enable('Worker');
-    debug.enable('Spider*');
-    debug.enable('Item*');
-
-    // start the engine
-    engine = require(path.join(root, 'lib', 'engine'));
-    engine.start();
-
-    break;
-
-  default:
-    console.log('Unknown command '+cmd);
-
-  case 'help':
-    displayUsage();
-    process.exit(0);
-}
+/*
+program
+  .command('work')
+  .description('Starts the engine and consume the queue')
+  .action(function() {
+    cli.work({ root: root });
+  });
+*/

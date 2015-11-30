@@ -1,16 +1,17 @@
-import { toArray, each, pick, defaults, isObject, isFunction, identity, compact } from 'lodash';
+import { toArray, find, each, pick, defaults, isObject, isFunction, identity, compact, sortBy } from 'lodash';
 import invariant from 'invariant';
 import phantom from 'phantom';
 import createError from 'http-errors';
 import request from 'request-promise';
 import phantomConfig from '../config/phantom';
+import Item from './db/Item';
+import Operation from './db/Operation';
 import createEmitter, { emitterProto } from './emitter';
 import logger from './logger';
-import Item from './Item';
-import Operation from './Operation';
 import createPage from './page';
 
-const debug = logger.debug('Spider');
+const debug = logger.debug('nest:spider');
+const { PHANTOM_LOG, FORCE_DYNAMIC } = process.env;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const baseProto = {
@@ -34,30 +35,41 @@ const baseProto = {
    * Page functions
    */
 
-  // opens a URL, returns a loaded page ready to be scraped
+  // opens a URL, returns a loaded page
   // if "dynamic" is false, it will use cheerio instead of PhantomJS to scrape
   async open(url, options = {}) {
-    let html;
-
     invariant(isObject(options), 'Options needs to be an object');
 
     this.url = url;
 
-    if (options.dynamic || process.env.FORCE_DYNAMIC) {
-      debug(`Opening URL ${url} with PhantomJS`);
-      html = await this.openDynamic.call(this, url);
-    } else {
-      debug(`Opening URL ${url}`);
-      html = await this.openStatic.call(this, url);
-    }
+    const isDynamic = options.dynamic || FORCE_DYNAMIC;
+    const getPage = isDynamic ? this.openDynamic : this.openStatic;
 
-    return html;
+    return await getPage.call(this, url);
+  },
+
+  async openStatic(url) {
+    debug(`Opening URL ${url}`);
+
+    const res = await request(url, {
+      resolveWithFullResponse: true
+    });
+
+    const { statusCode, body } = res;
+    const html = body;
+    const page = createPage(html, { url, statusCode, res });
+
+    this.emit('page:open', page);
+
+    return page;
   },
 
   async openDynamic(url) {
+    debug(`Opening URL ${url} with PhantomJS`);
+
     const phantomPage = await this.createPhantomPage();
 
-    if (process.env.PHANTOM_LOG === 'true') {
+    if (PHANTOM_LOG === 'true') {
       phantomPage.set('onConsoleMessage', (msg) => {
         console.log(`Phantom Console: ${msg}`); // eslint-disable-line
       });
@@ -69,17 +81,11 @@ const baseProto = {
     const jsInjectionStatus = await this.includeJS(phantomPage);
     invariant(jsInjectionStatus, `Could not include JS on url: ${url}`);
 
-    this.emit('page:ready', phantomPage);
-
     const html = await phantomPage.evaluateAsync(() => $('html').html()); // eslint-disable-line
-    const page = createPage(url, html);
+    const page = createPage(html, { url, phantomPage });
 
-    return page;
-  },
+    this.emit('page:open', page, phantomPage);
 
-  async openStatic(url) {
-    const html = await request(url);
-    const page = createPage(url, html);
     return page;
   },
 
@@ -169,10 +175,16 @@ const baseProto = {
 
   async scrape(operation, { routes, plugins }, retryCount = 0) {
     invariant(isObject(operation), 'Operation is not valid');
-    invariant(!operation.finished, 'Operation was already finished');
 
-    const { state, route: routeName, provider } = operation;
-    const route = routes[provider][routeName];
+    if (operation.state.finished) {
+      debug('Operation was already finished');
+      return operation;
+    }
+
+    const { state, routeId } = operation;
+    const route = find(routes, { key: routeId });
+
+    invariant(route.initialized, 'Route has not been initialized');
 
     debug(`Starting operation: ${operation.routeId}` +
       (operation.query ? ` ${operation.query}` : ''));
@@ -183,7 +195,7 @@ const baseProto = {
     }
 
     // create the URL using the operation's parameters
-    const url = route.urlTemplate(operation);
+    const url = route.urlGenerator(operation);
 
     this.emit('operation:start', operation, url);
 
@@ -196,7 +208,7 @@ const baseProto = {
 
       // manually check if the page has been blocked
       if (isFunction(route.checkStatus)) {
-        status = page.apply(route.checkStatus);
+        status = page.runInContext(route.checkStatus);
       }
 
       status = !isNaN(status)
@@ -211,25 +223,28 @@ const baseProto = {
       }
     }
 
-    debug(`Got ${status}`);
-
     // if the operation has been stopped
     if (!this.running) {
       this.emit('operation:stopped', operation);
       return operation;
     }
 
+    debug(`Got ${status}`);
+
     // run the route's error handler for 4xx routes
     if (status >= 400) {
-      const errorHandler = isFunction(route.onError)
-        ? route.onError
-        : this.defaultErrorHandler;
 
-      let newOperation = errorHandler.call(this, operation, retryCount);
+      let newOperation;
 
-      // If the error handler returned a promise, resolve the promise
-      if (isObject(newOperation) && isFunction(newOperation.then)) {
-        newOperation = await newOperation;
+      try {
+        newOperation = await route.onError.call(this, operation, retryCount);
+      } catch (err) {
+        newOperation = null;
+        logger.error(err);
+
+        if (isObject(err) && !isNaN(err.statusCode)) {
+          status = parseInt(err.statusCode, 10);
+        }
       }
 
       // if nothing was returned from the error handler, stop
@@ -249,24 +264,29 @@ const baseProto = {
     }
 
     // scapes and sanitizes the page
-    let scraped = await page.apply(route.scraper);
-    this.emit('scraped:raw', scraped, operation);
+    let scraped = await page.runInContext(route.scraper);
+    this.emit('scraped:raw', scraped, operation, page);
 
     scraped = this.sanitizeScraped(scraped);
 
     each(scraped.items, (item) => {
-      item.provider = provider;
-      item.route = routeName;
+      item.routeId = route.key;
       item.routeWeight = route.priority;
     });
 
     debug(`Scraped ${scraped.items.length} items`);
 
     // apply route-specific middleware
-    scraped = route.middleware(scraped) || scraped;
+    if (isFunction(route.middleware)) {
+      try {
+        scraped = await route.middleware(scraped) || scraped;
+      } catch (err) {
+        logger.error(err);
+      }
+    }
 
     // apply plugins
-    for (const plugin of toArray(plugins)) {
+    for (const plugin of sortBy(toArray(plugins), 'weight')) {
       try {
         scraped = await plugin(scraped) || scraped;
       } catch (err) {
@@ -274,38 +294,16 @@ const baseProto = {
       }
     }
 
-    // spawn new scraping operations
-    if (scraped.operations.length === 0) {
-      debug('No operations to spawn');
-    } else {
-      debug('Spawning operations');
-      const promises = scraped.operations.map((op) => {
-        const { provider, route, query } = op;
-        const targetRouteId = `${provider}:${route}`;
-        const targetRoute = routes[provider][route];
+    const newOps = await this.spawnOperations(scraped.operations, routes);
 
-        if (!targetRoute) {
-          debug(
-            `Warning: ${operation.routeId} ` +
-            `wanted to scrape ${targetRouteId}, ` +
-            `but that route does not exists`);
-          return Promise.resolve();
-        }
-
-        // Create a new operation
-        return Operation.findOrCreate(query, targetRoute);
-      });
-
-      const newOperations = await Promise.all(promises);
-
-      debug(`Operations spawned: ${newOperations.length} operations.`);
-      this.emit('operations:created', newOperations);
-
-      operation.stats.spawned += newOperations.length;
+    if (newOps.length) {
+      this.emit('operations:created', newOps);
+      operation.stats.spawned += newOps.length;
     }
 
     // save and update items
     const results = await Item.eachUpsert(scraped.items);
+    results.operationsCreated = newOps.length;
 
     // change state
     if (scraped.hasNextPage) {
@@ -315,14 +313,16 @@ const baseProto = {
       state.finishedDate = Date.now();
     }
 
+    state.history.push(url);
+
     if (scraped.state) {
       state.data = Object.assign(state.data || {}, scraped.state);
     }
 
-    state.lastLink = url;
     operation.stats.pages++;
     operation.stats.items += results.created;
     operation.stats.updated += results.updated;
+    operation.updated = new Date();
 
     this.iteration++;
     this.emit('scraped:page', results, operation);
@@ -348,6 +348,40 @@ const baseProto = {
     this.emit('operation:next', operation);
 
     return await this.scrape(operation, { routes, plugins });
+  },
+
+  /**
+   * Creates new scraping operations
+   * @param  {Array}  operations Operations to create
+   * @param  {Object} routes     Available routes
+   * @return {Promise}
+   */
+  async spawnOperations(operations, routes) {
+    if (operations.length === 0) {
+      debug('No operations to spawn');
+      return [];
+    }
+
+    debug('Spawning operations');
+
+    const promises = operations.map((op) => {
+      const { routeId, query } = op;
+      const targetRoute = find(routes, { key: routeId });
+
+      if (!targetRoute) {
+        logger.warn(`[spawnOperations]: Route ${routeId} does not exist`);
+        return Promise.resolve();
+      }
+
+      // Create a new operation
+      return Operation.findOrCreate(query, targetRoute);
+    });
+
+    const newOperations = await Promise.all(promises);
+
+    debug(`Operations spawned: ${newOperations.length} operations`);
+
+    return newOperations;
   },
 
   defaultErrorHandler(operation, retryCount) {
@@ -400,7 +434,7 @@ const baseProto = {
 
     // sanitize the operations
     sanitized.operations = compact(sanitized.operations.map((op) => {
-      if (!op.provider || !op.route) return null;
+      if (!op.routeId) return null;
       return op;
     }));
 

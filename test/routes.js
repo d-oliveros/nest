@@ -1,128 +1,149 @@
 /* eslint-disable no-console */
 import './testenv';
-import { each, isObject, isFunction } from 'lodash';
-import Item from '../src/Item';
+import fs from 'fs';
+import path from 'path';
+import mkdirp from 'mkdirp';
+import { toArray } from 'lodash';
+import { prettyPrint } from 'html';
+import Mocha, { Test, Suite } from 'mocha';
 import createSpider from '../src/spider';
-import Operation from '../src/Operation';
-import domains from '../routes';
-import routes from '../routes';
-import plugins from '../plugins';
+import { populateRoutes } from '../src/route';
+import Operation from '../src/db/Operation';
+import logger from '../src/logger';
+import Item from '../src/db/Item';
 
-const testRoute = process.env.TEST_ROUTE || false;
-const testDomain = process.env.TEST_DOMAIN || false;
+/**
+ * Creates a test descriptor that will test each provided route
+ * @param  {Array} routes Routes to test
+ * @return {undefined}
+ */
+export function startRouteTests({ routes, plugins = {}}, root) {
+  const mocha = new Mocha();
 
-xdescribe('Routes', function() {
-  this.timeout(20000); // 20 secs
+  const routesArr = toArray(populateRoutes(routes)).filter((route) => {
+    if (!route.test) {
+      console.warn(`Hint: Enable test for ${route.key} ;)`);
+      return false;
+    }
 
-  beforeEach(async () => {
+    return true;
+  });
+
+  const suite = Suite.create(mocha.suite, 'Routes');
+
+  suite.timeout(20000); // 20 secs
+
+  suite.beforeEach(async () => {
     await Operation.remove();
     await Item.remove();
   });
 
   // Test each route in each domain
-  each(domains, (domain, domainName) => {
-    if (testDomain && testDomain !== domainName) {
-      return;
+  routesArr.forEach((route) => {
+    const routeTest = createRouteTest(route, { routes, plugins }, root);
+    suite.addTest(routeTest);
+  });
+
+  return new Promise((resolve, reject) => {
+    if (routesArr.length === 1) {
+      console.log(`Testing "${routesArr[0].key}" route...`);
+    } else {
+      console.log(`Testing ${routesArr.length} routes...`);
     }
 
-    describe(domainName, function() {
+    mocha.run((failureCount) => {
+      if (failureCount) {
+        const err = new Error('Tests failed');
+        err.failureCount = failureCount;
+        return reject(err);
+      }
 
-      each(domain, (route, routeName) => {
-        const routeId = `${domainName}:${routeName}`;
-        const shouldTest = !testRoute || testRoute === routeId;
-
-        if (!isObject(route) || !isFunction(route.scraper) || !shouldTest) {
-          return;
-        }
-
-        if (!route.test) {
-          const { provider, name } = route;
-          console.warn(`Hint: Enable test for ${provider}:${name} ;)`);
-        } else {
-          createRouteTest(domain, route);
-        }
-      });
+      resolve(routesArr.length);
     });
   });
-});
+}
 
-function createRouteTest(domain, route) {
+function createRouteTest(route, { routes, plugins }, root) {
   const testParams = route.test;
+  const { shouldSpawnOperations, shouldCreateItems } = testParams;
+  const responsabilities = getTestResponsabilities(testParams);
 
-  describe(route.name, function() {
-    const responsabilities = [];
+  const testName = `${route.name} should ${responsabilities.join(' and ')}`;
 
-    before(async () => {
-      await Item.remove();
+  return new Test(testName, function(done) {
+    const spider = createSpider();
+
+    spider.on('page:open', logPageBody(route, root));
+
+    spider.once('scraped:page', ({ created, operationsCreated }) => {
+      spider.stop(true);
+
+      if (shouldSpawnOperations && !operationsCreated) {
+        const errorMsg = 'New crawling operations were not spawned.';
+        return done(new Error(errorMsg));
+      }
+
+      if (shouldCreateItems && !created) {
+        const errorMsg = 'No results scraped from page.';
+        return done(new Error(errorMsg));
+      }
+
+      spider.once('operation:stopped', () => done());
     });
 
-    if (testParams.shouldSpawnOperations) {
-      responsabilities.push('spawn operations');
-    }
-
-    if (testParams.shouldCreateItems) {
-      responsabilities.push('scrape results');
-    }
-
-    it(`should ${responsabilities.join(' and ')}`, (done) => {
-      const spider = createSpider();
-
-      Operation.findOrCreate(testParams.query, route)
-        .then((operation) => {
-          return spider.scrape(operation, { routes, plugins });
-        })
-        .catch(done);
-
-      let togo = 0;
-
-      function next() {
-        togo--;
-        if (togo === 0) {
-          spider.stop(true);
-          spider.on('operation:stopped', () => done());
-        }
+    // Skip this test if the request gets blocked
+    let blockedRetries = 2;
+    spider.on('operation:blocked', (operation) => {
+      if (blockedRetries === 0) {
+        spider.stop(true);
+        console.log(`${operation.routeId} was blocked. Skipping test...`);
+        done();
+      } else {
+        console.log(`${operation.routeId} was blocked. ` +
+          `Retrying ${blockedRetries} more times...`);
+        blockedRetries--;
       }
+    });
 
-      if (testParams.shouldSpawnOperations) {
-        togo++;
-        spider.once('operations:created', (operations) => {
-          if (!operations.length) {
-            console.error(operations);
-            const errorMsg = 'New crawling operations were not spawned.';
-            return done(new Error(errorMsg));
-          }
+    Operation.findOrCreate(testParams.query, route)
+      .then((operation) => {
+        return spider.scrape(operation, { routes, plugins });
+      })
+      .catch(done);
+  });
+}
 
-          next();
-        });
-      }
+function getTestResponsabilities(params) {
+  const responsabilities = [];
 
-      if (testParams.shouldCreateItems) {
-        togo++;
-        spider.once('scraped:page', (results, operation) => {
-          if (results.created <= 0) {
-            console.error(results, operation);
+  if (params.shouldSpawnOperations) {
+    responsabilities.push('spawn operations');
+  }
 
-            const errorMsg = 'No results scraped from page.';
-            return done(new Error(errorMsg));
-          }
+  if (params.shouldCreateItems) {
+    responsabilities.push('scrape results');
+  }
 
-          next();
-        });
-      }
+  return responsabilities;
+}
 
-      // Skip this test if the request gets blocked
-      let blockedRetries = 2;
-      spider.on('operation:blocked', (operation) => {
-        if (blockedRetries === 0) {
-          spider.stop();
-          console.log(`${operation.routeId} was blocked. Skipping test...`);
-          done();
-        } else {
-          console.log(`${operation.routeId} was blocked. ` +
-            `Retrying ${blockedRetries} more times...`);
-          blockedRetries--;
+function logPageBody(route, root) {
+  return ({ data, isJSON }) => {
+    const ext = isJSON ? 'json' : 'html';
+    const dumppath = path.join(root, 'test-data');
+    const filename = `${route.key}.${ext}`;
+    const abspath = path.join(dumppath, filename);
+
+    mkdirp(dumppath, (err) => {
+      if (err) return logger.warn(err.stack);
+
+      const prettyData = prettyPrint(data, { indent_size: 2 });
+
+      fs.writeFile(abspath, prettyData, (err) => {
+        if (err) {
+          logger.warn(err.stack);
         }
       });
     });
-  });
+  };
 }

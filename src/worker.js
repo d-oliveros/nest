@@ -5,7 +5,7 @@ import { isObject } from 'lodash';
 import createSpider from './spider';
 import logger from './logger';
 
-const debug = logger.debug('engine');
+const debug = logger.debug('nest:worker');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const workerProto = {
@@ -22,7 +22,7 @@ const workerProto = {
     this.running = true;
 
     return await new Promise((resolve) => {
-      const self = this;
+      const self = this;``
       this.engine.on('operation:assigned', onOperationAssigned);
       this.startLoop();
 

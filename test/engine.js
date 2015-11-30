@@ -1,16 +1,16 @@
 /* eslint-disable no-console */
 import './testenv';
 import { expect } from 'chai';
-import Operation from '../src/Operation';
-import Item from '../src/Item';
+import { clone } from 'lodash';
+import Operation from '../src/db/Operation';
+import Item from '../src/db/Item';
 import createSpider from '../src/spider';
 import createEngine from '../src/engine';
 import config from '../config';
-import routes from '../routes';
-import plugins from '../plugins';
+import routeMock from './mocks/route';
 
 const debug = require('debug')('test:engine');
-const engine = createEngine(routes, plugins);
+const engine = createEngine([routeMock], []);
 
 describe('Engine', function() {
   this.timeout(1500);
@@ -49,7 +49,7 @@ describe('Engine', function() {
     });
 
     it('should respect the concurrency limit of routes', function(done) {
-      const route = require('../routes/github/search').default;
+      const route = clone(routeMock, true);
       const workers = 3;
 
       let runningWorkers = 0;
@@ -112,5 +112,8 @@ describe('Engine', function() {
 async function startOperation(query, route) {
   const spider = createSpider();
   const operation = await Operation.findOrCreate(query, route);
-  return await spider.scrape(operation, { routes, plugins });
+  return await spider.scrape(operation, {
+    routes: [routeMock],
+    plugins: []
+  });
 }

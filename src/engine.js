@@ -1,11 +1,12 @@
 import { EventEmitter } from 'events';
 import inspect from 'util-inspect';
 import Queue from 'promise-queue';
+import { find } from 'lodash';
 import engineConfig from '../config/engine';
 import createWorker from './worker';
-import Operation from './Operation';
+import Operation from './db/Operation';
 
-const debug = require('debug')('engine');
+const debug = require('debug')('nest:engine');
 
 const engineProto = {
   running: false,
@@ -51,12 +52,11 @@ const engineProto = {
       if (!operation) {
         this.emit('operation:noop');
       } else {
-        const routeName = operation.route;
-        const provider = operation.provider;
+        const routeKey = operation.routeId;
         const query = operation.query;
-        const route = this.routes[provider][routeName];
+        const route = find(this.routes, { key: routeKey });
 
-        debug(`Got operation: ${provider}->${routeName}. Query: ${query}`);
+        debug(`Got operation: ${routeKey}. Query: ${query}`);
 
         worker.operation = operation;
         worker.route = route;
@@ -76,8 +76,7 @@ const engineProto = {
     for (const worker of this.workers) {
       if (!worker.route) continue;
 
-      const { provider, name, concurrency } = worker.route;
-      const routeId = `${provider}:${name}`;
+      const { concurrency, key: routeId } = worker.route;
 
       runningRoutes[routeId] = runningRoutes[routeId] || 0;
       runningRoutes[routeId]++;
@@ -95,7 +94,7 @@ const engineProto = {
   getRunningOperationIds() {
     return this.workers.reduce((ids, worker) => {
       if (worker.operation) {
-        ids.push(worker.operation.id);
+        ids.push(worker.operation._id.toString());
       }
 
       return ids;

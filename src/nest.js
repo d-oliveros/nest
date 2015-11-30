@@ -5,7 +5,7 @@ import invariant from 'invariant';
 import { isObject, isString, defaults, toArray, find } from 'lodash';
 import { populateRoutes } from './route';
 import mongoConnection from './db/connection';
-import Operation from './db/Operation';
+import Action from './db/Action';
 import createEngine from './engine';
 import createSpider from './spider';
 
@@ -25,17 +25,17 @@ const nestProto = {
 
     invariant(route, `Route ${route} not found`);
 
-    const operation = await this.initialize(query, route);
+    const action = await this.initialize(query, route);
     const spider = createSpider();
 
-    return await spider.scrape(operation, {
+    return await spider.scrape(action, {
       routes: this.routes,
       plugins: this.plugins
     });
   },
 
   async initialize(route, query) {
-    return await Operation.findOrCreate(query, route);
+    return await Action.findOrCreate(query, route);
   },
 
   getRoute(routeKey) {

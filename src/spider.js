@@ -5,7 +5,7 @@ import createError from 'http-errors';
 import request from 'request-promise';
 import phantomConfig from '../config/phantom';
 import Item from './db/Item';
-import Operation from './db/Operation';
+import Action from './db/Action';
 import createEmitter, { emitterProto } from './emitter';
 import logger from './logger';
 import createPage from './page';
@@ -23,8 +23,8 @@ const baseProto = {
   // enables "verbose" mode
   verbose() {
     if (!this.isVerbose) {
-      this.on('start', debug.bind(this, 'Starting operation.'));
-      this.on('finish', debug.bind(this, 'Operation finished.'));
+      this.on('start', debug.bind(this, 'Starting action.'));
+      this.on('finish', debug.bind(this, 'Action finished.'));
       this.on('scraped:raw', debug.bind(this, 'Got raw scraped data.'));
       this.on('scraped:page', debug.bind(this, 'Scraped a page.'));
       this.isVerbose = true;
@@ -173,31 +173,31 @@ const baseProto = {
    * Scraper functions
    */
 
-  async scrape(operation, { routes, plugins }, retryCount = 0) {
-    invariant(isObject(operation), 'Operation is not valid');
+  async scrape(action, { routes, plugins }, retryCount = 0) {
+    invariant(isObject(action), 'Action is not valid');
 
-    if (operation.state.finished) {
-      debug('Operation was already finished');
-      return operation;
+    if (action.state.finished) {
+      debug('Action was already finished');
+      return action;
     }
 
-    const { state, routeId } = operation;
+    const { state, routeId } = action;
     const route = find(routes, { key: routeId });
 
     invariant(route.initialized, 'Route has not been initialized');
 
-    debug(`Starting operation: ${operation.routeId}` +
-      (operation.query ? ` ${operation.query}` : ''));
+    debug(`Starting action: ${action.routeId}` +
+      (action.query ? ` ${action.query}` : ''));
 
-    // save the starting time of this operation
-    if (operation.wasNew) {
+    // save the starting time of this action
+    if (action.wasNew) {
       state.startedDate = Date.now();
     }
 
-    // create the URL using the operation's parameters
-    const url = route.urlGenerator(operation);
+    // create the URL using the action's parameters
+    const url = route.urlGenerator(action);
 
-    this.emit('operation:start', operation, url);
+    this.emit('action:start', action, url);
 
     // opens the page
     let page;
@@ -223,10 +223,10 @@ const baseProto = {
       }
     }
 
-    // if the operation has been stopped
+    // if the action has been stopped
     if (!this.running) {
-      this.emit('operation:stopped', operation);
-      return operation;
+      this.emit('action:stopped', action);
+      return action;
     }
 
     debug(`Got ${status}`);
@@ -234,12 +234,12 @@ const baseProto = {
     // run the route's error handler for 4xx routes
     if (status >= 400) {
 
-      let newOperation;
+      let newAction;
 
       try {
-        newOperation = await route.onError.call(this, operation, retryCount);
+        newAction = await route.onError.call(this, action, retryCount);
       } catch (err) {
-        newOperation = null;
+        newAction = null;
         logger.error(err);
 
         if (isObject(err) && !isNaN(err.statusCode)) {
@@ -248,24 +248,24 @@ const baseProto = {
       }
 
       // if nothing was returned from the error handler, stop
-      if (!newOperation) {
+      if (!newAction) {
         this.running = false;
-        this.emit('operation:stopped', operation);
+        this.emit('action:stopped', action);
         throw createError(status);
       }
 
       // if the error handler returned `true` or a truthy value,
-      // restart the operation
-      if (!isObject(newOperation)) {
-        newOperation = operation;
+      // restart the action
+      if (!isObject(newAction)) {
+        newAction = action;
       }
 
-      return await this.scrape(operation, { routes, plugins }, retryCount++);
+      return await this.scrape(action, { routes, plugins }, retryCount++);
     }
 
     // scapes and sanitizes the page
     let scraped = await page.runInContext(route.scraper);
-    this.emit('scraped:raw', scraped, operation, page);
+    this.emit('scraped:raw', scraped, action, page);
 
     scraped = this.sanitizeScraped(scraped);
 
@@ -294,16 +294,16 @@ const baseProto = {
       }
     }
 
-    const newOps = await this.spawnOperations(scraped.operations, routes);
+    const newOps = await this.spawnActions(scraped.actions, routes);
 
     if (newOps.length) {
-      this.emit('operations:created', newOps);
-      operation.stats.spawned += newOps.length;
+      this.emit('actions:created', newOps);
+      action.stats.spawned += newOps.length;
     }
 
     // save and update items
     const results = await Item.eachUpsert(scraped.items);
-    results.operationsCreated = newOps.length;
+    results.actionsCreated = newOps.length;
 
     // change state
     if (scraped.hasNextPage) {
@@ -319,74 +319,74 @@ const baseProto = {
       state.data = Object.assign(state.data || {}, scraped.state);
     }
 
-    operation.stats.pages++;
-    operation.stats.items += results.created;
-    operation.stats.updated += results.updated;
-    operation.updated = new Date();
+    action.stats.pages++;
+    action.stats.items += results.created;
+    action.stats.updated += results.updated;
+    action.updated = new Date();
 
     this.iteration++;
-    this.emit('scraped:page', results, operation);
+    this.emit('scraped:page', results, action);
     this.stopPhantom();
 
-    debug('Saving operation');
-    await operation.save();
+    debug('Saving action');
+    await action.save();
 
-    // if the operation has been stopped
+    // if the action has been stopped
     if (!this.running) {
-      this.emit('operation:stopped', operation);
+      this.emit('action:stopped', action);
     }
 
-    // Operation finished
+    // Action finished
     if (state.finished) {
-      this.emit('operation:finish', operation);
+      this.emit('action:finish', action);
       this.running = false;
-      return operation;
+      return action;
     }
 
-    // Operation has next page
+    // Action has next page
     debug(`Scraping next page`);
-    this.emit('operation:next', operation);
+    this.emit('action:next', action);
 
-    return await this.scrape(operation, { routes, plugins });
+    return await this.scrape(action, { routes, plugins });
   },
 
   /**
-   * Creates new scraping operations
-   * @param  {Array}  operations Operations to create
-   * @param  {Object} routes     Available routes
+   * Creates new scraping actions
+   * @param  {Array}  actions  Actions to create
+   * @param  {Object} routes   available routes
    * @return {Promise}
    */
-  async spawnOperations(operations, routes) {
-    if (operations.length === 0) {
-      debug('No operations to spawn');
+  async spawnActions(actions, routes) {
+    if (actions.length === 0) {
+      debug('No actions to spawn');
       return [];
     }
 
-    debug('Spawning operations');
+    debug('Spawning actions');
 
-    const promises = operations.map((op) => {
+    const promises = actions.map((op) => {
       const { routeId, query } = op;
       const targetRoute = find(routes, { key: routeId });
 
       if (!targetRoute) {
-        logger.warn(`[spawnOperations]: Route ${routeId} does not exist`);
+        logger.warn(`[spawnActions]: Route ${routeId} does not exist`);
         return Promise.resolve();
       }
 
-      // Create a new operation
-      return Operation.findOrCreate(query, targetRoute);
+      // Create a new action
+      return Action.findOrCreate(query, targetRoute);
     });
 
-    const newOperations = await Promise.all(promises);
+    const newActions = await Promise.all(promises);
 
-    debug(`Operations spawned: ${newOperations.length} operations`);
+    debug(`Actions spawned: ${newActions.length} actions`);
 
-    return newOperations;
+    return newActions;
   },
 
-  defaultErrorHandler(operation, retryCount) {
+  defaultErrorHandler(action, retryCount) {
     if (retryCount < 3) {
-      debug('Operation blocked. Retrying in 5s...\n' +
+      debug('Action blocked. Retrying in 5s...\n' +
         `Will retry ${3 - retryCount} more times`);
 
       let resolved = false;
@@ -408,7 +408,7 @@ const baseProto = {
       });
     }
 
-    debug(`Operation blocked. Aborting.`);
+    debug(`Action blocked. Aborting.`);
     return false;
   },
 
@@ -422,18 +422,18 @@ const baseProto = {
     defaults(sanitized, {
       hasNextPage: false,
       items: [],
-      operations: []
+      actions: []
     });
 
-    // validate scraped.items and scraped.operations type
-    ['items', 'operations'].forEach((field) => {
+    // validate scraped.items and scraped.actions type
+    ['items', 'actions'].forEach((field) => {
       invariant(sanitized[field] instanceof Array,
         `Scraping function returned data.${field}, ` +
         `but its not an array.`);
     });
 
-    // sanitize the operations
-    sanitized.operations = compact(sanitized.operations.map((op) => {
+    // sanitize the actions
+    sanitized.actions = compact(sanitized.actions.map((op) => {
       if (!op.routeId) return null;
       return op;
     }));

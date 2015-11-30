@@ -6,7 +6,7 @@ import { isObject, extend, isArray } from 'lodash';
 import inspect from 'util-inspect';
 import logger from '../logger';
 
-const debug = logger.debug('nest:operation');
+const debug = logger.debug('nest:action');
 const Mixed = mongoose.Schema.Types.Mixed;
 
 
@@ -54,7 +54,7 @@ schema.pre('save', function(next) {
 extend(schema.statics, {
 
   /**
-   * Creates or find an operation to this route with the provided query argument.
+   * Creates or find an action to this route with the provided query argument.
    */
   async findOrCreate(query, route) {
     invariant(isObject(route), 'Route is not an object');
@@ -71,42 +71,42 @@ extend(schema.statics, {
 
     debug(`findOrCreate with params\n${inspect(key)}`);
 
-    let operation = await this.findOne(key).exec();
+    let action = await this.findOne(key).exec();
 
-    if (!operation) {
+    if (!action) {
       const params = extend({}, key, {
         priority: route.priority
       });
 
-      debug(`Creating operation with params:\n${inspect(params)}`);
+      debug(`Creating action with params:\n${inspect(params)}`);
 
-      operation = await this.create(params);
-      operation.wasNew = true;
+      action = await this.create(params);
+      action.wasNew = true;
     } else {
-      operation.wasNew = false;
+      action.wasNew = false;
     }
 
-    return operation;
+    return action;
   },
 
   async getNext(params) {
     invariant(isObject(params), 'Invalid params');
 
-    const { operationIds, disabledRoutes } = params;
+    const { actionIds, disabledRoutes } = params;
 
     const query = {
       'state.finished': false
     };
 
-    if (operationIds) {
-      query._id = { $nin: operationIds };
+    if (actionIds) {
+      query._id = { $nin: actionIds };
     }
 
     if (disabledRoutes && disabledRoutes.length) {
       query.routeId = { $nin: disabledRoutes };
     }
 
-    debug(`Getting next operation.\n` +
+    debug(`Getting next action.\n` +
       `Query: ${inspect(query)}\n` +
       `Params: ${inspect(params)}`);
 
@@ -125,6 +125,6 @@ schema.index({ 'priority': -1, 'state.finished': -1 });
 
 
 /**
- * @providesModule Operation
+ * @providesModule Action
  */
-export default mongoose.model('Operation', schema);
+export default mongoose.model('Action', schema);

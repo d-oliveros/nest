@@ -19,10 +19,10 @@ export default async function scrapeCommand(routeName, query) {
       process.exit(4);
     }
 
-    const operation = await nest.scrape(route, query);
+    const stats = await nest.scrape(route, query);
 
     console.log(`Finished scraping "${route.name}" route. Operation stats:`);
-    console.log(JSON.stringify(operation, null, 3));
+    console.log(JSON.stringify(stats, null, 3));
 
     process.exit(0);
 

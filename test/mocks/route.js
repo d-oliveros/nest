@@ -23,7 +23,7 @@ export default createRoute({
   test: {
     query: 'Test', // Replaces <%= query => in this route's URL template
     shouldCreateItems: true, // Are we expecting new items saved to the db?
-    shouldSpawnOperations: false // Are we expecting Nest to crawl more pages?
+    shouldSpawnActions: false // Are we expecting Nest to crawl more pages?
   },
 
   // This function will be used to structure the data out of the raw HTML
@@ -32,13 +32,13 @@ export default createRoute({
   //
   // You should return an object with the following properties:
   // - items:       `Array` Items to save in the database
-  // - operations:  `Array` Routes to be crawled
+  // - actions:     `Array` Routes to be crawled
   // - hasNextPage: `Boolean` If true, Nest will scrape the next page
   //
   scraper($) {
     const data = {
       items: [],
-      operations: [],
+      actions: [],
       hasNextPage: false
     };
 

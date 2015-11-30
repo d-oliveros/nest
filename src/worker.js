@@ -12,7 +12,7 @@ const workerProto = {
   id: null,
   engine: null,
   running: false,
-  operation: null,
+  action: null,
   route: null,
 
   // start this worker
@@ -22,14 +22,14 @@ const workerProto = {
     this.running = true;
 
     return await new Promise((resolve) => {
-      const self = this;``
-      this.engine.on('operation:assigned', onOperationAssigned);
+      const self = this;
+      this.engine.on('action:assigned', onActionAssigned);
       this.startLoop();
 
-      function onOperationAssigned(operation, worker) {
+      function onActionAssigned(action, worker) {
         if (worker === self) {
           debug(`Worker ${self.id} started`);
-          self.engine.removeListener('operation:assigned', onOperationAssigned);
+          self.engine.removeListener('action:assigned', onActionAssigned);
           resolve();
         }
       }
@@ -42,28 +42,28 @@ const workerProto = {
     do {
       try {
         const spider = this.assignSpider();
-        const operation = await this.engine.assignOperation(this);
+        const action = await this.engine.assignAction(this);
 
-        if (!operation) {
-          debug('There are no pending operations. Retrying in 1s');
+        if (!action) {
+          debug('There are no pending actions. Retrying in 1s');
           await sleep(1000); // keeps quering every second
           continue;
         }
 
-        const res = await spider.scrape(operation, this.engine);
+        const res = await spider.scrape(action, this.engine);
 
         debug(
-          `Operation finished: ${res.route}. ` +
+          `Action finished: ${res.route}. ` +
           `${res.stats.item} items created. ` +
           `${res.stats.updated} items updated. ` +
-          `${res.stats.spawned} operations created.`);
+          `${res.stats.spawned} actions created.`);
 
       } catch (err) {
         logger.error(err);
       }
     } while (this.running);
 
-    this.operation = null;
+    this.action = null;
     this.route = null;
     this.spider = null;
 
@@ -106,11 +106,11 @@ export default function createWorker(engine) {
   });
 
   // Debugging listeners
-  worker.on('operation:start', (operation, url) => {
+  worker.on('action:start', (action, url) => {
     debug(`Scraping: ${url}`);
   });
 
-  worker.on('operation:blocked', (operation, url) => {
+  worker.on('action:blocked', (action, url) => {
     debug(`Request blocked on: ${url}`);
   });
 

@@ -8,7 +8,7 @@ import { prettyPrint } from 'html';
 import Mocha, { Test, Suite } from 'mocha';
 import createSpider from '../src/spider';
 import { populateRoutes } from '../src/route';
-import Operation from '../src/db/Operation';
+import Action from '../src/db/Action';
 import logger from '../src/logger';
 import Item from '../src/db/Item';
 
@@ -34,7 +34,7 @@ export function startRouteTests({ routes, plugins = {}}, root) {
   suite.timeout(20000); // 20 secs
 
   suite.beforeEach(async () => {
-    await Operation.remove();
+    await Action.remove();
     await Item.remove();
   });
 
@@ -65,7 +65,7 @@ export function startRouteTests({ routes, plugins = {}}, root) {
 
 function createRouteTest(route, { routes, plugins }, root) {
   const testParams = route.test;
-  const { shouldSpawnOperations, shouldCreateItems } = testParams;
+  const { shouldSpawnActions, shouldCreateItems } = testParams;
   const responsabilities = getTestResponsabilities(testParams);
 
   const testName = `${route.name} should ${responsabilities.join(' and ')}`;
@@ -75,11 +75,11 @@ function createRouteTest(route, { routes, plugins }, root) {
 
     spider.on('page:open', logPageBody(route, root));
 
-    spider.once('scraped:page', ({ created, operationsCreated }) => {
+    spider.once('scraped:page', ({ created, actionsCreated }) => {
       spider.stop(true);
 
-      if (shouldSpawnOperations && !operationsCreated) {
-        const errorMsg = 'New crawling operations were not spawned.';
+      if (shouldSpawnActions && !actionsCreated) {
+        const errorMsg = 'New crawling actions were not spawned.';
         return done(new Error(errorMsg));
       }
 
@@ -88,26 +88,26 @@ function createRouteTest(route, { routes, plugins }, root) {
         return done(new Error(errorMsg));
       }
 
-      spider.once('operation:stopped', () => done());
+      spider.once('action:stopped', () => done());
     });
 
     // Skip this test if the request gets blocked
     let blockedRetries = 2;
-    spider.on('operation:blocked', (operation) => {
+    spider.on('action:blocked', (action) => {
       if (blockedRetries === 0) {
         spider.stop(true);
-        console.log(`${operation.routeId} was blocked. Skipping test...`);
+        console.log(`${action.routeId} was blocked. Skipping test...`);
         done();
       } else {
-        console.log(`${operation.routeId} was blocked. ` +
+        console.log(`${action.routeId} was blocked. ` +
           `Retrying ${blockedRetries} more times...`);
         blockedRetries--;
       }
     });
 
-    Operation.findOrCreate(testParams.query, route)
-      .then((operation) => {
-        return spider.scrape(operation, { routes, plugins });
+    Action.findOrCreate(testParams.query, route)
+      .then((action) => {
+        return spider.scrape(action, { routes, plugins });
       })
       .catch(done);
   });
@@ -116,8 +116,8 @@ function createRouteTest(route, { routes, plugins }, root) {
 function getTestResponsabilities(params) {
   const responsabilities = [];
 
-  if (params.shouldSpawnOperations) {
-    responsabilities.push('spawn operations');
+  if (params.shouldSpawnActions) {
+    responsabilities.push('spawn actions');
   }
 
   if (params.shouldCreateItems) {

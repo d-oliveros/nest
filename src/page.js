@@ -2,7 +2,7 @@ import cheerio from 'cheerio';
 import inspect from 'util-inspect';
 import invariant from 'invariant';
 import createError from 'http-errors';
-import { isString, isObject, isFunction } from 'lodash';
+import { isString, isObject } from 'lodash';
 import logger from './logger';
 
 const pageProto = {
@@ -20,12 +20,7 @@ const pageProto = {
     let res;
 
     try {
-      res = func.call(this, this.isJSON ? this.data : this.$, this);
-
-      // Convert sync functions to promises
-      if (!isObject(res) || !isFunction(res.then)) {
-        res = Promise.resolve(res);
-      }
+      res = await func.call(this, this.isJSON ? this.data : this.$, this);
     } catch (err) {
       logger.error(err);
 

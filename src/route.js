@@ -21,7 +21,7 @@ export default function createRoute(route) {
     isDynamic: route.dynamic || false,
     isStatic: !route.dynamic || true,
 
-    // template generation function. Takes an operation for input
+    // template generation function. Takes an action for input
     urlGenerator: isFunction(route.url)
       ? route.url
       : (isString(route.url)

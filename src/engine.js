@@ -4,7 +4,7 @@ import Queue from 'promise-queue';
 import { find } from 'lodash';
 import engineConfig from '../config/engine';
 import createWorker from './worker';
-import Operation from './db/Operation';
+import Action from './db/Action';
 
 const debug = require('debug')('nest:engine');
 
@@ -38,33 +38,33 @@ const engineProto = {
     return await Promise.all(this.workers.map((worker) => worker.stop()));
   },
 
-  async assignOperation(worker) {
+  async assignAction(worker) {
     return await this.queue.add(async () => {
       debug(`Queue access`);
 
       const params = {
         disabledRoutes: this.getDisabledRoutes(),
-        operationIds: this.getRunningOperationIds()
+        actionIds: this.getRunningActionIds()
       };
 
-      const operation = await Operation.getNext(params);
+      const action = await Action.getNext(params);
 
-      if (!operation) {
-        this.emit('operation:noop');
+      if (!action) {
+        this.emit('action:noop');
       } else {
-        const routeKey = operation.routeId;
-        const query = operation.query;
+        const routeKey = action.routeId;
+        const query = action.query;
         const route = find(this.routes, { key: routeKey });
 
-        debug(`Got operation: ${routeKey}. Query: ${query}`);
+        debug(`Got action: ${routeKey}. Query: ${query}`);
 
-        worker.operation = operation;
+        worker.action = action;
         worker.route = route;
       }
 
-      this.emit('operation:assigned', operation, worker);
+      this.emit('action:assigned', action, worker);
 
-      return operation;
+      return action;
     });
   },
 
@@ -91,10 +91,10 @@ const engineProto = {
     return disabledRoutes;
   },
 
-  getRunningOperationIds() {
+  getRunningActionIds() {
     return this.workers.reduce((ids, worker) => {
-      if (worker.operation) {
-        ids.push(worker.operation._id.toString());
+      if (worker.action) {
+        ids.push(worker.action._id.toString());
       }
 
       return ids;

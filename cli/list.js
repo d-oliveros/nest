@@ -1,5 +1,4 @@
 import padStart from 'string.prototype.padstart';
-import { each } from 'lodash';
 import { getNestModules } from '../src/nest';
 
 const rootdir = process.cwd();
@@ -7,7 +6,7 @@ const rootdir = process.cwd();
 export default function listCommand() {
   const { routes } = getNestModules(rootdir);
 
-  if (!routes.length) {
+  if (routes.length === 0) {
     console.log('No routes available');
     process.exit(1);
   }
@@ -27,22 +26,24 @@ export default function listCommand() {
  * @return {String}        Nicely formatted string
  */
 function prettyPrint(routes) {
+  const pad = 14;
   let string = '\n';
 
   // Pretty print the routes
-  each(routes, (route) => {
-
-    string += paddedPrint(13, 'key: ', route.key);
+  routes.forEach((route) => {
+    string += paddedPrint(pad, 'key: ', route.key);
 
     if (route.name) {
-      string += paddedPrint(13, 'name: ', route.name);
+      string += paddedPrint(pad, 'name: ', route.name);
     }
 
     if (route.description) {
-      string += paddedPrint(13, 'description: ', route.description);
+      string += paddedPrint(pad, 'description: ', route.description);
     }
 
-    string += paddedPrint(13, 'testable: ', route.test ? 'Yes' : 'No');
+    string += paddedPrint(pad, 'testable: ', route.test ? 'Yes' : 'No');
+
+    string += '\n';
   });
 
   return string;

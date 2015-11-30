@@ -2,11 +2,11 @@
 import './connection';
 import mongoose from 'mongoose';
 import invariant from 'invariant';
-import { isObject, extend } from 'lodash';
+import { isObject, extend, isArray } from 'lodash';
 import inspect from 'util-inspect';
 import logger from '../logger';
 
-const debug = logger.debug('Operation');
+const debug = logger.debug('nest:operation');
 const Mixed = mongoose.Schema.Types.Mixed;
 
 
@@ -14,19 +14,18 @@ const Mixed = mongoose.Schema.Types.Mixed;
  * Schema
  */
 const schema = new mongoose.Schema({
-  provider:     { type: String, required: true },
-  route:        { type: String, required: true },
-  routeId:      { type: String, required: true },
-  query:        { type: String, default: '' },
-  priority:     { type: Number, default: 50 },
-  created:      { type: Date,   default: Date.now },
+  routeId:   { type: String, required: true },
+  query:     { type: Mixed },
+  priority:  { type: Number, default: 50 },
+  created:   { type: Date,   default: Date.now },
+  updated:   { type: Date },
 
   stats: {
-    pages:    { type: Number, default: 0 },
-    results:  { type: Number, default: 0 },
-    items:    { type: Number, default: 0 },
-    updated:  { type: Number, default: 0 },
-    spawned:  { type: Number, default: 0 }
+    pages:   { type: Number, default: 0 },
+    results: { type: Number, default: 0 },
+    items:   { type: Number, default: 0 },
+    updated: { type: Number, default: 0 },
+    spawned: { type: Number, default: 0 }
   },
 
   state: {
@@ -59,13 +58,16 @@ extend(schema.statics, {
    */
   async findOrCreate(query, route) {
     invariant(isObject(route), 'Route is not an object');
-    invariant(route.name, 'Route name is required.');
-    invariant(route.provider, 'Provider is required.');
+    invariant(!isArray(query), 'Query arrays not supported');
+    invariant(route.key, 'Route name is required.');
 
     const key = {
-      routeId: `${route.provider}:${route.name}`,
-      query: query || ''
+      routeId: route.key
     };
+
+    if (query) {
+      key.query = query;
+    }
 
     debug(`findOrCreate with params\n${inspect(key)}`);
 
@@ -73,8 +75,6 @@ extend(schema.statics, {
 
     if (!operation) {
       const params = extend({}, key, {
-        provider: route.provider,
-        route: route.name,
         priority: route.priority
       });
 

@@ -3,7 +3,7 @@ import { extend } from 'lodash';
 import mongoose from 'mongoose';
 import logger from '../logger';
 
-const debug = logger.debug('Item');
+const debug = logger.debug('nest:item');
 
 /**
  * Schema

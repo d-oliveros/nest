@@ -1,9 +1,8 @@
 import invariant from 'invariant';
-import paramCase from 'param-case';
-import { template, isObject, isFunction, isString } from 'lodash';
+import { template, isFunction, isString, isArray, toArray } from 'lodash';
 import logger from './logger';
 
-const debug = logger.debug('Route');
+const debug = logger.debug('nest:route');
 
 export default function createRoute(route) {
   invariant(route.key, 'Key is required.');
@@ -15,7 +14,6 @@ export default function createRoute(route) {
   debug('Creating new route', route);
 
   return Object.assign({}, route, {
-    key: paramCase(route.key),
     initialized: true,
     name: route.name || '',
     description: route.description || '',
@@ -36,8 +34,13 @@ export default function createRoute(route) {
     // route-specific middleware to be executed after scraping data from a page
     middleware: route.middleware || defaultMiddleware,
 
-    // scraping function that should return either 'ok' or 'blocked'
+    // scraping function that can return a status code or throw an error
     checkStatus: route.checkStatus || defaultCheckStatus,
+
+    // function to be called when the route returns an error code >= 400
+    // if an action is returned, the spider will be redirected to this action
+    // if a truthy value is returned, the spedir will retry this route
+    onError: route.onError || defaultErrorHandler,
 
     // auto-testing options
     test: route.test || null,
@@ -55,18 +58,20 @@ export default function createRoute(route) {
  * @param  {Object} obj Object to populate routes on
  * @return {Object}     The populated object
  */
-export function populateRoutes(obj) {
-  for (const key in obj) {
-    if (obj.hasOwnProperty(key) && isObject(obj[key])) {
-      if (isString(obj[key].key)) {
-        obj[key] = createRoute(obj[key]);
-      } else {
-        populateRoutes(obj);
-      }
-    }
-  }
+export function populateRoutes(routes) {
+  if (!isArray(routes)) routes = toArray(routes);
 
-  return obj;
+  const newRoutes = routes.slice();
+
+  newRoutes.forEach((route, i) => {
+    if (isString(route.key)) {
+      newRoutes[i] = createRoute(route);
+    } else {
+      populateRoutes(newRoutes);
+    }
+  });
+
+  return newRoutes;
 }
 
 // default scraper
@@ -82,6 +87,10 @@ function defaultUrlTemplate() {
 // default middleware
 function defaultMiddleware(scraped) {
   return scraped;
+}
+
+function defaultErrorHandler() {
+  return true;
 }
 
 // default status checker.

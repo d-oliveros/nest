@@ -32,7 +32,6 @@
     "invariant": "^2.2.0",
     "lodash": "^3.10.1",
     "mongoose": "*",
-    "param-case": "^1.1.1",
     "phantom": "*",
     "promise-queue": "^2.2.0",
     "request-promise": "^1.0.2",
@@ -49,7 +48,9 @@
     "eslint-config-airbnb": "^1.0.0",
     "gulp": "*",
     "gulp-eslint": "*",
+    "html": "0.0.10",
     "jshint-stylish": "*",
+    "mkdirp": "^0.5.1",
     "mocha": "*"
   }
 }

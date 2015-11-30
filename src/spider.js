@@ -10,7 +10,8 @@ import createEmitter, { emitterProto } from './emitter';
 import logger from './logger';
 import createPage from './page';
 
-const debug = logger.debug('Spider');
+const debug = logger.debug('nest:spider');
+const { PHANTOM_LOG, FORCE_DYNAMIC } = process.env;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const baseProto = {
@@ -34,30 +35,41 @@ const baseProto = {
    * Page functions
    */
 
-  // opens a URL, returns a loaded page ready to be scraped
+  // opens a URL, returns a loaded page
   // if "dynamic" is false, it will use cheerio instead of PhantomJS to scrape
   async open(url, options = {}) {
-    let html;
-
     invariant(isObject(options), 'Options needs to be an object');
 
     this.url = url;
 
-    if (options.dynamic || process.env.FORCE_DYNAMIC) {
-      debug(`Opening URL ${url} with PhantomJS`);
-      html = await this.openDynamic.call(this, url);
-    } else {
-      debug(`Opening URL ${url}`);
-      html = await this.openStatic.call(this, url);
-    }
+    const isDynamic = options.dynamic || FORCE_DYNAMIC;
+    const getPage = isDynamic ? this.openDynamic : this.openStatic;
 
-    return html;
+    return await getPage.call(this, url);
+  },
+
+  async openStatic(url) {
+    debug(`Opening URL ${url}`);
+
+    const res = await request(url, {
+      resolveWithFullResponse: true
+    });
+
+    const { statusCode, body } = res;
+    const html = body;
+    const page = createPage(html, { url, statusCode, res });
+
+    this.emit('page:open', page);
+
+    return page;
   },
 
   async openDynamic(url) {
+    debug(`Opening URL ${url} with PhantomJS`);
+
     const phantomPage = await this.createPhantomPage();
 
-    if (process.env.PHANTOM_LOG === 'true') {
+    if (PHANTOM_LOG === 'true') {
       phantomPage.set('onConsoleMessage', (msg) => {
         console.log(`Phantom Console: ${msg}`); // eslint-disable-line
       });
@@ -69,17 +81,11 @@ const baseProto = {
     const jsInjectionStatus = await this.includeJS(phantomPage);
     invariant(jsInjectionStatus, `Could not include JS on url: ${url}`);
 
-    this.emit('page:ready', phantomPage);
-
     const html = await phantomPage.evaluateAsync(() => $('html').html()); // eslint-disable-line
-    const page = createPage(url, html);
+    const page = createPage(html, { url, phantomPage });
 
-    return page;
-  },
+    this.emit('page:open', page, phantomPage);
 
-  async openStatic(url) {
-    const html = await request(url);
-    const page = createPage(url, html);
     return page;
   },
 
@@ -202,7 +208,7 @@ const baseProto = {
 
       // manually check if the page has been blocked
       if (isFunction(route.checkStatus)) {
-        status = page.apply(route.checkStatus);
+        status = page.runInContext(route.checkStatus);
       }
 
       status = !isNaN(status)
@@ -258,8 +264,8 @@ const baseProto = {
     }
 
     // scapes and sanitizes the page
-    let scraped = await page.apply(route.scraper);
-    this.emit('scraped:raw', scraped, operation);
+    let scraped = await page.runInContext(route.scraper);
+    this.emit('scraped:raw', scraped, operation, page);
 
     scraped = this.sanitizeScraped(scraped);
 
@@ -297,6 +303,7 @@ const baseProto = {
 
     // save and update items
     const results = await Item.eachUpsert(scraped.items);
+    results.operationsCreated = newOps.length;
 
     // change state
     if (scraped.hasNextPage) {
@@ -315,6 +322,7 @@ const baseProto = {
     operation.stats.pages++;
     operation.stats.items += results.created;
     operation.stats.updated += results.updated;
+    operation.updated = new Date();
 
     this.iteration++;
     this.emit('scraped:page', results, operation);
@@ -426,7 +434,7 @@ const baseProto = {
 
     // sanitize the operations
     sanitized.operations = compact(sanitized.operations.map((op) => {
-      if (!op.provider || !op.route) return null;
+      if (!op.routeId) return null;
       return op;
     }));
 

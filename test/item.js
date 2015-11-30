@@ -1,7 +1,7 @@
 import './testenv';
 import { extend } from 'lodash';
-import Item from '../src/Item';
-import dummyItem from './data/profile.json';
+import Item from '../src/db/Item';
+import dummyItem from './mocks/profile.json';
 
 describe('Item', function() {
   this.timeout(6000);

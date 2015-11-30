@@ -2,11 +2,8 @@ import createRoute from '../../src/route';
 
 export default createRoute({
 
-  // The route's domain, for example wikipedia
-  provider: 'wikipedia',
-
   // The route's name
-  name: 'post',
+  key: 'wikipedia-post',
 
   // The route's URL template. This will be wrapped in an underscore template
   url: 'http://en.wikipedia.org/wiki/<%= query %>',

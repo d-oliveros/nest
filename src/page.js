@@ -1,6 +1,7 @@
 import cheerio from 'cheerio';
 import inspect from 'util-inspect';
 import invariant from 'invariant';
+import createError from 'http-errors';
 import { isString, isObject, isFunction } from 'lodash';
 import logger from './logger';
 
@@ -10,13 +11,16 @@ const pageProto = {
   isJSON: false,
   valid: false,
   html: null,
+  phantomPage: null,
+  statusCode: null,
+  res: null,
   $: null,
 
-  apply(func) {
+  async runInContext(func) {
     let res;
 
     try {
-      res = func.call(this, this.isJSON ? this.data : this.$);
+      res = func.call(this, this.isJSON ? this.data : this.$, this);
 
       // Convert sync functions to promises
       if (!isObject(res) || !isFunction(res.then)) {
@@ -24,22 +28,32 @@ const pageProto = {
       }
     } catch (err) {
       logger.error(err);
-      return Promise.reject(err);
+
+      if (isObject(err) && !err.statusCode) {
+        throw createError(500, err);
+      }
+
+      throw err;
     }
 
     return res;
   },
 
-  loadData(url, data) {
-    invariant(url && isString(url), 'URL is not a string');
+  loadData(data, meta = {}) {
+    invariant(isObject(meta), 'Meta must be an object');
+
+    const { url, statusCode, res, phantomPage } = meta;
 
     this.data = data;
     this.location = { href: url };
     this.valid = !!data;
+    this.statusCode = statusCode || 200;
+    this.res = res || null;
+    this.phantomPage = phantomPage || null;
 
-    // Checks if the data is JSON
-    // If the data is JSON, parses the json in 'page.data'
-    // Otherwise, load the HTML with cheerio and expose it in 'page.$`
+    // xhecks if the data is JSON
+    // if the data is JSON, parses the json in 'page.data'
+    // otherwise, load the HTML with cheerio and expose it in 'page.$`
     try {
       this.data = JSON.parse(data);
       this.isJSON = true;
@@ -52,11 +66,20 @@ const pageProto = {
         this.valid = false;
       }
     }
+
+    // if a phantom page instance was provided, save the response object
+    // once it arrives
+    if (phantomPage) {
+      phantomPage.onResourceReceived = (res) => {
+        this.res = res;
+        phantomPage.onResourceReceived = null;
+      };
+    }
   }
 };
 
-export default function createPage(url, data) {
+export default function createPage(url, data, phantomPage) {
   const page = Object.create(pageProto);
-  page.loadData(url, data);
+  page.loadData(url, data, phantomPage);
   return page;
 }

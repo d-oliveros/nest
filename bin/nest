@@ -19,9 +19,16 @@ program
 
 program
   .command('run [script]')
-  .description('Runs the provided script')
+  .description('Runs [script], or "index.js" if [script] is not provided')
   .action(function() {
     require('../cli/run').default.apply(this, arguments);
+  });
+
+program
+  .command('test [routeId]')
+  .description('Test the route [routeId], or all the routes if [routeId] is not provided')
+  .action(function() {
+    require('../cli/test').default.apply(this, arguments);
   });
 
 program
@@ -31,18 +38,9 @@ program
     require('../cli/list').default.apply(this, arguments);
   });
 
-program
-  .command('test [route]')
-  .description('Runs the test defined in <route>')
-  .action(function() {
-    require('../cli/test').default.apply(this, arguments);
-  });
-
-
 program.parse(process.argv);
 
 /*
-
 program
   .command('work')
   .description('Starts the engine and consume the queue')

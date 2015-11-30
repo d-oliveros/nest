@@ -1,4 +1,5 @@
 import debug from 'debug';
+import { find } from 'lodash';
 
 // enable Worker messages
 debug.enable('nest:worker*');

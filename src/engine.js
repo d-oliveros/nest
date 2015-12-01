@@ -1,9 +1,11 @@
 import { EventEmitter } from 'events';
 import inspect from 'util-inspect';
 import Queue from 'promise-queue';
-import { find } from 'lodash';
+import invariant from 'invariant';
+import { find, isFunction, isObject, times, map, pluck } from 'lodash';
 import engineConfig from '../config/engine';
 import createWorker from './worker';
+import logger from './logger';
 import Action from './db/Action';
 
 const debug = require('debug')('nest:engine');
@@ -14,14 +16,38 @@ const engineProto = {
   async start() {
     if (this.running) return;
 
+    const stats = {};
     this.running = true;
 
-    for (let i = 0; i < engineConfig.workers; i++) {
+    // Create default workers
+    times(engineConfig.workers, () => {
       const worker = createWorker(this);
       this.workers.push(worker);
+      stats[worker.key] = stats[worker.key] || 0;
+      stats[worker.key]++;
+    });
+
+    // Create custom workers
+    for (const workerDefinition of this.modules.workers) {
+      const amount = workerDefinition.concurrency || engineConfig.workers;
+
+      times(amount, () => {
+        const worker = createWorker(this, workerDefinition);
+        this.workers.push(worker);
+        stats[worker.key] = stats[worker.key] || 0;
+        stats[worker.key]++;
+      });
     }
 
-    debug(`Created ${this.workers.length} workers`);
+    const msg = map(stats, (amount, key) => {
+      return `${amount} ${key} workers`;
+    });
+
+    if (msg.length === 0) {
+      debug(`No workers created`);
+    } else {
+      debug(`Created ${msg.join(' and ')}`);
+    }
 
     const workerStartPromises = this.workers.map((worker) => worker.start());
     const initialOps = await Promise.all(workerStartPromises);
@@ -42,19 +68,44 @@ const engineProto = {
     return await this.queue.add(async () => {
       debug(`Queue access`);
 
-      const params = {
-        disabledRoutes: this.getDisabledRoutes(),
-        actionIds: this.getRunningActionIds()
-      };
+      const query = this.getBaseActionQuery();
 
-      const action = await Action.getNext(params);
+      // get the worker's action query
+      if (worker.key) {
+        query.worker = worker.key;
+
+        if (isFunction(worker.getActionQuery)) {
+          try {
+            const workerQuery = worker.getActionQuery() || {};
+
+            invariant(isObject(workerQuery),
+              `Invalid value returned from getActionQuery() (${worker.key})`);
+
+            invariant(!isFunction(workerQuery.then),
+              `Promises are not supported in worker's action query`);
+
+            if (isObject(workerQuery)) {
+              Object.assign(query, workerQuery);
+            }
+          } catch (err) {
+            logger.error(err);
+          }
+        }
+      }
+
+      debug(`Getting next action.\nQuery: ${inspect(query)}`);
+
+      const action = await Action
+        .findOne(query)
+        .sort({ 'priority': -1 })
+        .exec();
 
       if (!action) {
         this.emit('action:noop');
       } else {
         const routeKey = action.routeId;
         const query = action.query;
-        const route = find(this.routes, { key: routeKey });
+        const route = find(this.modules.routes, { key: routeKey });
 
         debug(`Got action: ${routeKey}. Query: ${query}`);
 
@@ -66,6 +117,28 @@ const engineProto = {
 
       return action;
     });
+  },
+
+  getBaseActionQuery() {
+    const runningActions = this.getRunningActionIds();
+    const disabledRoutes = this.getDisabledRoutes();
+    const routeIds = pluck(this.modules.routes, 'key');
+
+    // build the query used to get an action
+    const query = {
+      'state.finished': false,
+      routeId: { $in: routeIds }
+    };
+
+    if (runningActions) {
+      query._id = { $nin: runningActions };
+    }
+
+    if (disabledRoutes) {
+      query.routeId = { $nin: disabledRoutes };
+    }
+
+    return query;
   },
 
   getDisabledRoutes() {
@@ -104,10 +177,8 @@ const engineProto = {
 
 const composedProto = Object.assign({}, EventEmitter.prototype, engineProto);
 
-export default function createEngine(routes, plugins) {
-  const engine = Object.assign(Object.create(composedProto), {
-    routes: routes,
-    plugins: plugins,
+export default function createEngine(modules) {
+  const engine = Object.assign(Object.create(composedProto), { modules }, {
     workers: [],
     queue: new Queue(1, Infinity)
   });

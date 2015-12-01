@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import requireAll from 'require-all';
 import invariant from 'invariant';
-import { isObject, isString, defaults, toArray, find } from 'lodash';
+import { isObject, isString, defaults, toArray, find, pick } from 'lodash';
 import { populateRoutes } from './route';
 import mongoConnection from './db/connection';
 import Action from './db/Action';
@@ -122,7 +122,7 @@ export function createNest(root) {
   const nest = Object.create(nestProto);
 
   nest.load(root);
-  nest.engine = createEngine(nest.routes, nest.plugins);
+  nest.engine = createEngine(pick(nest, 'routes', 'plugins', 'workers'));
   nest.connection = mongoConnection;
 
   return nest;

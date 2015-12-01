@@ -10,7 +10,11 @@ import config from '../config';
 import routeMock from './mocks/route';
 
 const debug = require('debug')('test:engine');
-const engine = createEngine([routeMock], []);
+const engine = createEngine({
+  routes: [routeMock],
+  plugins: [],
+  workers: []
+});
 
 describe('Engine', function() {
   this.timeout(1500);

@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 import uuid from 'uuid';
 import invariant from 'invariant';
-import { isObject } from 'lodash';
+import { isObject, pick } from 'lodash';
 import createSpider from './spider';
 import logger from './logger';
 
@@ -18,6 +18,15 @@ const workerProto = {
   // start this worker
   async start() {
     if (this.running) return;
+
+    if (this.initialize) {
+      try {
+        await this.initialize();
+      } catch (err) {
+        logger.error(err);
+        throw err;
+      }
+    }
 
     this.running = true;
 
@@ -36,31 +45,59 @@ const workerProto = {
     });
   },
 
+  /**
+   * Starts the worker loop
+   * @return {Promise}  Promise to be resolved when the worker loop ends
+   */
   async startLoop() {
     invariant(this.running, 'Worker must be running to start the worker loop');
 
     do {
+      const spider = this.assignSpider();
+      let action;
+      let res;
+
+      // get the next action
       try {
-        const spider = this.assignSpider();
-        const action = await this.engine.assignAction(this);
-
-        if (!action) {
-          debug('There are no pending actions. Retrying in 1s');
-          await sleep(1000); // keeps quering every second
-          continue;
-        }
-
-        const res = await spider.scrape(action, this.engine);
-
-        debug(
-          `Action finished: ${res.route}. ` +
-          `${res.stats.item} items created. ` +
-          `${res.stats.updated} items updated. ` +
-          `${res.stats.spawned} actions created.`);
-
+        action = await this.engine.assignAction(this);
       } catch (err) {
         logger.error(err);
+        this.stop();
+        continue;
       }
+
+      if (!action) {
+        debug('There are no pending actions. Retrying in 1s');
+        await sleep(1000); // keeps quering every second
+        continue;
+      }
+
+      // run the action
+      try {
+        res = await spider.scrape(action, this.engine.modules, this.meta);
+      } catch (err) {
+        logger.error(err);
+        continue;
+      }
+
+      debug(
+        `Action finished: ${res.route}. ` +
+        `${res.stats.item} items created. ` +
+        `${res.stats.updated} items updated. ` +
+        `${res.stats.spawned} actions created.`);
+
+      // check if should reinitialize
+      if (res.shouldReinitialize) {
+        debug(`Worker reinitializing`);
+        try {
+          await this.initialize();
+        } catch (err) {
+          logger.error(err);
+          this.stop();
+          continue;
+        }
+      }
+
     } while (this.running);
 
     this.action = null;
@@ -92,18 +129,33 @@ const workerProto = {
     spider.addEmitter(this.engine);
     this.spider = spider;
     return spider;
-  }
+  },
+
+  initialize: function defaultInitializer() {},
+  getActionQuery: function defaultActionQueryFactory() {}
 };
 
 const composedProto = Object.assign({}, EventEmitter.prototype, workerProto);
 
-export default function createWorker(engine) {
+const allowedDefinitionProps = [
+  'key',
+  'concurrency',
+  'initialize',
+  'getActionQuery'
+];
+
+export default function createWorker(engine, definition) {
   invariant(isObject(engine), 'Engine is not an object');
 
   const worker = Object.assign(Object.create(composedProto), {
     id: uuid.v4(),
-    engine: engine
+    engine: engine,
+    meta: {}
   });
+
+  if (isObject(definition)) {
+    Object.assign(worker, pick(definition, allowedDefinitionProps));
+  }
 
   // Debugging listeners
   worker.on('action:start', (action, url) => {

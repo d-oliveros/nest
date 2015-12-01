@@ -7,22 +7,15 @@ var fs = require('fs');
 var path = require('path');
 var dotenv = require('dotenv');
 var cwd = process.cwd();
+var defaultEnvPath = path.join(__dirname, '.env.default');
 var envPath = path.join(cwd, '.env');
 
-if (!fs.existsSync(envPath)) {
-  envPath = path.join(__dirname, '.env');
-}
+dotenv.load({ path: defaultEnvPath });
 
-if (!fs.existsSync(envPath)) {
-  envPath += '.default';
-}
-
-if (!fs.existsSync(envPath)) {
-  throw new Error('Environment config not found');
+if (fs.existsSync(envPath)) {
+  dotenv.load({ path: envPath });
 }
 
 process.on('SIGINT', () => {
   process.exit();
 });
-
-dotenv.load({ path: envPath });

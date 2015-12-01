@@ -173,7 +173,7 @@ const baseProto = {
    * Scraper functions
    */
 
-  async scrape(action, { routes, plugins }, retryCount = 0) {
+  async scrape(action, { routes, plugins }, meta = {}) {
     invariant(isObject(action), 'Action is not valid');
 
     if (action.state.finished) {
@@ -184,6 +184,7 @@ const baseProto = {
     const { state, routeId } = action;
     const route = find(routes, { key: routeId });
 
+    invariant(isObject(route), `Route "${routeId}" not found`);
     invariant(route.initialized, 'Route has not been initialized');
 
     debug(`Starting action: ${action.routeId}` +
@@ -237,7 +238,7 @@ const baseProto = {
       let newAction;
 
       try {
-        newAction = await route.onError.call(this, action, retryCount);
+        newAction = await route.onError.call(this, action, meta);
       } catch (err) {
         newAction = null;
         logger.error(err);
@@ -260,7 +261,9 @@ const baseProto = {
         newAction = action;
       }
 
-      return await this.scrape(action, { routes, plugins }, retryCount++);
+      meta.retryCount = meta.retryCount || 0;
+      meta.retryCount++;
+      return await this.scrape(action, { routes, plugins }, meta);
     }
 
     // scapes and sanitizes the page
@@ -384,10 +387,10 @@ const baseProto = {
     return newActions;
   },
 
-  defaultErrorHandler(action, retryCount) {
-    if (retryCount < 3) {
+  defaultErrorHandler(action, meta = {}) {
+    if (meta.retryCount < 3) {
       debug('Action blocked. Retrying in 5s...\n' +
-        `Will retry ${3 - retryCount} more times`);
+        `Will retry ${3 - meta.retryCount} more times`);
 
       let resolved = false;
       return new Promise((resolve) => {

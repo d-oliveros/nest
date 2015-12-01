@@ -17,16 +17,16 @@ import Item from '../src/db/Item';
  * @param  {Array} routes Routes to test
  * @return {undefined}
  */
-export function startRouteTests({ routes, plugins = {}}, root) {
+export function startRouteTests({ routes, plugins = {}, dataDir, onlyRouteId }) {
   const mocha = new Mocha();
 
-  const routesArr = toArray(populateRoutes(routes)).filter((route) => {
+  const routesArr = populateRoutes(routes).filter((route) => {
     if (!route.test) {
       console.warn(`Hint: Enable test for ${route.key} ;)`);
       return false;
     }
 
-    return true;
+    return !onlyRouteId || onlyRouteId === route.key;
   });
 
   const suite = Suite.create(mocha.suite, 'Routes');
@@ -40,7 +40,7 @@ export function startRouteTests({ routes, plugins = {}}, root) {
 
   // Test each route in each domain
   routesArr.forEach((route) => {
-    const routeTest = createRouteTest(route, { routes, plugins }, root);
+    const routeTest = createRouteTest(route, { routes, plugins }, dataDir);
     suite.addTest(routeTest);
   });
 
@@ -63,7 +63,7 @@ export function startRouteTests({ routes, plugins = {}}, root) {
   });
 }
 
-function createRouteTest(route, { routes, plugins }, root) {
+function createRouteTest(route, { routes, plugins }, dataDir) {
   const testParams = route.test;
   const { shouldSpawnActions, shouldCreateItems } = testParams;
   const responsabilities = getTestResponsabilities(testParams);
@@ -73,7 +73,9 @@ function createRouteTest(route, { routes, plugins }, root) {
   return new Test(testName, function(done) {
     const spider = createSpider();
 
-    spider.on('page:open', logPageBody(route, root));
+    if (dataDir) {
+      spider.on('page:open', logPageBody(route, dataDir));
+    }
 
     spider.once('scraped:page', ({ created, actionsCreated }) => {
       spider.stop(true);
@@ -127,10 +129,10 @@ function getTestResponsabilities(params) {
   return responsabilities;
 }
 
-function logPageBody(route, root) {
+function logPageBody(route, dataDir) {
   return ({ data, isJSON }) => {
     const ext = isJSON ? 'json' : 'html';
-    const dumppath = path.join(root, 'test-data');
+    const dumppath = path.join(dataDir, 'test-data');
     const filename = `${route.key}.${ext}`;
     const abspath = path.join(dumppath, filename);
 

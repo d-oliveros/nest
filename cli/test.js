@@ -6,22 +6,20 @@ const root = process.cwd();
 
 export default async function testCommand(routeKey) {
   try {
-    let { routes } = getNestModules(root);
+    const { routes } = getNestModules(root);
 
     // only run a single test
-    if (routeKey) {
-      const route = find(routes, { key: routeKey });
-
-      if (!route) {
-        console.log(`Route "${routeKey}" not found`);
-        process.exit(4);
-      }
-
-      routes = [route];
+    if (routeKey && !find(routes, { key: routeKey })) {
+      console.log(`Route "${routeKey}" not found`);
+      process.exit(4);
     }
 
     // Load the route tests
-    await startRouteTests({ routes }, root);
+    await startRouteTests({
+      routes: routes,
+      onlyRouteId: routeKey,
+      dataDir: root
+    });
 
     process.exit(0);
 

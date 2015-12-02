@@ -35,11 +35,6 @@ const schema = new mongoose.Schema({
     type: String
   },
 
-  provider: {
-    type: String,
-    required: true
-  },
-
   route: {
     type: String,
     required: true

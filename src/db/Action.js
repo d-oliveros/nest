@@ -33,7 +33,6 @@ const schema = new mongoose.Schema({
     finished:     { type: Boolean, default: false },
     finishedDate: { type: Date },
     startedDate:  { type: Date },
-    history:     [{ type: String }],
     data:         { type: Mixed, default: {} }
   }
 });
@@ -56,7 +55,7 @@ extend(schema.statics, {
   /**
    * Creates or find an action to this route with the provided query argument.
    */
-  async findOrCreate(query, route) {
+  async findOrCreate(route, query) {
     invariant(isObject(route), 'Route is not an object');
     invariant(!isArray(query), 'Query arrays not supported');
     invariant(route.key, 'Route name is required.');
@@ -75,7 +74,7 @@ extend(schema.statics, {
 
     if (!action) {
       const params = extend({}, key, {
-        priority: route.priority
+        priority: route.priority || 50
       });
 
       debug(`Creating action with params:\n${inspect(params)}`);

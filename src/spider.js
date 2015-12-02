@@ -1,11 +1,9 @@
-import { toArray, find, each, pick, defaults, isObject, isFunction, identity, compact, sortBy } from 'lodash';
+import { each, pick, defaults, isObject, isFunction, identity, compact } from 'lodash';
 import invariant from 'invariant';
 import phantom from 'phantom';
 import createError from 'http-errors';
 import request from 'request-promise';
 import phantomConfig from '../config/phantom';
-import Item from './db/Item';
-import Action from './db/Action';
 import createEmitter, { emitterProto } from './emitter';
 import logger from './logger';
 import createPage from './page';
@@ -14,7 +12,7 @@ const debug = logger.debug('nest:spider');
 const { PHANTOM_LOG, FORCE_DYNAMIC } = process.env;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-const baseProto = {
+export const spiderProto = {
   running: true,
   isVerbose: false,
   phantom: null,
@@ -173,32 +171,12 @@ const baseProto = {
    * Scraper functions
    */
 
-  async scrape(action, { routes, plugins }, meta = {}) {
-    invariant(isObject(action), 'Action is not valid');
-
-    if (action.state.finished) {
-      debug('Action was already finished');
-      return action;
-    }
-
-    const { state, routeId } = action;
-    const route = find(routes, { key: routeId });
-
-    invariant(isObject(route), `Route "${routeId}" not found`);
+  async scrape(action, route, meta = {}) {
+    invariant(isObject(route), `Route not found`);
     invariant(route.initialized, 'Route has not been initialized');
-
-    debug(`Starting action: ${action.routeId}` +
-      (action.query ? ` ${action.query}` : ''));
-
-    // save the starting time of this action
-    if (action.wasNew) {
-      state.startedDate = Date.now();
-    }
 
     // create the URL using the action's parameters
     const url = route.urlGenerator(action);
-
-    this.emit('action:start', action, url);
 
     // opens the page
     let page;
@@ -226,8 +204,7 @@ const baseProto = {
 
     // if the action has been stopped
     if (!this.running) {
-      this.emit('action:stopped', action);
-      return action;
+      return null;
     }
 
     debug(`Got ${status}`);
@@ -238,7 +215,7 @@ const baseProto = {
       let newAction;
 
       try {
-        newAction = await route.onError.call(this, action, meta);
+        newAction = await route.onError.call(this, action, route, meta);
       } catch (err) {
         newAction = null;
         logger.error(err);
@@ -251,7 +228,6 @@ const baseProto = {
       // if nothing was returned from the error handler, stop
       if (!newAction) {
         this.running = false;
-        this.emit('action:stopped', action);
         throw createError(status);
       }
 
@@ -263,7 +239,8 @@ const baseProto = {
 
       meta.retryCount = meta.retryCount || 0;
       meta.retryCount++;
-      return await this.scrape(action, { routes, plugins }, meta);
+
+      return await this.scrape(action, route, meta);
     }
 
     // scapes and sanitizes the page
@@ -288,103 +265,7 @@ const baseProto = {
       }
     }
 
-    // apply plugins
-    for (const plugin of sortBy(toArray(plugins), 'weight')) {
-      try {
-        scraped = await plugin(scraped) || scraped;
-      } catch (err) {
-        logger.error(err);
-      }
-    }
-
-    const newOps = await this.spawnActions(scraped.actions, routes);
-
-    if (newOps.length) {
-      this.emit('actions:created', newOps);
-      action.stats.spawned += newOps.length;
-    }
-
-    // save and update items
-    const results = await Item.eachUpsert(scraped.items);
-    results.actionsCreated = newOps.length;
-
-    // change state
-    if (scraped.hasNextPage) {
-      state.currentPage++;
-    } else {
-      state.finished = true;
-      state.finishedDate = Date.now();
-    }
-
-    state.history.push(url);
-
-    if (scraped.state) {
-      state.data = Object.assign(state.data || {}, scraped.state);
-    }
-
-    action.stats.pages++;
-    action.stats.items += results.created;
-    action.stats.updated += results.updated;
-    action.updated = new Date();
-
-    this.iteration++;
-    this.emit('scraped:page', results, action);
-    this.stopPhantom();
-
-    debug('Saving action');
-    await action.save();
-
-    // if the action has been stopped
-    if (!this.running) {
-      this.emit('action:stopped', action);
-    }
-
-    // Action finished
-    if (state.finished) {
-      this.emit('action:finish', action);
-      this.running = false;
-      return action;
-    }
-
-    // Action has next page
-    debug(`Scraping next page`);
-    this.emit('action:next', action);
-
-    return await this.scrape(action, { routes, plugins });
-  },
-
-  /**
-   * Creates new scraping actions
-   * @param  {Array}  actions  Actions to create
-   * @param  {Object} routes   available routes
-   * @return {Promise}
-   */
-  async spawnActions(actions, routes) {
-    if (actions.length === 0) {
-      debug('No actions to spawn');
-      return [];
-    }
-
-    debug('Spawning actions');
-
-    const promises = actions.map((op) => {
-      const { routeId, query } = op;
-      const targetRoute = find(routes, { key: routeId });
-
-      if (!targetRoute) {
-        logger.warn(`[spawnActions]: Route ${routeId} does not exist`);
-        return Promise.resolve();
-      }
-
-      // Create a new action
-      return Action.findOrCreate(query, targetRoute);
-    });
-
-    const newActions = await Promise.all(promises);
-
-    debug(`Actions spawned: ${newActions.length} actions`);
-
-    return newActions;
+    return scraped;
   },
 
   defaultErrorHandler(action, meta = {}) {
@@ -460,10 +341,10 @@ const baseProto = {
   }
 };
 
-const spiderProto = Object.assign({}, emitterProto, baseProto);
+const composedProto = Object.assign({}, emitterProto, spiderProto);
 
 export default function createSpider(spider) {
-  spider = spider || Object.create(spiderProto);
+  spider = spider || Object.create(composedProto);
   createEmitter(spider);
   return spider;
 }

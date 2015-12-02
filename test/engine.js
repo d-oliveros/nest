@@ -6,6 +6,7 @@ import Action from '../src/db/Action';
 import Item from '../src/db/Item';
 import createSpider from '../src/spider';
 import createEngine from '../src/engine';
+import createWorker from '../src/worker';
 import config from '../config';
 import routeMock from './mocks/route';
 
@@ -46,7 +47,6 @@ describe('Engine', function() {
   });
 
   describe('concurrency', function() {
-
     beforeEach(async () => {
       await Action.remove();
       await Item.remove();
@@ -115,7 +115,7 @@ describe('Engine', function() {
 
 async function startAction(query, route) {
   const spider = createSpider();
-  const action = await Action.findOrCreate(query, route);
+  const action = await Action.findOrCreate(route, query);
   return await spider.scrape(action, {
     routes: [routeMock],
     plugins: []

@@ -6,6 +6,7 @@ import { isObject, isString, defaults, toArray, find, pick } from 'lodash';
 import { populateRoutes } from './route';
 import mongoConnection from './db/connection';
 import Action from './db/Action';
+import Item from './db/Item';
 import createEngine from './engine';
 import createSpider from './spider';
 
@@ -35,7 +36,11 @@ const nestProto = {
   },
 
   async initialize(route, query) {
-    return await Action.findOrCreate(query, route);
+    return await Action.findOrCreate(route, query);
+  },
+
+  addItem(item) {
+    return Item.upsert(item);
   },
 
   getRoute(routeKey) {

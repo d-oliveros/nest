@@ -107,7 +107,7 @@ function createRouteTest(route, { routes, plugins }, dataDir) {
       }
     });
 
-    Action.findOrCreate(testParams.query, route)
+    Action.findOrCreate(route, testParams.query)
       .then((action) => {
         return spider.scrape(action, { routes, plugins });
       })

@@ -10,13 +10,13 @@ import Item from './db/Item';
 import createEngine from './engine';
 import createSpider from './spider';
 
-const nestProto = {
+const Nest = {
 
   /**
-   * Scrapes a route, optionally providing a query
+   * Scrapes a route with the provided query
    *
-   * @param  {Object|String} route Route key or loaded route object
-   * @param  {String} query Query string
+   * @param  {Object|String}  route  Route key or loaded route object
+   * @param  {String}  query  Query string. Optional.
    * @return {Promise}
    */
   async scrape(route, query) {
@@ -35,14 +35,34 @@ const nestProto = {
     });
   },
 
+  /**
+   * Initializes a route with the provided query.
+   * @param  {Object}         route  A route instance
+   * @param  {String|Object}  query  Query string. Optional.
+   * @return {Object}                Resulting action definition.
+   */
   async initialize(route, query) {
     return await Action.findOrCreate(route, query);
   },
 
+  /**
+   * Creates or updates an item in the database.
+   *
+   * Note that if an item with the same key already exists,
+   * this item will be augmented instead.
+   *
+   * @param {Object}     item  The item to add.
+   * @returns {Promise}        The item that was just upserted.
+   */
   addItem(item) {
     return Item.upsert(item);
   },
 
+  /**
+   * Gets a route by its route key
+   * @param  {Object}  routeKey  The route's ID
+   * @return {Object}            The route, or null if not found
+   */
   getRoute(routeKey) {
     return find(this.routes, { key: routeKey });
   },
@@ -82,6 +102,29 @@ const nestProto = {
 };
 
 /**
+ * Creates new a nest object.
+ *
+ * @param  {String|Object} root
+ *  If a string is passed, it will require the routes, plugins and workers
+ *  using this string as the root directory.
+ *
+ *  Otherwise, root must be an object with:
+ *  - {Object} routes Routes to use
+ *  - {Object} plugins Plugins to use
+ *
+ * @return {Object} A nest instance
+ */
+export function createNest(root) {
+  const nest = Object.create(Nest);
+
+  nest.load(root);
+  nest.engine = createEngine(pick(nest, 'routes', 'plugins', 'workers'));
+  nest.connection = mongoConnection;
+
+  return nest;
+}
+
+/**
  * Requires the plugins, workers and routes from a root directory
  * @param  {String} rootdir Absolute path to the root directory
  * @return {Object}         Resolved modules
@@ -108,27 +151,4 @@ export function getNestModules(rootdir) {
 
     return source;
   }, {});
-}
-
-/**
- * Creates new a nest object.
- *
- * @param  {String|Object} root
- *  If a string is passed, it will require the routes, plugins and workers
- *  using this string as the root directory.
- *
- *  Otherwise, root must be an object with:
- *  - {Object} routes Routes to use
- *  - {Object} plugins Plugins to use
- *
- * @return {Object} A nest instance
- */
-export function createNest(root) {
-  const nest = Object.create(nestProto);
-
-  nest.load(root);
-  nest.engine = createEngine(pick(nest, 'routes', 'plugins', 'workers'));
-  nest.connection = mongoConnection;
-
-  return nest;
 }

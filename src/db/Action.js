@@ -54,6 +54,9 @@ extend(schema.statics, {
 
   /**
    * Creates or find an action to this route with the provided query argument.
+   * @param {Object}         route  The route instance.
+   * @param {String|Object}  query  The query parameter of this action.
+   * @returns {Object}              The created or updated action.
    */
   async findOrCreate(route, query) {
     invariant(isObject(route), 'Route is not an object');
@@ -86,30 +89,6 @@ extend(schema.statics, {
     }
 
     return action;
-  },
-
-  async getNext(params) {
-    invariant(isObject(params), 'Invalid params');
-
-    const { actionIds, disabledRoutes } = params;
-
-    const query = {
-      'state.finished': false
-    };
-
-    if (actionIds) {
-      query._id = { $nin: actionIds };
-    }
-
-    if (disabledRoutes && disabledRoutes.length) {
-      query.routeId = { $nin: disabledRoutes };
-    }
-
-    debug(`Getting next action.\n` +
-      `Query: ${inspect(query)}\n` +
-      `Params: ${inspect(params)}`);
-
-    return await this.findOne(query).sort({ 'priority': -1 }).exec();
   }
 
 });

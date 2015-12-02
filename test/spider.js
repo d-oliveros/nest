@@ -71,6 +71,11 @@ describe('Spider', function() {
     expect(globalSpider.phantom).to.equal(null);
   });
 
+  it('should scrape', async () => {
+    const spider = createSpider();
+    await spider.open();
+  });
+
   it('should stop', async () => {
     const spider = createSpider();
 

@@ -58,9 +58,9 @@ const schema = new mongoose.Schema({
 extend(schema.statics, {
 
   /**
-   * Applies `Item.upsert` to `items` in parallel
-   * @param  {Array}  items  Items to upsert
-   * @return {Object}        Object with operation stats
+   * Applies `Item.upsert` to `items` in parallel.
+   * @param  {Array}  items  Items to upsert.
+   * @return {Object}        Object with operation stats.
    */
   async eachUpsert(items) {
     const Item = this;
@@ -81,8 +81,8 @@ extend(schema.statics, {
   },
 
   /**
-   * Creates or updates a scraped item in the database
-   * @param  {Object}  item  The item to be upserted
+   * Creates or updates a scraped item in the database.
+   * @param  {Object}  item  The item to be upserted.
    * @return {String}        Operation type. Either 'created' or 'updated'.
    */
   async upsert(item) {

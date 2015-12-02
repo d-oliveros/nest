@@ -12,29 +12,17 @@ const debug = logger.debug('nest:spider');
 const { PHANTOM_LOG, FORCE_DYNAMIC } = process.env;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-export const spiderProto = {
-  running: true,
-  isVerbose: false,
-  phantom: null,
-  iteration: 0,
-
-  // enables "verbose" mode
-  verbose() {
-    if (!this.isVerbose) {
-      this.on('start', debug.bind(this, 'Starting action.'));
-      this.on('finish', debug.bind(this, 'Action finished.'));
-      this.on('scraped:raw', debug.bind(this, 'Got raw scraped data.'));
-      this.on('scraped:page', debug.bind(this, 'Scraped a page.'));
-      this.isVerbose = true;
-    }
-  },
-
-  /**
-   * Page functions
-   */
+export const Spider = {
 
   // opens a URL, returns a loaded page
   // if "dynamic" is false, it will use cheerio instead of PhantomJS to scrape
+
+  /**
+   * Requests a url with request or PhantomJS, if 'dynamic' is true
+   * @param  {String}  url      The URL to open
+   * @param  {Object}  options  Optional parameters
+   * @return {Object}           A Page instance
+   */
   async open(url, options = {}) {
     invariant(isObject(options), 'Options needs to be an object');
 
@@ -46,6 +34,11 @@ export const spiderProto = {
     return await getPage.call(this, url);
   },
 
+  /**
+   * Requests a url with request
+   * @param  {String}  url  The URL to request
+   * @return {Object}       A Page instance
+   */
   async openStatic(url) {
     debug(`Opening URL ${url}`);
 
@@ -62,6 +55,11 @@ export const spiderProto = {
     return page;
   },
 
+  /**
+   * Requests a url with PhantomJS
+   * @param  {String}  url  The URL to request
+   * @return {Object}       A Page instance
+   */
   async openDynamic(url) {
     debug(`Opening URL ${url} with PhantomJS`);
 
@@ -76,8 +74,8 @@ export const spiderProto = {
     const pageOpenStatus = await phantomPage.openAsync(url);
     invariant(pageOpenStatus === 'success', `Could not open url: ${url}`);
 
-    const jsInjectionStatus = await this.includeJS(phantomPage);
-    invariant(jsInjectionStatus, `Could not include JS on url: ${url}`);
+    const jsInjectionStatus = await this.injectJS(phantomPage);
+    invariant(jsInjectionStatus, `Could not inject JS on url: ${url}`);
 
     const html = await phantomPage.evaluateAsync(() => $('html').html()); // eslint-disable-line
     const page = createPage(html, { url, phantomPage });
@@ -87,7 +85,10 @@ export const spiderProto = {
     return page;
   },
 
-  // creates a phantomJS instance
+  /**
+   * Creates a PhantomJS instance
+   * @return {Object}  PhantomJS instance
+   */
   async createPhantom() {
     debug('Creating PhantomJS instance');
 
@@ -99,7 +100,10 @@ export const spiderProto = {
     });
   },
 
-  // stops its phantomJS instance
+  /**
+   * Stops own phantomjs instance
+   * @return {undefined}
+   */
   stopPhantom() {
     if (this.phantom) {
       debug('Stopping PhantomJS');
@@ -109,7 +113,10 @@ export const spiderProto = {
     this.phantom = null;
   },
 
-  // creates a PhantomJS Page instance
+  /**
+   * Creates a PhantomJS Page instance
+   * @return {Object}  PhantomJS page instance
+   */
   async createPhantomPage() {
     const ph = this.phantom || await this.createPhantom();
 
@@ -137,9 +144,13 @@ export const spiderProto = {
     });
   },
 
-  // includes javascript <script> tags in opened web page
-  async includeJS(page) {
-    debug('Including JS on page');
+  /**
+   * Injects javascript <script> tags in opened web page
+   * @param  {Object}  page  Page instance to inject the JS
+   * @return {[type]}      [description]
+   */
+  async injectJS(page) {
+    debug('Injecting JS on page');
 
     return await new Promise((resolve) => {
       page.includeJs('https://code.jquery.com/jquery-2.1.4.min.js', (status) => {
@@ -149,10 +160,10 @@ export const spiderProto = {
   },
 
   /**
-   * Control functions
+   * Stops the spider, optionally clearing the listeners
+   * @param  {Boolean}  removeListeners  Should its event listeners be removed?
+   * @return {undefined}
    */
-
-  // stops the spider, optionally clearing the listeners
   stop(removeListeners) {
     debug('Stopping Spider');
 
@@ -166,11 +177,13 @@ export const spiderProto = {
     this.running = false;
   },
 
-
   /**
-   * Scraper functions
+   * Scrapes a web page using an action definition, and a route definition
+   * @param  {Object}  action  Action definition, used to build the URL
+   * @param  {Object}  route   Route definition, holding the scraper func
+   * @param  {Object}  meta    Meta information
+   * @return {Object}          Scraped data.
    */
-
   async scrape(action, route, meta = {}) {
     invariant(isObject(route), `Route not found`);
     invariant(route.initialized, 'Route has not been initialized');
@@ -245,7 +258,6 @@ export const spiderProto = {
 
     // scapes and sanitizes the page
     let scraped = await page.runInContext(route.scraper);
-    this.emit('scraped:raw', scraped, action, page);
 
     scraped = this.sanitizeScraped(scraped);
 
@@ -296,7 +308,11 @@ export const spiderProto = {
     return false;
   },
 
-  // sanitize the raw scraped data
+  /**
+   * Normalizes and sanitizes scraped data
+   * @param  {Object}  scraped  The scraped data
+   * @return {Object}           Sanitized data
+   */
   sanitizeScraped(scraped) {
     const sanitized = isObject(scraped) ? Object.assign({}, scraped) : {};
 
@@ -341,10 +357,21 @@ export const spiderProto = {
   }
 };
 
-const composedProto = Object.assign({}, emitterProto, spiderProto);
-
+/**
+ * Creates or initializes a spider instance
+ * @param  {Object}  spider  Base spider instance
+ * @return {Object}          Instanciated spider instance
+ */
 export default function createSpider(spider) {
-  spider = spider || Object.create(composedProto);
+  spider = spider || Object.create(Spider);
+
+  Object.assign(spider, emitterProto, {
+    running: true,
+    phantom: null,
+    iteration: 0
+  });
+
   createEmitter(spider);
+
   return spider;
 }

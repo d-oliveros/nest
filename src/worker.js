@@ -1,8 +1,8 @@
-import { EventEmitter } from 'events';
 import uuid from 'uuid';
 import invariant from 'invariant';
 import { isObject, isFunction, pick, find } from 'lodash';
 import createSpider, { spiderProto } from './spider';
+import createEmitter, { emitterProto } from './emitter';
 import Action from './db/Action';
 import Item from './db/Item';
 import logger from './logger';
@@ -10,14 +10,12 @@ import logger from './logger';
 const debug = logger.debug('nest:worker');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-const workerProto = {
-  id: null,
-  engine: null,
-  running: false,
-  action: null,
-  route: null,
+const Worker = {
 
-  // start this worker
+  /**
+   * Start this worker
+   * @return {Promise}
+   */
   async start() {
     if (this.running) return;
 
@@ -104,11 +102,17 @@ const workerProto = {
     this.emit('worker:stopped', this);
   },
 
+  /**
+   * Runs an action
+   * @param  {Object}  action  Action instance
+   * @return {Promise}         Updated action
+   */
   async startAction(action) {
     invariant(isObject(action), 'Action is not valid');
 
     const { state, routeId } = action;
-    const routes = this.engine.routes;
+    const routes = this.engine.modules.routes;
+    const route = find(routes, { key: routeId });
 
     if (action.state.finished) {
       debug('Action was already finished');
@@ -120,12 +124,8 @@ const workerProto = {
       state.startedDate = Date.now();
     }
 
-    debug(`Starting action: ${action.routeId}` +
-      (action.query ? ` ${action.query}` : ''));
+    debug(`Starting action: ${action.routeId} ${action.query || ''}`);
 
-    this.emit('action:start', action);
-
-    const route = find(routes, { key: routeId });
     let scraped;
 
     if (isFunction(this.process)) {
@@ -199,10 +199,10 @@ const workerProto = {
   /**
    * Creates new scraping actions
    * @param  {Array}  actions  Actions to create
-   * @return {Promise}
+   * @return {Promise}  Array with spawned actions.
    */
   async spawnActions(actions) {
-    const routes = this.engine.routes;
+    const routes = this.engine.modules.routes;
 
     if (actions.length === 0) {
       debug('No actions to spawn');
@@ -211,7 +211,7 @@ const workerProto = {
 
     debug('Spawning actions');
 
-    const promises = actions.map((op) => {
+    const newActions = await Promise.all(actions.map((op) => {
       const { routeId, query } = op;
       const targetRoute = find(routes, { key: routeId });
 
@@ -222,15 +222,17 @@ const workerProto = {
 
       // Create a new action
       return Action.findOrCreate(targetRoute, query);
-    });
-
-    const newActions = await Promise.all(promises);
+    }));
 
     debug(`Actions spawned: ${newActions.length} actions`);
 
     return newActions;
   },
 
+  /**
+   * Stops this worker and its spider, if any
+   * @return {Promise}  Promise to be resolved when this worker is stopped
+   */
   async stop() {
     if (!this.running) return;
 
@@ -251,11 +253,14 @@ const workerProto = {
     });
   },
 
+  /**
+   * Creates a new spider, link the spider emitter with this worker's emitter
+   * @return {[type]} [description]
+   */
   assignSpider() {
     const spider = createSpider();
     spider.verbose();
     spider.addEmitter(this);
-    spider.addEmitter(this.engine);
     this.spider = spider;
     return spider;
   },
@@ -264,36 +269,41 @@ const workerProto = {
   getActionQuery: function defaultActionQueryFactory() {}
 };
 
-const composedProto = Object.assign({}, EventEmitter.prototype, workerProto);
-
-const allowedDefinitionProps = [
+/**
+ * Whitelist of extendable properties, used when creating a new worker
+ */
+const extendableProperties = [
   'key',
   'concurrency',
   'initialize',
   'getActionQuery'
 ];
 
-export default function createWorker(engine, definition) {
+/**
+ * Creates a new worker instance
+ * @param  {[type]} engine  [description]
+ * @param  {[type]} augment [description]
+ * @return {[type]}         [description]
+ */
+export default function createWorker(engine, augment) {
   invariant(isObject(engine), 'Engine is not an object');
 
-  const worker = Object.assign(Object.create(composedProto), {
+  // constructs a new worker
+  const worker = Object.assign(Object.create(Worker), emitterProto, {
     id: uuid.v4(),
     engine: engine,
+    running: false,
+    action: null,
+    route: null,
     meta: {}
   });
 
-  if (isObject(definition)) {
-    Object.assign(worker, pick(definition, allowedDefinitionProps));
+  // Augments the instance with the provided properties
+  if (isObject(augment)) {
+    Object.assign(worker, pick(augment, extendableProperties));
   }
 
-  // Debugging listeners
-  worker.on('action:start', (action, url) => {
-    debug(`Scraping: ${url}`);
-  });
-
-  worker.on('action:blocked', (action, url) => {
-    debug(`Request blocked on: ${url}`);
-  });
+  createEmitter.call(worker);
 
   debug(`Worker ${worker.id} created`);
 

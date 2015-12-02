@@ -3,6 +3,10 @@ import config from '../../config';
 
 mongoose.Promise = global.Promise;
 
+/**
+ * Creates a connection to the Mongo database.
+ * @exports {Object}  Mongo connection
+ */
 const { host, port, db, user, pass } = config.mongo;
 const authString = user ? `${user}:${pass}@` : '';
 

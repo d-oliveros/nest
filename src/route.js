@@ -4,6 +4,11 @@ import logger from './logger';
 
 const debug = logger.debug('nest:route');
 
+/**
+ * Initializes a new route.
+ * @param  {Object}  route  Route definition object
+ * @return {Object}         Initialized route instance
+ */
 export default function createRoute(route) {
   invariant(route.key, 'Key is required.');
 
@@ -74,26 +79,43 @@ export function populateRoutes(routes) {
   return newRoutes;
 }
 
-// default scraper
+/**
+ * Default scraper
+ * @throws {Error} If route definition did not provide a scraper function
+ */
 function defaultScraper() {
   throw new Error('You need to implement your own scraper.');
 }
 
-// default urlTemplate
+/**
+ * Default urlTemplate
+ * @throws {Error} If route definition did not provide a url template
+ */
 function defaultUrlTemplate() {
   throw new Error('You need to implement your own URL generator.');
 }
 
-// default middleware
+/**
+ * Default middleware
+ * @param  {Object}  scraped  The scraped results from a webpage crawl
+ * @return {Object}           The original, unmodified scraped results
+ */
 function defaultMiddleware(scraped) {
   return scraped;
 }
 
+/**
+ * Default error handler
+ * @return {Boolean}  Returns true
+ */
 function defaultErrorHandler() {
   return true;
 }
 
-// default status checker.
+/**
+ * Defaults status checker
+ * @return {String}  Returns the string 'ok'
+ */
 function defaultCheckStatus() {
   return 'ok';
 }

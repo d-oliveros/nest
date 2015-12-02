@@ -1,4 +1,5 @@
-import { each, pick, defaults, isObject, isFunction, identity, compact } from 'lodash';
+import { pick, defaults, isObject, isFunction, identity, compact } from 'lodash';
+import inspect from 'util-inspect';
 import invariant from 'invariant';
 import phantom from 'phantom';
 import createError from 'http-errors';
@@ -10,12 +11,9 @@ import createPage from './page';
 
 const debug = logger.debug('nest:spider');
 const { PHANTOM_LOG, FORCE_DYNAMIC } = process.env;
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const MAX_RETRY_COUNT = 3;
 
 export const Spider = {
-
-  // opens a URL, returns a loaded page
-  // if "dynamic" is false, it will use cheerio instead of PhantomJS to scrape
 
   /**
    * Requests a url with request or PhantomJS, if 'dynamic' is true
@@ -77,7 +75,8 @@ export const Spider = {
     const jsInjectionStatus = await this.injectJS(phantomPage);
     invariant(jsInjectionStatus, `Could not inject JS on url: ${url}`);
 
-    const html = await phantomPage.evaluateAsync(() => $('html').html()); // eslint-disable-line
+    const getHTML = () => $('html').html(); // eslint-disable-line no-undef
+    const html = await phantomPage.evaluateAsync(getHTML);
     const page = createPage(html, { url, phantomPage });
 
     this.emit('page:open', page, phantomPage);
@@ -153,7 +152,8 @@ export const Spider = {
     debug('Injecting JS on page');
 
     return await new Promise((resolve) => {
-      page.includeJs('https://code.jquery.com/jquery-2.1.4.min.js', (status) => {
+      const jqueryUrl = 'https://code.jquery.com/jquery-2.1.4.min.js';
+      page.includeJs(jqueryUrl, (status) => {
         resolve(status);
       });
     });
@@ -167,36 +167,32 @@ export const Spider = {
   stop(removeListeners) {
     debug('Stopping Spider');
 
+    this.running = false;
+    this.stopPhantom();
     this.emit('spider:stopped');
 
     if (removeListeners) {
       this.removeAllListeners();
     }
-
-    this.stopPhantom();
-    this.running = false;
   },
 
   /**
-   * Scrapes a web page using an action definition, and a route definition
-   * @param  {Object}  action  Action definition, used to build the URL
+   * Scrapes a web page using a route handler definition
+   * @param  {String}  url  URL to scrape
    * @param  {Object}  route   Route definition, holding the scraper func
    * @param  {Object}  meta    Meta information
    * @return {Object}          Scraped data.
    */
-  async scrape(action, route, meta = {}) {
+  async scrape(url, route, meta = {}) {
     invariant(isObject(route), `Route not found`);
     invariant(route.initialized, 'Route has not been initialized');
 
-    // create the URL using the action's parameters
-    const url = route.urlGenerator(action);
-
-    // opens the page
     let page;
     let status;
 
+    // open the page
     try {
-      page = await this.open(url, { dynamic: route.isDynamic });
+      page = await this.open(url, { dynamic: route.dynamic });
 
       // manually check if the page has been blocked
       if (isFunction(route.checkStatus)) {
@@ -215,7 +211,6 @@ export const Spider = {
       }
     }
 
-    // if the action has been stopped
     if (!this.running) {
       return null;
     }
@@ -225,87 +220,52 @@ export const Spider = {
     // run the route's error handler for 4xx routes
     if (status >= 400) {
 
-      let newAction;
+      let nextStep = 'stop';
+
+      meta.errorCount = meta.errorCount || 0;
+      meta.errorCount++;
 
       try {
-        newAction = await route.onError.call(this, action, route, meta);
-      } catch (err) {
-        newAction = null;
-        logger.error(err);
-
-        if (isObject(err) && !isNaN(err.statusCode)) {
-          status = parseInt(err.statusCode, 10);
+        if (isFunction(route.onError)) {
+          nextStep = await route.onError.call(this, route, meta);
+        } else {
+          const retryCount = route.retryCount || MAX_RETRY_COUNT;
+          nextStep = meta.errorCount <= retryCount ? 'retry' : 'stop';
         }
+      } catch (err) {
+        logger.error(err);
       }
 
-      // if nothing was returned from the error handler, stop
-      if (!newAction) {
-        this.running = false;
-        throw createError(status);
+      switch (nextStep) {
+        case 'stop':
+          this.running = false;
+          debug(`Stopping with error`);
+          throw createError(status);
+
+        case 'retry':
+          debug(`Retrying url ${url} (Retry count ${meta.errorCount})`);
+          return await this.scrape(url, route, meta);
+
+        default:
+          const newUrl = nextStep;
+          debug(`Jumping to ${newUrl} with ${inspect(route)}, ${inspect(meta)}`);
+          return await this.scrape(newUrl, route, meta);
       }
-
-      // if the error handler returned `true` or a truthy value,
-      // restart the action
-      if (!isObject(newAction)) {
-        newAction = action;
-      }
-
-      meta.retryCount = meta.retryCount || 0;
-      meta.retryCount++;
-
-      return await this.scrape(action, route, meta);
     }
 
-    // scapes and sanitizes the page
+    // scapes the page
     let scraped = await page.runInContext(route.scraper);
 
     scraped = this.sanitizeScraped(scraped);
 
-    each(scraped.items, (item) => {
+    for (const item of scraped.items) {
       item.routeId = route.key;
       item.routeWeight = route.priority;
-    });
+    }
 
     debug(`Scraped ${scraped.items.length} items`);
 
-    // apply route-specific middleware
-    if (isFunction(route.middleware)) {
-      try {
-        scraped = await route.middleware(scraped) || scraped;
-      } catch (err) {
-        logger.error(err);
-      }
-    }
-
     return scraped;
-  },
-
-  defaultErrorHandler(action, meta = {}) {
-    if (meta.retryCount < 3) {
-      debug('Action blocked. Retrying in 5s...\n' +
-        `Will retry ${3 - meta.retryCount} more times`);
-
-      let resolved = false;
-      return new Promise((resolve) => {
-        function onSpiderStopped() {
-          resolved = true;
-          resolve();
-        }
-
-        this.once('spider:stopped', onSpiderStopped);
-
-        sleep(5000).then(() => {
-          if (!resolved) {
-            resolved = true;
-            this.removeListener('spider:stopped', onSpiderStopped);
-            resolve();
-          }
-        });
-      });
-    }
-
-    debug(`Action blocked. Aborting.`);
-    return false;
   },
 
   /**
@@ -326,11 +286,11 @@ export const Spider = {
     });
 
     // validate scraped.items and scraped.actions type
-    ['items', 'actions'].forEach((field) => {
+    for (const field of ['items', 'actions']) {
       invariant(sanitized[field] instanceof Array,
         `Scraping function returned data.${field}, ` +
         `but its not an array.`);
-    });
+    }
 
     // sanitize the actions
     sanitized.actions = compact(sanitized.actions.map((op) => {

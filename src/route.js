@@ -5,7 +5,7 @@ import logger from './logger';
 const debug = logger.debug('nest:route');
 
 /**
- * Initializes a new route.
+ * Initializes a new route handler.
  * @param  {Object}  route  Route definition object
  * @return {Object}         Initialized route instance
  */
@@ -16,15 +16,13 @@ export default function createRoute(route) {
     return route;
   }
 
-  debug('Creating new route', route);
+  debug('Creating new route handler', route);
 
   return Object.assign({}, route, {
     initialized: true,
+
     name: route.name || '',
     description: route.description || '',
-
-    isDynamic: route.dynamic || false,
-    isStatic: !route.dynamic || true,
 
     // template generation function. Takes an action for input
     urlGenerator: isFunction(route.url)
@@ -35,9 +33,6 @@ export default function createRoute(route) {
 
     // scraping function that should return an object with scraped data
     scraper: route.scraper || defaultScraper,
-
-    // route-specific middleware to be executed after scraping data from a page
-    middleware: route.middleware || defaultMiddleware,
 
     // scraping function that can return a status code or throw an error
     checkStatus: route.checkStatus || defaultCheckStatus,
@@ -93,15 +88,6 @@ function defaultScraper() {
  */
 function defaultUrlTemplate() {
   throw new Error('You need to implement your own URL generator.');
-}
-
-/**
- * Default middleware
- * @param  {Object}  scraped  The scraped results from a webpage crawl
- * @return {Object}           The original, unmodified scraped results
- */
-function defaultMiddleware(scraped) {
-  return scraped;
 }
 
 /**

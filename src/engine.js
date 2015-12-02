@@ -58,6 +58,7 @@ const Engine = {
    */
   assignWorker(definition) {
     const worker = createWorker(this, definition);
+    worker.addEmitter(this);
     this.workers.push(worker);
   },
 

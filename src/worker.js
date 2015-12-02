@@ -135,7 +135,8 @@ const Worker = {
     } else {
       // else, scrape this route using a spider
       const spider = this.assignSpider();
-      scraped = await spider.scrape(route);
+      const url = route.urlGenerator(action);
+      scraped = await spider.scrape(url, route);
     }
 
     if (!this.running) {

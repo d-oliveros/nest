@@ -9,14 +9,29 @@ const Page = {
 
   /**
    * Runs the provided function in the page's context;
-   * @param  {[type]} func [description]
-   * @return {[type]}      [description]
+   *
+   * @param  {Function}  func
+   *  Function to apply in this page's context.
+   *
+   * @param  {Boolean}  inPhantomPage
+   *  Should func be called from within the PhantomJS page?
+   *
+   * @return {Mixed}
+   *  Returns the value returned from 'func'
    */
-  async runInContext(func) {
+  async runInContext(func, inPhantomPage) {
     let res;
 
+    if (inPhantomPage && !this.phantomPage) {
+      logger.warn(`[Page]: Tried to apply fn to static page`);
+    }
+
     try {
-      res = await func.call(this, this.isJSON ? this.data : this.$, this);
+      if (inPhantomPage && this.phantomPage) {
+        res = await this.phantomPage.evaluateAsync(func);
+      } else {
+        res = await func.call(this, this.isJSON ? this.data : this.$, this);
+      }
     } catch (err) {
       logger.error(err);
 

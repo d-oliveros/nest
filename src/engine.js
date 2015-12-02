@@ -1,12 +1,12 @@
-import createEmitter, { emitterProto } from './emitter';
+import { find, isFunction, isObject, times, pluck } from 'lodash';
 import inspect from 'util-inspect';
 import Queue from 'promise-queue';
 import invariant from 'invariant';
-import { find, isFunction, isObject, times, pluck } from 'lodash';
 import engineConfig from '../config/engine';
-import createWorker from './worker';
-import logger from './logger';
+import { createEmitter, emitterProto } from './emitter';
+import { createWorker } from './worker';
 import Action from './db/Action';
+import logger from './logger';
 
 const debug = require('debug')('nest:engine');
 
@@ -196,7 +196,7 @@ const Engine = {
  * @param  {Object}  modules  Modules to use with this engine
  * @return {Object}           Newly created Engine instance
  */
-export default function createEngine(modules) {
+function createEngine(modules) {
   const { assign, create } = Object;
 
   const engine = assign(create(Engine), emitterProto, { modules }, {
@@ -210,3 +210,5 @@ export default function createEngine(modules) {
 
   return engine;
 }
+
+export { Engine as engineProto, createEngine };

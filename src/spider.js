@@ -5,15 +5,14 @@ import phantom from 'phantom';
 import createError from 'http-errors';
 import request from 'request-promise';
 import phantomConfig from '../config/phantom';
-import createEmitter, { emitterProto } from './emitter';
+import { createPage } from './page';
 import logger from './logger';
-import createPage from './page';
 
 const debug = logger.debug('nest:spider');
 const { PHANTOM_LOG, FORCE_DYNAMIC } = process.env;
 const MAX_RETRY_COUNT = 3;
 
-export const Spider = {
+const Spider = {
 
   /**
    * Requests a url with request or PhantomJS, if 'dynamic' is true
@@ -48,8 +47,6 @@ export const Spider = {
     const html = body;
     const page = createPage(html, { url, statusCode, res });
 
-    this.emit('page:open', page);
-
     return page;
   },
 
@@ -78,8 +75,6 @@ export const Spider = {
     const getHTML = () => $('html').html(); // eslint-disable-line no-undef
     const html = await phantomPage.evaluateAsync(getHTML);
     const page = createPage(html, { url, phantomPage });
-
-    this.emit('page:open', page, phantomPage);
 
     return page;
   },
@@ -169,7 +164,6 @@ export const Spider = {
 
     this.running = false;
     this.stopPhantom();
-    this.emit('spider:stopped');
 
     if (removeListeners) {
       this.removeAllListeners();
@@ -185,7 +179,6 @@ export const Spider = {
    */
   async scrape(url, route, meta = {}) {
     invariant(isObject(route), `Route not found`);
-    invariant(route.initialized, 'Route has not been initialized');
 
     let page;
     let status;
@@ -259,8 +252,12 @@ export const Spider = {
     scraped = this.sanitizeScraped(scraped);
 
     for (const item of scraped.items) {
-      item.routeId = route.key;
-      item.routeWeight = route.priority;
+      if (route.key) {
+        item.routeId = route.key;
+      }
+      if (route.priority) {
+        item.routeWeight = route.priority;
+      }
     }
 
     debug(`Scraped ${scraped.items.length} items`);
@@ -322,16 +319,11 @@ export const Spider = {
  * @param  {Object}  spider  Base spider instance
  * @return {Object}          Instanciated spider instance
  */
-export default function createSpider(spider) {
-  spider = spider || Object.create(Spider);
-
-  Object.assign(spider, emitterProto, {
+const createSpider = function(spider) {
+  return Object.assign(spider || Object.create(Spider), {
     running: true,
-    phantom: null,
-    iteration: 0
+    phantom: null
   });
+};
 
-  createEmitter(spider);
-
-  return spider;
-}
+export { Spider as spiderProto, createSpider };

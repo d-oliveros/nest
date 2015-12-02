@@ -1,19 +1,21 @@
 import './testenv';
 import { EventEmitter } from 'events';
 import { expect } from 'chai';
-import createSpider from '../src/spider';
+import { every } from 'lodash';
+import { createSpider } from '../src/spider';
 
 describe('Spider', function() {
   this.timeout(15000); // 15 seconds
   let globalSpider;
 
-  it('should emit an event', (done) => {
+  // @todo Move these to the worker tests. Spiders are no longer emitters
+  xit('should emit an event', (done) => {
     const spider = createSpider();
     spider.on('test:event', done);
     spider.emit('test:event');
   });
 
-  it('should add and emit events to an external emitter', (done) => {
+  xit('should add and emit events to an external emitter', (done) => {
     const spider = createSpider();
     const emitter = new EventEmitter();
     let completed = 0;
@@ -24,6 +26,7 @@ describe('Spider', function() {
 
     spider.once('test:event', () => completed++);
     emitter.once('test:event', () => completed++);
+
     spider.emit('test:event');
 
     setTimeout(() => {
@@ -36,7 +39,7 @@ describe('Spider', function() {
 
   });
 
-  it('should remove external emitter', () => {
+  xit('should remove external emitter', () => {
     const spider = createSpider();
     const emitter = new EventEmitter();
 
@@ -71,9 +74,28 @@ describe('Spider', function() {
     expect(globalSpider.phantom).to.equal(null);
   });
 
-  it('should scrape', async () => {
+  it('should scrape hackernews', async () => {
     const spider = createSpider();
-    await spider.open();
+    const url = 'https://news.ycombinator.com';
+
+    const scraped = await spider.scrape(url, { scraper($) {
+      const titles = $('.title a').map((i, node) => $(node).text()).get();
+
+      const items = titles.map((title) => {
+        return {
+          key: title
+        };
+      });
+
+      return { items };
+    }});
+
+    expect(scraped).to.be.an('object');
+    expect(scraped.actions).to.be.an('array').of.length(0);
+    expect(scraped.items).to.be.an('array');
+
+    expect(scraped.items.length).to.be.greaterThan(20);
+    expect(every(scraped.items, (i) => i.key)).to.equal(true);
   });
 
   it('should stop', async () => {

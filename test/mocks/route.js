@@ -1,4 +1,4 @@
-import createRoute from '../../src/route';
+import { createRoute } from '../../src/route';
 
 export default createRoute({
 

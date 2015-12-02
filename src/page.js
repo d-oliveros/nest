@@ -96,7 +96,7 @@ const Page = {
  * @param  {Object}  meta  Extra properties to add to the page.
  * @return {Object}        A new page instance
  */
-export default function createPage(data, meta) {
+const createPage = function(data, meta) {
   const page = Object.assign(Object.create(Page), {
     data: null,
     location: null,
@@ -112,4 +112,6 @@ export default function createPage(data, meta) {
   page.loadData(data, meta);
 
   return page;
-}
+};
+
+export { createPage };

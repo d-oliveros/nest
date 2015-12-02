@@ -2,11 +2,10 @@
 import './testenv';
 import { expect } from 'chai';
 import { clone } from 'lodash';
+import { createSpider } from '../src/spider';
+import { createEngine } from '../src/engine';
 import Action from '../src/db/Action';
 import Item from '../src/db/Item';
-import createSpider from '../src/spider';
-import createEngine from '../src/engine';
-import createWorker from '../src/worker';
 import config from '../config';
 import routeMock from './mocks/route';
 

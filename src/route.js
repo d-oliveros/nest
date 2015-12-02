@@ -9,7 +9,7 @@ const debug = logger.debug('nest:route');
  * @param  {Object}  route  Route definition object
  * @return {Object}         Initialized route instance
  */
-export default function createRoute(route) {
+const createRoute = function(route) {
   invariant(route.key, 'Key is required.');
 
   if (route.initialized) {
@@ -25,22 +25,26 @@ export default function createRoute(route) {
     description: route.description || '',
 
     // template generation function. Takes an action for input
-    urlGenerator: isFunction(route.url)
+    getUrl: isFunction(route.url)
       ? route.url
       : (isString(route.url)
         ? template(route.url)
-        : defaultUrlTemplate),
+        : () => {
+          throw new Error('You need to implement your own URL generator.');
+        }),
 
     // scraping function that should return an object with scraped data
-    scraper: route.scraper || defaultScraper,
+    scraper: route.scraper ? route.scraper : () => {
+      throw new Error('You need to implement your own scraper.');
+    },
 
     // scraping function that can return a status code or throw an error
-    checkStatus: route.checkStatus || defaultCheckStatus,
+    checkStatus: route.checkStatus ? route.checkStatus : () => 'ok',
 
     // function to be called when the route returns an error code >= 400
     // if an action is returned, the spider will be redirected to this action
     // if a truthy value is returned, the spedir will retry this route
-    onError: route.onError || defaultErrorHandler,
+    onError: route.onError ? route.onError : () => true,
 
     // auto-testing options
     test: route.test || null,
@@ -51,14 +55,14 @@ export default function createRoute(route) {
     // routes with higher priority will be processed first by the workers
     priority: isNaN(route.priority) ? 50 : parseInt(route.priority, 10)
   });
-}
+};
 
 /**
  * Populates the routes in the provided object recursively
  * @param  {Object} obj Object to populate routes on
  * @return {Object}     The populated object
  */
-export function populateRoutes(routes) {
+const populateRoutes = function(routes) {
   if (!isArray(routes)) routes = toArray(routes);
 
   const newRoutes = routes.slice();
@@ -72,36 +76,6 @@ export function populateRoutes(routes) {
   });
 
   return newRoutes;
-}
+};
 
-/**
- * Default scraper
- * @throws {Error} If route definition did not provide a scraper function
- */
-function defaultScraper() {
-  throw new Error('You need to implement your own scraper.');
-}
-
-/**
- * Default urlTemplate
- * @throws {Error} If route definition did not provide a url template
- */
-function defaultUrlTemplate() {
-  throw new Error('You need to implement your own URL generator.');
-}
-
-/**
- * Default error handler
- * @return {Boolean}  Returns true
- */
-function defaultErrorHandler() {
-  return true;
-}
-
-/**
- * Defaults status checker
- * @return {String}  Returns the string 'ok'
- */
-function defaultCheckStatus() {
-  return 'ok';
-}
+export { createRoute, populateRoutes };

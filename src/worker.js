@@ -1,8 +1,8 @@
 import uuid from 'uuid';
 import invariant from 'invariant';
 import { isObject, isFunction, pick, find } from 'lodash';
-import createSpider, { spiderProto } from './spider';
-import createEmitter, { emitterProto } from './emitter';
+import { createSpider, spiderProto } from './spider';
+import { createEmitter, emitterProto } from './emitter';
 import Action from './db/Action';
 import Item from './db/Item';
 import logger from './logger';
@@ -134,8 +134,10 @@ const Worker = {
       scraped = spiderProto.sanitizeScraped(scraped);
     } else {
       // else, scrape this route using a spider
-      const spider = this.assignSpider();
-      const url = route.urlGenerator(action);
+      const spider = createSpider();
+      this.spider = spider;
+      const url = route.getUrl(action);
+
       scraped = await spider.scrape(url, route);
     }
 
@@ -260,8 +262,6 @@ const Worker = {
    */
   assignSpider() {
     const spider = createSpider();
-    spider.verbose();
-    spider.addEmitter(this);
     this.spider = spider;
     return spider;
   },
@@ -271,22 +271,12 @@ const Worker = {
 };
 
 /**
- * Whitelist of extendable properties, used when creating a new worker
- */
-const extendableProperties = [
-  'key',
-  'concurrency',
-  'initialize',
-  'getActionQuery'
-];
-
-/**
  * Creates a new worker instance
  * @param  {[type]} engine  [description]
  * @param  {[type]} augment [description]
  * @return {[type]}         [description]
  */
-export default function createWorker(engine, augment) {
+const createWorker = function(engine, augment) {
   invariant(isObject(engine), 'Engine is not an object');
 
   // constructs a new worker
@@ -299,6 +289,13 @@ export default function createWorker(engine, augment) {
     meta: {}
   });
 
+  const extendableProperties = [
+    'key',
+    'concurrency',
+    'initialize',
+    'getActionQuery'
+  ];
+
   // Augments the instance with the provided properties
   if (isObject(augment)) {
     Object.assign(worker, pick(augment, extendableProperties));
@@ -309,4 +306,6 @@ export default function createWorker(engine, augment) {
   debug(`Worker ${worker.id} created`);
 
   return worker;
-}
+};
+
+export { Worker as workerProto, createWorker };

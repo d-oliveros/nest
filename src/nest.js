@@ -4,11 +4,40 @@ import requireAll from 'require-all';
 import invariant from 'invariant';
 import { isObject, isString, defaults, toArray, find, pick } from 'lodash';
 import { populateRoutes } from './route';
+import { createEngine } from './engine';
+import { createSpider } from './spider';
 import mongoConnection from './db/connection';
 import Action from './db/Action';
 import Item from './db/Item';
-import createEngine from './engine';
-import createSpider from './spider';
+
+/**
+ * Requires the plugins, workers and routes from a root directory
+ * @param  {String} rootdir Absolute path to the root directory
+ * @return {Object}         Resolved modules
+ */
+const getNestModules = function(rootdir) {
+  return ['plugins', 'workers', 'routes'].reduce((source, modType) => {
+    const dir = path.join(rootdir, modType);
+
+    if (!fs.existsSync(dir) || !fs.lstatSync(dir).isDirectory()) {
+      source[modType] = [];
+    } else {
+      const mods = requireAll({
+        dirname: dir,
+        resolve: (mod) => mod && mod.default ? mod.default : mod,
+        recursive: true
+      });
+
+      source[modType] = toArray(mods);
+
+      if (modType === 'routes') {
+        source[modType] = populateRoutes(source[modType]);
+      }
+    }
+
+    return source;
+  }, {});
+};
 
 const Nest = {
 
@@ -114,7 +143,7 @@ const Nest = {
  *
  * @return {Object} A nest instance
  */
-export function createNest(root) {
+const createNest = function(root) {
   const nest = Object.create(Nest);
 
   nest.load(root);
@@ -122,33 +151,6 @@ export function createNest(root) {
   nest.connection = mongoConnection;
 
   return nest;
-}
+};
 
-/**
- * Requires the plugins, workers and routes from a root directory
- * @param  {String} rootdir Absolute path to the root directory
- * @return {Object}         Resolved modules
- */
-export function getNestModules(rootdir) {
-  return ['plugins', 'workers', 'routes'].reduce((source, modType) => {
-    const dir = path.join(rootdir, modType);
-
-    if (!fs.existsSync(dir) || !fs.lstatSync(dir).isDirectory()) {
-      source[modType] = [];
-    } else {
-      const mods = requireAll({
-        dirname: dir,
-        resolve: (mod) => mod && mod.default ? mod.default : mod,
-        recursive: true
-      });
-
-      source[modType] = toArray(mods);
-
-      if (modType === 'routes') {
-        source[modType] = populateRoutes(source[modType]);
-      }
-    }
-
-    return source;
-  }, {});
-}
+export { createNest, getNestModules };

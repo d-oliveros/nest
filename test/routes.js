@@ -3,13 +3,12 @@ import './testenv';
 import fs from 'fs';
 import path from 'path';
 import mkdirp from 'mkdirp';
-import { toArray } from 'lodash';
 import { prettyPrint } from 'html';
 import Mocha, { Test, Suite } from 'mocha';
-import createSpider from '../src/spider';
+import { createSpider } from '../src/spider';
 import { populateRoutes } from '../src/route';
-import Action from '../src/db/Action';
 import logger from '../src/logger';
+import Action from '../src/db/Action';
 import Item from '../src/db/Item';
 
 /**

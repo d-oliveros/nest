@@ -1,4 +1,7 @@
 import { EventEmitter } from 'events';
+import inspect from 'util-inspect';
+
+const debug = require('debug')('emitter');
 
 /**
  * Event Emitter with chainable emitters support.
@@ -32,6 +35,8 @@ const Emitter = {
     // emit the event through own emitter
     EventEmitter.prototype.emit.apply(this, args);
 
+    debug(`Emitting ${inspect(args)}`);
+
     // emit the event through all the attached emitters
     this.emitters.forEach((emitter) => {
       emitter.emit(args);
@@ -44,11 +49,17 @@ const Emitter = {
  * @param  {Object}  emitter  Base emitter instance. Optional.
  * @return {Object}           Initialized emitter instance.
  */
-export default function createEmitter(emitter) {
-  emitter = emitter || Object.assign(Object.create(Emitter), EventEmitter.prototype);
-  emitter.emitters = new Set();
+const createEmitter = function(emitter) {
+  emitter = emitter || Object.create(Emitter);
+
+  emitter = Object.assign(emitter, EventEmitter.prototype, {
+    emitters: new Set(),
+    emit: Emitter.emit
+  });
 
   EventEmitter.call(emitter);
 
   return emitter;
-}
+};
+
+export { Emitter as emitterProto, createEmitter };

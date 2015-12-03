@@ -1,42 +1,25 @@
-import { toArray, find, each, pick, defaults, isObject, isFunction, identity, compact, sortBy } from 'lodash';
+import { pick, defaults, identity, compact, isBoolean, isString, isObject, isFunction } from 'lodash';
+import inspect from 'util-inspect';
 import invariant from 'invariant';
 import phantom from 'phantom';
 import createError from 'http-errors';
 import request from 'request-promise';
 import phantomConfig from '../config/phantom';
-import Item from './db/Item';
-import Action from './db/Action';
-import createEmitter, { emitterProto } from './emitter';
+import { createPage } from './page';
 import logger from './logger';
-import createPage from './page';
 
 const debug = logger.debug('nest:spider');
 const { PHANTOM_LOG, FORCE_DYNAMIC } = process.env;
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const MAX_RETRY_COUNT = 3;
 
-const baseProto = {
-  running: true,
-  isVerbose: false,
-  phantom: null,
-  iteration: 0,
-
-  // enables "verbose" mode
-  verbose() {
-    if (!this.isVerbose) {
-      this.on('start', debug.bind(this, 'Starting action.'));
-      this.on('finish', debug.bind(this, 'Action finished.'));
-      this.on('scraped:raw', debug.bind(this, 'Got raw scraped data.'));
-      this.on('scraped:page', debug.bind(this, 'Scraped a page.'));
-      this.isVerbose = true;
-    }
-  },
+const Spider = {
 
   /**
-   * Page functions
+   * Requests a url with request or PhantomJS, if 'dynamic' is true
+   * @param  {String}  url      The URL to open
+   * @param  {Object}  options  Optional parameters
+   * @return {Object}           A Page instance
    */
-
-  // opens a URL, returns a loaded page
-  // if "dynamic" is false, it will use cheerio instead of PhantomJS to scrape
   async open(url, options = {}) {
     invariant(isObject(options), 'Options needs to be an object');
 
@@ -48,6 +31,11 @@ const baseProto = {
     return await getPage.call(this, url);
   },
 
+  /**
+   * Requests a url with request
+   * @param  {String}  url  The URL to request
+   * @return {Object}       A Page instance
+   */
   async openStatic(url) {
     debug(`Opening URL ${url}`);
 
@@ -59,11 +47,14 @@ const baseProto = {
     const html = body;
     const page = createPage(html, { url, statusCode, res });
 
-    this.emit('page:open', page);
-
     return page;
   },
 
+  /**
+   * Requests a url with PhantomJS
+   * @param  {String}  url  The URL to request
+   * @return {Object}       A Page instance
+   */
   async openDynamic(url) {
     debug(`Opening URL ${url} with PhantomJS`);
 
@@ -78,18 +69,20 @@ const baseProto = {
     const pageOpenStatus = await phantomPage.openAsync(url);
     invariant(pageOpenStatus === 'success', `Could not open url: ${url}`);
 
-    const jsInjectionStatus = await this.includeJS(phantomPage);
-    invariant(jsInjectionStatus, `Could not include JS on url: ${url}`);
+    const jsInjectionStatus = await this.injectJS(phantomPage);
+    invariant(jsInjectionStatus, `Could not inject JS on url: ${url}`);
 
-    const html = await phantomPage.evaluateAsync(() => $('html').html()); // eslint-disable-line
+    const getHTML = () => $('html').html(); // eslint-disable-line no-undef
+    const html = await phantomPage.evaluateAsync(getHTML);
     const page = createPage(html, { url, phantomPage });
-
-    this.emit('page:open', page, phantomPage);
 
     return page;
   },
 
-  // creates a phantomJS instance
+  /**
+   * Creates a PhantomJS instance
+   * @return {Object}  PhantomJS instance
+   */
   async createPhantom() {
     debug('Creating PhantomJS instance');
 
@@ -101,7 +94,10 @@ const baseProto = {
     });
   },
 
-  // stops its phantomJS instance
+  /**
+   * Stops own phantomjs instance
+   * @return {undefined}
+   */
   stopPhantom() {
     if (this.phantom) {
       debug('Stopping PhantomJS');
@@ -111,7 +107,10 @@ const baseProto = {
     this.phantom = null;
   },
 
-  // creates a PhantomJS Page instance
+  /**
+   * Creates a PhantomJS Page instance
+   * @return {Object}  PhantomJS page instance
+   */
   async createPhantomPage() {
     const ph = this.phantom || await this.createPhantom();
 
@@ -139,73 +138,54 @@ const baseProto = {
     });
   },
 
-  // includes javascript <script> tags in opened web page
-  async includeJS(page) {
-    debug('Including JS on page');
+  /**
+   * Injects javascript <script> tags in opened web page
+   * @param  {Object}  page  Page instance to inject the JS
+   * @return {[type]}      [description]
+   */
+  async injectJS(page) {
+    debug('Injecting JS on page');
 
     return await new Promise((resolve) => {
-      page.includeJs('https://code.jquery.com/jquery-2.1.4.min.js', (status) => {
+      const jqueryUrl = 'https://code.jquery.com/jquery-2.1.4.min.js';
+      page.includeJs(jqueryUrl, (status) => {
         resolve(status);
       });
     });
   },
 
   /**
-   * Control functions
+   * Stops the spider, optionally clearing the listeners
+   * @param  {Boolean}  removeListeners  Should its event listeners be removed?
+   * @return {undefined}
    */
-
-  // stops the spider, optionally clearing the listeners
   stop(removeListeners) {
     debug('Stopping Spider');
 
-    this.emit('spider:stopped');
+    this.running = false;
+    this.stopPhantom();
 
     if (removeListeners) {
       this.removeAllListeners();
     }
-
-    this.stopPhantom();
-    this.running = false;
   },
 
-
   /**
-   * Scraper functions
+   * Scrapes a web page using a route handler definition
+   * @param  {String}  url  URL to scrape
+   * @param  {Object}  route   Route definition, holding the scraper func
+   * @param  {Object}  meta    Meta information
+   * @return {Object}          Scraped data.
    */
+  async scrape(url, route, meta = {}) {
+    invariant(isObject(route), `Route not found`);
 
-  async scrape(action, { routes, plugins }, meta = {}) {
-    invariant(isObject(action), 'Action is not valid');
-
-    if (action.state.finished) {
-      debug('Action was already finished');
-      return action;
-    }
-
-    const { state, routeId } = action;
-    const route = find(routes, { key: routeId });
-
-    invariant(isObject(route), `Route "${routeId}" not found`);
-    invariant(route.initialized, 'Route has not been initialized');
-
-    debug(`Starting action: ${action.routeId}` +
-      (action.query ? ` ${action.query}` : ''));
-
-    // save the starting time of this action
-    if (action.wasNew) {
-      state.startedDate = Date.now();
-    }
-
-    // create the URL using the action's parameters
-    const url = route.urlGenerator(action);
-
-    this.emit('action:start', action, url);
-
-    // opens the page
     let page;
     let status;
 
+    // open the page
     try {
-      page = await this.open(url, { dynamic: route.isDynamic });
+      page = await this.open(url, { dynamic: route.dynamic });
 
       // manually check if the page has been blocked
       if (isFunction(route.checkStatus)) {
@@ -224,10 +204,8 @@ const baseProto = {
       }
     }
 
-    // if the action has been stopped
     if (!this.running) {
-      this.emit('action:stopped', action);
-      return action;
+      return null;
     }
 
     debug(`Got ${status}`);
@@ -235,187 +213,74 @@ const baseProto = {
     // run the route's error handler for 4xx routes
     if (status >= 400) {
 
-      let newAction;
+      let nextStep = 'stop';
+
+      meta.errorCount = meta.errorCount || 0;
+      meta.errorCount++;
 
       try {
-        newAction = await route.onError.call(this, action, meta);
-      } catch (err) {
-        newAction = null;
-        logger.error(err);
-
-        if (isObject(err) && !isNaN(err.statusCode)) {
-          status = parseInt(err.statusCode, 10);
+        if (isFunction(route.onError)) {
+          nextStep = await route.onError.call(this, route, meta);
+        } else {
+          const retryCount = route.retryCount || MAX_RETRY_COUNT;
+          nextStep = meta.errorCount <= retryCount ? 'retry' : 'stop';
         }
+      } catch (err) {
+        logger.error(err);
       }
 
-      // if nothing was returned from the error handler, stop
-      if (!newAction) {
-        this.running = false;
-        this.emit('action:stopped', action);
-        throw createError(status);
+      if (isBoolean(nextStep)) {
+        nextStep = nextStep ? 'retry' : 'stop';
       }
 
-      // if the error handler returned `true` or a truthy value,
-      // restart the action
-      if (!isObject(newAction)) {
-        newAction = action;
-      }
+      invariant(isString(nextStep), 'Next step is not a string');
 
-      meta.retryCount = meta.retryCount || 0;
-      meta.retryCount++;
-      return await this.scrape(action, { routes, plugins }, meta);
+      this.stopPhantom();
+
+      switch (nextStep) {
+        case 'stop':
+          this.running = false;
+          debug(`Stopping with error`);
+          throw createError(status);
+
+        case 'retry':
+          debug(`Retrying url ${url} (Retry count ${meta.errorCount})`);
+          return await this.scrape(url, route, meta);
+
+        default:
+          const newUrl = nextStep;
+          debug(`Jumping to ${newUrl} with ${inspect(route)}, ${inspect(meta)}`);
+          return await this.scrape(newUrl, route, meta);
+      }
     }
 
-    // scapes and sanitizes the page
+    // scapes the page
     let scraped = await page.runInContext(route.scraper);
-    this.emit('scraped:raw', scraped, action, page);
 
     scraped = this.sanitizeScraped(scraped);
+    scraped.page = page;
 
-    each(scraped.items, (item) => {
-      item.routeId = route.key;
-      item.routeWeight = route.priority;
-    });
+    for (const item of scraped.items) {
+      if (route.key) {
+        item.routeId = route.key;
+      }
+      if (route.priority) {
+        item.routeWeight = route.priority;
+      }
+    }
 
     debug(`Scraped ${scraped.items.length} items`);
 
-    // apply route-specific middleware
-    if (isFunction(route.middleware)) {
-      try {
-        scraped = await route.middleware(scraped) || scraped;
-      } catch (err) {
-        logger.error(err);
-      }
-    }
-
-    // apply plugins
-    for (const plugin of sortBy(toArray(plugins), 'weight')) {
-      try {
-        scraped = await plugin(scraped) || scraped;
-      } catch (err) {
-        logger.error(err);
-      }
-    }
-
-    const newOps = await this.spawnActions(scraped.actions, routes);
-
-    if (newOps.length) {
-      this.emit('actions:created', newOps);
-      action.stats.spawned += newOps.length;
-    }
-
-    // save and update items
-    const results = await Item.eachUpsert(scraped.items);
-    results.actionsCreated = newOps.length;
-
-    // change state
-    if (scraped.hasNextPage) {
-      state.currentPage++;
-    } else {
-      state.finished = true;
-      state.finishedDate = Date.now();
-    }
-
-    state.history.push(url);
-
-    if (scraped.state) {
-      state.data = Object.assign(state.data || {}, scraped.state);
-    }
-
-    action.stats.pages++;
-    action.stats.items += results.created;
-    action.stats.updated += results.updated;
-    action.updated = new Date();
-
-    this.iteration++;
-    this.emit('scraped:page', results, action);
     this.stopPhantom();
 
-    debug('Saving action');
-    await action.save();
-
-    // if the action has been stopped
-    if (!this.running) {
-      this.emit('action:stopped', action);
-    }
-
-    // Action finished
-    if (state.finished) {
-      this.emit('action:finish', action);
-      this.running = false;
-      return action;
-    }
-
-    // Action has next page
-    debug(`Scraping next page`);
-    this.emit('action:next', action);
-
-    return await this.scrape(action, { routes, plugins });
+    return scraped;
   },
 
   /**
-   * Creates new scraping actions
-   * @param  {Array}  actions  Actions to create
-   * @param  {Object} routes   available routes
-   * @return {Promise}
+   * Normalizes and sanitizes scraped data
+   * @param  {Object}  scraped  The scraped data
+   * @return {Object}           Sanitized data
    */
-  async spawnActions(actions, routes) {
-    if (actions.length === 0) {
-      debug('No actions to spawn');
-      return [];
-    }
-
-    debug('Spawning actions');
-
-    const promises = actions.map((op) => {
-      const { routeId, query } = op;
-      const targetRoute = find(routes, { key: routeId });
-
-      if (!targetRoute) {
-        logger.warn(`[spawnActions]: Route ${routeId} does not exist`);
-        return Promise.resolve();
-      }
-
-      // Create a new action
-      return Action.findOrCreate(query, targetRoute);
-    });
-
-    const newActions = await Promise.all(promises);
-
-    debug(`Actions spawned: ${newActions.length} actions`);
-
-    return newActions;
-  },
-
-  defaultErrorHandler(action, meta = {}) {
-    if (meta.retryCount < 3) {
-      debug('Action blocked. Retrying in 5s...\n' +
-        `Will retry ${3 - meta.retryCount} more times`);
-
-      let resolved = false;
-      return new Promise((resolve) => {
-        function onSpiderStopped() {
-          resolved = true;
-          resolve();
-        }
-
-        this.once('spider:stopped', onSpiderStopped);
-
-        sleep(5000).then(() => {
-          if (!resolved) {
-            resolved = true;
-            this.removeListener('spider:stopped', onSpiderStopped);
-            resolve();
-          }
-        });
-      });
-    }
-
-    debug(`Action blocked. Aborting.`);
-    return false;
-  },
-
-  // sanitize the raw scraped data
   sanitizeScraped(scraped) {
     const sanitized = isObject(scraped) ? Object.assign({}, scraped) : {};
 
@@ -429,11 +294,11 @@ const baseProto = {
     });
 
     // validate scraped.items and scraped.actions type
-    ['items', 'actions'].forEach((field) => {
+    for (const field of ['items', 'actions']) {
       invariant(sanitized[field] instanceof Array,
         `Scraping function returned data.${field}, ` +
         `but its not an array.`);
-    });
+    }
 
     // sanitize the actions
     sanitized.actions = compact(sanitized.actions.map((op) => {
@@ -460,10 +325,16 @@ const baseProto = {
   }
 };
 
-const spiderProto = Object.assign({}, emitterProto, baseProto);
+/**
+ * Creates or initializes a spider instance
+ * @param  {Object}  spider  Base spider instance
+ * @return {Object}          Instanciated spider instance
+ */
+const createSpider = function(spider) {
+  return Object.assign(spider || Object.create(Spider), {
+    running: true,
+    phantom: null
+  });
+};
 
-export default function createSpider(spider) {
-  spider = spider || Object.create(spiderProto);
-  createEmitter(spider);
-  return spider;
-}
+export { Spider as spiderProto, createSpider };

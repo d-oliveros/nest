@@ -1,69 +1,79 @@
-import { EventEmitter } from 'events';
+import { find, isFunction, isObject, times, pluck } from 'lodash';
 import inspect from 'util-inspect';
 import Queue from 'promise-queue';
 import invariant from 'invariant';
-import { find, isFunction, isObject, times, map, pluck } from 'lodash';
+import { EventEmitter } from 'events';
 import engineConfig from '../config/engine';
-import createWorker from './worker';
-import logger from './logger';
+import { createWorker } from './worker';
+import { chainableEmitter } from './emitter';
 import Action from './db/Action';
+import logger from './logger';
 
 const debug = require('debug')('nest:engine');
+const emitterProto = EventEmitter.prototype;
 
-const engineProto = {
-  running: false,
+const Engine = {
 
+  initialize() {
+    if (this.running) return;
+
+    // Create default workers
+    times(engineConfig.workers, () => this.assignWorker());
+
+    // Create custom workers
+    for (const blueprint of this.modules.workers) {
+      const amount = blueprint.concurrency || engineConfig.workers;
+      times(amount, () => this.assignWorker(blueprint));
+    }
+
+    debug(`Created ${this.workers.length} workers`);
+  },
+
+  /**
+   * Spawns workers, assign actions to workers, and start each worker's loop.
+   * @return {Promise}  Resolved when all the workers are assigned an action.
+   */
   async start() {
     if (this.running) return;
 
-    const stats = {};
+    this.initialize();
     this.running = true;
 
-    // Create default workers
-    times(engineConfig.workers, () => {
-      const worker = createWorker(this);
-      this.workers.push(worker);
-      stats[worker.key] = stats[worker.key] || 0;
-      stats[worker.key]++;
-    });
-
-    // Create custom workers
-    for (const workerDefinition of this.modules.workers) {
-      const amount = workerDefinition.concurrency || engineConfig.workers;
-
-      times(amount, () => {
-        const worker = createWorker(this, workerDefinition);
-        this.workers.push(worker);
-        stats[worker.key] = stats[worker.key] || 0;
-        stats[worker.key]++;
-      });
-    }
-
-    const msg = map(stats, (amount, key) => {
-      return `${amount} ${key} workers`;
-    });
-
-    if (msg.length === 0) {
-      debug(`No workers created`);
-    } else {
-      debug(`Created ${msg.join(' and ')}`);
-    }
-
     const workerStartPromises = this.workers.map((worker) => worker.start());
-    const initialOps = await Promise.all(workerStartPromises);
+    await Promise.all(workerStartPromises);
 
-    return initialOps;
+    return;
   },
 
+  /**
+   * Stops the engine and its workers.
+   * @return {Promise}  Resolved when all the workers are stopped.
+   */
   async stop() {
     if (!this.running) return;
 
-    this.running = false;
-    this.workers = [];
+    await Promise.all(this.workers.map((worker) => worker.stop()));
 
-    return await Promise.all(this.workers.map((worker) => worker.stop()));
+    this.running = false;
+    this.workers.length = 0;
   },
 
+  /**
+   * Creates a new worker, links the worker's emitter to the engine's emitter
+   * @param {Object}  definition  Properties to augment the worker with
+   * @return {Object}             The newly created worker
+   */
+  assignWorker(definition) {
+    const worker = createWorker(this, definition);
+    worker.addEmitter(this);
+    this.workers.push(worker);
+  },
+
+  /**
+   * Queries for a new action, and assigns the action to the worker
+   * @param  {Object}  worker  Worker to assign the action to
+   * @return {Object}          Fetched Action instance.
+   */
   async assignAction(worker) {
     return await this.queue.add(async () => {
       debug(`Queue access`);
@@ -100,9 +110,7 @@ const engineProto = {
         .sort({ 'priority': -1 })
         .exec();
 
-      if (!action) {
-        this.emit('action:noop');
-      } else {
+      if (action) {
         const routeKey = action.routeId;
         const query = action.query;
         const route = find(this.modules.routes, { key: routeKey });
@@ -113,15 +121,17 @@ const engineProto = {
         worker.route = route;
       }
 
-      this.emit('action:assigned', action, worker);
-
       return action;
     });
   },
 
+  /**
+   * Gets the base query to be used to fetch a new action from the database
+   * @return {Object}  Query
+   */
   getBaseActionQuery() {
     const runningActions = this.getRunningActionIds();
-    const disabledRoutes = this.getDisabledRoutes();
+    const disabledRoutes = this.getDisabledRouteIds();
     const routeIds = pluck(this.modules.routes, 'key');
 
     // build the query used to get an action
@@ -141,7 +151,12 @@ const engineProto = {
     return query;
   },
 
-  getDisabledRoutes() {
+  /**
+   * Gets the disabled routes.
+   * A route may be disabled if the route's concurrency treshold has been met.
+   * @return {Array}  Array of disabled route IDs.
+   */
+  getDisabledRouteIds() {
     const disabledRoutes = [];
     const runningRoutes = {};
 
@@ -159,11 +174,15 @@ const engineProto = {
       }
     }
 
-    debug(`Getting disabled routes: ${inspect(disabledRoutes)}`);
+    debug(`Getting disabled route IDs: ${inspect(disabledRoutes)}`);
 
     return disabledRoutes;
   },
 
+  /**
+   * Gets the running action IDs from the workers
+   * @return {Array}  Action IDs currently in progress
+   */
   getRunningActionIds() {
     return this.workers.reduce((ids, worker) => {
       if (worker.action) {
@@ -175,16 +194,26 @@ const engineProto = {
   }
 };
 
-const composedProto = Object.assign({}, EventEmitter.prototype, engineProto);
+/**
+ * Creates a new engine
+ * @param  {Object}  modules  Modules to use with this engine
+ * @return {Object}           Newly created Engine instance
+ */
+function createEngine(modules) {
+  let engine = Object.create(Engine);
 
-export default function createEngine(modules) {
-  const engine = Object.assign(Object.create(composedProto), { modules }, {
+  engine = Object.assign(engine, emitterProto, chainableEmitter, { modules }, {
+    emitters: new Set(),
+    running: false,
     workers: [],
+    initialized: false,
     queue: new Queue(1, Infinity)
   });
 
-  // Initializes the event emitter in the engine
+  // Initializes the engine's event emitter
   EventEmitter.call(engine);
 
   return engine;
 }
+
+export { Engine as engineProto, createEngine };

@@ -33,7 +33,6 @@ const schema = new mongoose.Schema({
     finished:     { type: Boolean, default: false },
     finishedDate: { type: Date },
     startedDate:  { type: Date },
-    history:     [{ type: String }],
     data:         { type: Mixed, default: {} }
   }
 });
@@ -55,11 +54,14 @@ extend(schema.statics, {
 
   /**
    * Creates or find an action to this route with the provided query argument.
+   * @param {Object}         route  The route instance.
+   * @param {String|Object}  query  The query parameter of this action.
+   * @returns {Object}              The created or updated action.
    */
-  async findOrCreate(query, route) {
+  async findOrCreate(route, query) {
     invariant(isObject(route), 'Route is not an object');
     invariant(!isArray(query), 'Query arrays not supported');
-    invariant(route.key, 'Route name is required.');
+    invariant(route.key, 'Route key is required.');
 
     const key = {
       routeId: route.key
@@ -75,7 +77,7 @@ extend(schema.statics, {
 
     if (!action) {
       const params = extend({}, key, {
-        priority: route.priority
+        priority: route.priority || 50
       });
 
       debug(`Creating action with params:\n${inspect(params)}`);
@@ -87,32 +89,7 @@ extend(schema.statics, {
     }
 
     return action;
-  },
-
-  async getNext(params) {
-    invariant(isObject(params), 'Invalid params');
-
-    const { actionIds, disabledRoutes } = params;
-
-    const query = {
-      'state.finished': false
-    };
-
-    if (actionIds) {
-      query._id = { $nin: actionIds };
-    }
-
-    if (disabledRoutes && disabledRoutes.length) {
-      query.routeId = { $nin: disabledRoutes };
-    }
-
-    debug(`Getting next action.\n` +
-      `Query: ${inspect(query)}\n` +
-      `Params: ${inspect(params)}`);
-
-    return await this.findOne(query).sort({ 'priority': -1 }).exec();
   }
-
 });
 
 

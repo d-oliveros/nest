@@ -3,13 +3,12 @@ import './testenv';
 import fs from 'fs';
 import path from 'path';
 import mkdirp from 'mkdirp';
-import { toArray } from 'lodash';
 import { prettyPrint } from 'html';
 import Mocha, { Test, Suite } from 'mocha';
-import createSpider from '../src/spider';
+import { createSpider } from '../src/spider';
 import { populateRoutes } from '../src/route';
-import Action from '../src/db/Action';
 import logger from '../src/logger';
+import Action from '../src/db/Action';
 import Item from '../src/db/Item';
 
 /**
@@ -67,51 +66,29 @@ function createRouteTest(route, { routes, plugins }, dataDir) {
   const testParams = route.test;
   const { shouldSpawnActions, shouldCreateItems } = testParams;
   const responsabilities = getTestResponsabilities(testParams);
-
   const testName = `${route.name} should ${responsabilities.join(' and ')}`;
 
-  return new Test(testName, function(done) {
+  return new Test(testName, async () => {
     const spider = createSpider();
 
+    const action = await Action.findOrCreate(route, testParams.query);
+    const url = route.getUrl(action);
+    const scraped = await spider.scrape(url, route);
+
     if (dataDir) {
-      spider.on('page:open', logPageBody(route, dataDir));
+      await logScrapedData(scraped, route, dataDir);
+      await logPageBody(scraped, route, dataDir);
     }
 
-    spider.once('scraped:page', ({ created, actionsCreated }) => {
-      spider.stop(true);
+    if (shouldSpawnActions && !scraped.actions.length) {
+      const errorMsg = 'New crawling actions were not spawned.';
+      throw new Error(errorMsg);
+    }
 
-      if (shouldSpawnActions && !actionsCreated) {
-        const errorMsg = 'New crawling actions were not spawned.';
-        return done(new Error(errorMsg));
-      }
-
-      if (shouldCreateItems && !created) {
-        const errorMsg = 'No results scraped from page.';
-        return done(new Error(errorMsg));
-      }
-
-      spider.once('action:stopped', () => done());
-    });
-
-    // Skip this test if the request gets blocked
-    let blockedRetries = 2;
-    spider.on('action:blocked', (action) => {
-      if (blockedRetries === 0) {
-        spider.stop(true);
-        console.log(`${action.routeId} was blocked. Skipping test...`);
-        done();
-      } else {
-        console.log(`${action.routeId} was blocked. ` +
-          `Retrying ${blockedRetries} more times...`);
-        blockedRetries--;
-      }
-    });
-
-    Action.findOrCreate(testParams.query, route)
-      .then((action) => {
-        return spider.scrape(action, { routes, plugins });
-      })
-      .catch(done);
+    if (shouldCreateItems && !scraped.items.length) {
+      const errorMsg = 'No items scraped from page.';
+      throw new Error(errorMsg);
+    }
   });
 }
 
@@ -129,13 +106,34 @@ function getTestResponsabilities(params) {
   return responsabilities;
 }
 
-function logPageBody(route, dataDir) {
-  return ({ data, isJSON }) => {
-    const ext = isJSON ? 'json' : 'html';
-    const dumppath = path.join(dataDir, 'test-data');
-    const filename = `${route.key}.${ext}`;
-    const abspath = path.join(dumppath, filename);
+function logScrapedData(scraped, route, dataDir) {
+  const dumppath = path.join(dataDir, 'test-data');
+  const filename = `scraped-${route.key}.json`;
+  const abspath = path.join(dumppath, filename);
 
+  return new Promise((resolve) => {
+    mkdirp(dumppath, (err) => {
+      if (err) return logger.warn(err.stack);
+
+      fs.writeFile(abspath, JSON.stringify(scraped, null, 2), (err) => {
+        if (err) {
+          logger.warn(err.stack);
+        }
+
+        resolve();
+      });
+    });
+  });
+}
+
+function logPageBody({ page }, route, dataDir) {
+  const { data, isJSON } = page;
+  const ext = isJSON ? 'json' : 'html';
+  const dumppath = path.join(dataDir, 'test-data');
+  const filename = `${route.key}.${ext}`;
+  const abspath = path.join(dumppath, filename);
+
+  return new Promise((resolve) => {
     mkdirp(dumppath, (err) => {
       if (err) return logger.warn(err.stack);
 
@@ -145,7 +143,8 @@ function logPageBody(route, dataDir) {
         if (err) {
           logger.warn(err.stack);
         }
+        resolve();
       });
     });
-  };
+  });
 }

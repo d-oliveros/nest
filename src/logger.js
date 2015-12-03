@@ -2,10 +2,17 @@ import winston, { Logger } from 'winston';
 import debug from 'debug';
 import path from 'path';
 
+/**
+ * @see https://github.com/winstonjs/winston
+ * @providesModule logger
+ */
 const logPath = path.resolve(__dirname, '..', 'nest.log');
 const { NEST_LOG, NODE_ENV } = process.env;
 const { Console, File } = winston.transports;
 
+/**
+ * Logger transports
+ */
 const transports = [
   new Console({
     level: 'info',
@@ -21,6 +28,9 @@ if (NEST_LOG === 'true') {
   }));
 }
 
+/**
+ * Instanciated winston logger instance
+ */
 const logger = new Logger({ transports });
 
 logger.debug = (key) => {

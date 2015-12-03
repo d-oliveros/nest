@@ -4,18 +4,48 @@ import requireAll from 'require-all';
 import invariant from 'invariant';
 import { isObject, isString, defaults, toArray, find, pick } from 'lodash';
 import { populateRoutes } from './route';
+import { createEngine } from './engine';
+import { createSpider } from './spider';
 import mongoConnection from './db/connection';
 import Action from './db/Action';
-import createEngine from './engine';
-import createSpider from './spider';
+import Item from './db/Item';
 
-const nestProto = {
+/**
+ * Requires the plugins, workers and routes from a root directory
+ * @param  {String} rootdir Absolute path to the root directory
+ * @return {Object}         Resolved modules
+ */
+const getNestModules = function(rootdir) {
+  return ['plugins', 'workers', 'routes'].reduce((source, modType) => {
+    const dir = path.join(rootdir, modType);
+
+    if (!fs.existsSync(dir) || !fs.lstatSync(dir).isDirectory()) {
+      source[modType] = [];
+    } else {
+      const mods = requireAll({
+        dirname: dir,
+        resolve: (mod) => mod && mod.default ? mod.default : mod,
+        recursive: true
+      });
+
+      source[modType] = toArray(mods);
+
+      if (modType === 'routes') {
+        source[modType] = populateRoutes(source[modType]);
+      }
+    }
+
+    return source;
+  }, {});
+};
+
+const Nest = {
 
   /**
-   * Scrapes a route, optionally providing a query
+   * Scrapes a route with the provided query
    *
-   * @param  {Object|String} route Route key or loaded route object
-   * @param  {String} query Query string
+   * @param  {Object|String}  route  Route key or loaded route object
+   * @param  {String}  query  Query string. Optional.
    * @return {Promise}
    */
   async scrape(route, query) {
@@ -34,10 +64,34 @@ const nestProto = {
     });
   },
 
+  /**
+   * Initializes a route with the provided query.
+   * @param  {Object}         route  A route instance
+   * @param  {String|Object}  query  Query string. Optional.
+   * @return {Object}                Resulting action definition.
+   */
   async initialize(route, query) {
-    return await Action.findOrCreate(query, route);
+    return await Action.findOrCreate(route, query);
   },
 
+  /**
+   * Creates or updates an item in the database.
+   *
+   * Note that if an item with the same key already exists,
+   * this item will be augmented instead.
+   *
+   * @param {Object}     item  The item to add.
+   * @returns {Promise}        The item that was just upserted.
+   */
+  addItem(item) {
+    return Item.upsert(item);
+  },
+
+  /**
+   * Gets a route by its route key
+   * @param  {Object}  routeKey  The route's ID
+   * @return {Object}            The route, or null if not found
+   */
   getRoute(routeKey) {
     return find(this.routes, { key: routeKey });
   },
@@ -77,35 +131,6 @@ const nestProto = {
 };
 
 /**
- * Requires the plugins, workers and routes from a root directory
- * @param  {String} rootdir Absolute path to the root directory
- * @return {Object}         Resolved modules
- */
-export function getNestModules(rootdir) {
-  return ['plugins', 'workers', 'routes'].reduce((source, modType) => {
-    const dir = path.join(rootdir, modType);
-
-    if (!fs.existsSync(dir) || !fs.lstatSync(dir).isDirectory()) {
-      source[modType] = [];
-    } else {
-      const mods = requireAll({
-        dirname: dir,
-        resolve: (mod) => mod && mod.default ? mod.default : mod,
-        recursive: true
-      });
-
-      source[modType] = toArray(mods);
-
-      if (modType === 'routes') {
-        source[modType] = populateRoutes(source[modType]);
-      }
-    }
-
-    return source;
-  }, {});
-}
-
-/**
  * Creates new a nest object.
  *
  * @param  {String|Object} root
@@ -118,12 +143,14 @@ export function getNestModules(rootdir) {
  *
  * @return {Object} A nest instance
  */
-export function createNest(root) {
-  const nest = Object.create(nestProto);
+const createNest = function(root) {
+  const nest = Object.create(Nest);
 
   nest.load(root);
   nest.engine = createEngine(pick(nest, 'routes', 'plugins', 'workers'));
   nest.connection = mongoConnection;
 
   return nest;
-}
+};
+
+export { createNest, getNestModules };

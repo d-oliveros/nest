@@ -4,43 +4,47 @@ import logger from './logger';
 
 const debug = logger.debug('nest:route');
 
-export default function createRoute(route) {
+/**
+ * Initializes a new route handler.
+ * @param  {Object}  route  Route definition object
+ * @return {Object}         Initialized route instance
+ */
+const createRoute = function(route) {
   invariant(route.key, 'Key is required.');
 
   if (route.initialized) {
     return route;
   }
 
-  debug('Creating new route', route);
+  debug('Creating new route handler', route);
 
   return Object.assign({}, route, {
     initialized: true,
+
     name: route.name || '',
     description: route.description || '',
 
-    isDynamic: route.dynamic || false,
-    isStatic: !route.dynamic || true,
-
     // template generation function. Takes an action for input
-    urlGenerator: isFunction(route.url)
+    getUrl: isFunction(route.url)
       ? route.url
       : (isString(route.url)
         ? template(route.url)
-        : defaultUrlTemplate),
+        : () => {
+          throw new Error('You need to implement your own URL generator.');
+        }),
 
     // scraping function that should return an object with scraped data
-    scraper: route.scraper || defaultScraper,
-
-    // route-specific middleware to be executed after scraping data from a page
-    middleware: route.middleware || defaultMiddleware,
+    scraper: route.scraper ? route.scraper : () => {
+      throw new Error('You need to implement your own scraper.');
+    },
 
     // scraping function that can return a status code or throw an error
-    checkStatus: route.checkStatus || defaultCheckStatus,
+    checkStatus: route.checkStatus ? route.checkStatus : () => 'ok',
 
     // function to be called when the route returns an error code >= 400
     // if an action is returned, the spider will be redirected to this action
     // if a truthy value is returned, the spedir will retry this route
-    onError: route.onError || defaultErrorHandler,
+    onError: route.onError ? route.onError : () => true,
 
     // auto-testing options
     test: route.test || null,
@@ -51,14 +55,14 @@ export default function createRoute(route) {
     // routes with higher priority will be processed first by the workers
     priority: isNaN(route.priority) ? 50 : parseInt(route.priority, 10)
   });
-}
+};
 
 /**
  * Populates the routes in the provided object recursively
  * @param  {Object} obj Object to populate routes on
  * @return {Object}     The populated object
  */
-export function populateRoutes(routes) {
+const populateRoutes = function(routes) {
   if (!isArray(routes)) routes = toArray(routes);
 
   const newRoutes = routes.slice();
@@ -72,28 +76,6 @@ export function populateRoutes(routes) {
   });
 
   return newRoutes;
-}
+};
 
-// default scraper
-function defaultScraper() {
-  throw new Error('You need to implement your own scraper.');
-}
-
-// default urlTemplate
-function defaultUrlTemplate() {
-  throw new Error('You need to implement your own URL generator.');
-}
-
-// default middleware
-function defaultMiddleware(scraped) {
-  return scraped;
-}
-
-function defaultErrorHandler() {
-  return true;
-}
-
-// default status checker.
-function defaultCheckStatus() {
-  return 'ok';
-}
+export { createRoute, populateRoutes };

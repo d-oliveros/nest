@@ -2,15 +2,32 @@ import { find, isFunction, isObject, times, pluck } from 'lodash';
 import inspect from 'util-inspect';
 import Queue from 'promise-queue';
 import invariant from 'invariant';
+import { EventEmitter } from 'events';
 import engineConfig from '../config/engine';
-import { createEmitter, emitterProto } from './emitter';
 import { createWorker } from './worker';
+import { chainableEmitter } from './emitter';
 import Action from './db/Action';
 import logger from './logger';
 
 const debug = require('debug')('nest:engine');
+const emitterProto = EventEmitter.prototype;
 
 const Engine = {
+
+  initialize() {
+    if (this.running) return;
+
+    // Create default workers
+    times(engineConfig.workers, () => this.assignWorker());
+
+    // Create custom workers
+    for (const blueprint of this.modules.workers) {
+      const amount = blueprint.concurrency || engineConfig.workers;
+      times(amount, () => this.assignWorker(blueprint));
+    }
+
+    debug(`Created ${this.workers.length} workers`);
+  },
 
   /**
    * Spawns workers, assign actions to workers, and start each worker's loop.
@@ -19,18 +36,8 @@ const Engine = {
   async start() {
     if (this.running) return;
 
+    this.initialize();
     this.running = true;
-
-    // Create default workers
-    times(engineConfig.workers, () => this.assignWorker());
-
-    // Create custom workers
-    for (const workerDefinition of this.modules.workers) {
-      const amount = workerDefinition.concurrency || engineConfig.workers;
-      times(amount, () => this.assignWorker(workerDefinition));
-    }
-
-    debug(`Created ${this.workers.length} workers`);
 
     const workerStartPromises = this.workers.map((worker) => worker.start());
     await Promise.all(workerStartPromises);
@@ -45,10 +52,10 @@ const Engine = {
   async stop() {
     if (!this.running) return;
 
-    this.running = false;
-    this.workers = [];
+    await Promise.all(this.workers.map((worker) => worker.stop()));
 
-    return await Promise.all(this.workers.map((worker) => worker.stop()));
+    this.running = false;
+    this.workers.length = 0;
   },
 
   /**
@@ -103,9 +110,7 @@ const Engine = {
         .sort({ 'priority': -1 })
         .exec();
 
-      if (!action) {
-        this.emit('action:noop');
-      } else {
+      if (action) {
         const routeKey = action.routeId;
         const query = action.query;
         const route = find(this.modules.routes, { key: routeKey });
@@ -115,8 +120,6 @@ const Engine = {
         worker.action = action;
         worker.route = route;
       }
-
-      this.emit('action:assigned', action, worker);
 
       return action;
     });
@@ -197,16 +200,18 @@ const Engine = {
  * @return {Object}           Newly created Engine instance
  */
 function createEngine(modules) {
-  const { assign, create } = Object;
+  let engine = Object.create(Engine);
 
-  const engine = assign(create(Engine), emitterProto, { modules }, {
+  engine = Object.assign(engine, emitterProto, chainableEmitter, { modules }, {
+    emitters: new Set(),
     running: false,
     workers: [],
+    initialized: false,
     queue: new Queue(1, Infinity)
   });
 
   // Initializes the engine's event emitter
-  createEmitter.call(engine);
+  EventEmitter.call(engine);
 
   return engine;
 }

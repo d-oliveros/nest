@@ -1,55 +1,12 @@
 import './testenv';
-import { EventEmitter } from 'events';
 import { expect } from 'chai';
 import { every } from 'lodash';
 import { createSpider } from '../src/spider';
+import mockRoute from './mocks/route';
 
 describe('Spider', function() {
   this.timeout(15000); // 15 seconds
   let globalSpider;
-
-  // @todo Move these to the worker tests. Spiders are no longer emitters
-  xit('should emit an event', (done) => {
-    const spider = createSpider();
-    spider.on('test:event', done);
-    spider.emit('test:event');
-  });
-
-  xit('should add and emit events to an external emitter', (done) => {
-    const spider = createSpider();
-    const emitter = new EventEmitter();
-    let completed = 0;
-
-    spider.addEmitter(emitter);
-
-    expect(spider.emitters.has(emitter)).to.equal(true);
-
-    spider.once('test:event', () => completed++);
-    emitter.once('test:event', () => completed++);
-
-    spider.emit('test:event');
-
-    setTimeout(() => {
-      if (completed !== 2) {
-        return done(new Error('Emitter did not received event'));
-      }
-
-      done();
-    }, 100);
-
-  });
-
-  xit('should remove external emitter', () => {
-    const spider = createSpider();
-    const emitter = new EventEmitter();
-
-    spider.addEmitter(emitter);
-    expect(spider.emitters.has(emitter)).to.equal(true);
-
-    spider.removeEmitter(emitter);
-    expect(spider.emitters.has(emitter)).to.equal(false);
-    expect(spider.emitters.size).to.equal(0);
-  });
 
   it('should open a page statically', async () => {
     const spider = createSpider();
@@ -89,6 +46,20 @@ describe('Spider', function() {
 
       return { items };
     }});
+
+    expect(scraped).to.be.an('object');
+    expect(scraped.actions).to.be.an('array').of.length(0);
+    expect(scraped.items).to.be.an('array');
+
+    expect(scraped.items.length).to.be.greaterThan(20);
+    expect(every(scraped.items, (i) => i.key)).to.equal(true);
+  });
+
+  it('should scrape hacernews with a route definition', async () => {
+    const spider = createSpider();
+    const url = mockRoute.getUrl();
+
+    const scraped = await spider.scrape(url, mockRoute);
 
     expect(scraped).to.be.an('object');
     expect(scraped.actions).to.be.an('array').of.length(0);

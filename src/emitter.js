@@ -39,7 +39,7 @@ const Emitter = {
 
     // emit the event through all the attached emitters
     this.emitters.forEach((emitter) => {
-      emitter.emit(args);
+      emitter.emit.apply(emitter, args);
     });
   }
 };
@@ -62,4 +62,4 @@ const createEmitter = function(emitter) {
   return emitter;
 };
 
-export { Emitter as emitterProto, createEmitter };
+export { Emitter as chainableEmitter, createEmitter };

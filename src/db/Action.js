@@ -61,7 +61,7 @@ extend(schema.statics, {
   async findOrCreate(route, query) {
     invariant(isObject(route), 'Route is not an object');
     invariant(!isArray(query), 'Query arrays not supported');
-    invariant(route.key, 'Route name is required.');
+    invariant(route.key, 'Route key is required.');
 
     const key = {
       routeId: route.key
@@ -90,7 +90,6 @@ extend(schema.statics, {
 
     return action;
   }
-
 });
 
 

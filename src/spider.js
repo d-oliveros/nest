@@ -1,4 +1,4 @@
-import { pick, defaults, isObject, isFunction, identity, compact } from 'lodash';
+import { pick, defaults, identity, compact, isBoolean, isString, isObject, isFunction } from 'lodash';
 import inspect from 'util-inspect';
 import invariant from 'invariant';
 import phantom from 'phantom';
@@ -229,6 +229,14 @@ const Spider = {
         logger.error(err);
       }
 
+      if (isBoolean(nextStep)) {
+        nextStep = nextStep ? 'retry' : 'stop';
+      }
+
+      invariant(isString(nextStep), 'Next step is not a string');
+
+      this.stopPhantom();
+
       switch (nextStep) {
         case 'stop':
           this.running = false;
@@ -261,6 +269,8 @@ const Spider = {
     }
 
     debug(`Scraped ${scraped.items.length} items`);
+
+    this.stopPhantom();
 
     return scraped;
   },

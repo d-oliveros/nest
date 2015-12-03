@@ -258,6 +258,7 @@ const Spider = {
     let scraped = await page.runInContext(route.scraper);
 
     scraped = this.sanitizeScraped(scraped);
+    scraped.page = page;
 
     for (const item of scraped.items) {
       if (route.key) {

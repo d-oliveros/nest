@@ -1,8 +1,8 @@
 import { EventEmitter } from 'events';
 import { expect } from 'chai';
 import { createWorker } from '../src/worker';
-import { createEngine } from '../src/engine';
-import Action from '../src/db/Action';
+import Syndicate from '../src/syndicate';
+import Queue from '../src/db/Queue';
 import Item from '../src/db/Item';
 import mockWorker from './mocks/worker';
 import mockModules from './mocks/modules';
@@ -12,7 +12,7 @@ describe('Worker', function() {
   this.timeout(4000);
 
   beforeEach(async () => {
-    await Action.remove();
+    await Queue.remove();
     await Item.remove();
   });
 
@@ -69,7 +69,7 @@ describe('Worker', function() {
     const maxNoops = 2;
     let noopCount = 0;
 
-    worker.on('action:noop', async () => {
+    worker.on('job:noop', async () => {
       noopCount++;
 
       if (noopCount === maxNoops) {
@@ -81,24 +81,24 @@ describe('Worker', function() {
     worker.start();
   });
 
-  it('should run an action', async () => {
+  it('should run a job', async () => {
     const worker = createMockWorker();
-    const action = await Action.findOrCreate(mockRoute);
+    let job = await Queue.createJob(mockRoute.key);
 
     worker.running = true;
 
-    const newAction = await worker.startAction(action);
+    job = await worker.startJob(job);
 
-    expect(newAction.state.finished).to.equal(true);
-    expect(newAction.stats.items).to.be.greaterThan(20);
+    expect(job.state.finished).to.equal(true);
+    expect(job.stats.items).to.be.greaterThan(20);
   });
 });
 
 function createMockWorker() {
-  const engine = createMockEngine();
-  return createWorker(engine, mockWorker);
+  const syndicate = createMockSyndicate();
+  return createWorker(syndicate, mockWorker);
 }
 
-function createMockEngine() {
-  return createEngine(mockModules);
+function createMockSyndicate() {
+  return new Syndicate(mockModules);
 }

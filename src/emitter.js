@@ -4,9 +4,27 @@ import inspect from 'util-inspect';
 const debug = require('debug')('emitter');
 
 /**
+ * Creates a new emitter instance, or initializes an existing emitter
+ * @param  {Object}  emitter  Base emitter instance. Optional.
+ * @return {Object}           Initialized emitter instance.
+ */
+export function createChainableEmitter(emitter) {
+  emitter = emitter || Object.create(chainableEmitterProto);
+
+  emitter = Object.assign(emitter, EventEmitter.prototype, {
+    emitters: new Set(),
+    emit: chainableEmitterProto.emit
+  });
+
+  EventEmitter.call(emitter);
+
+  return emitter;
+}
+
+/**
  * Event Emitter with chainable emitters support.
  */
-const Emitter = {
+export const chainableEmitterProto = {
 
   /**
    * Adds an external EventEmitter
@@ -15,7 +33,6 @@ const Emitter = {
   addEmitter(emitter) {
     this.emitters.add(emitter);
   },
-
 
   /**
    * Removes an EventEmitter
@@ -43,23 +60,3 @@ const Emitter = {
     });
   }
 };
-
-/**
- * Creates a new emitter instance, or initializes an existing emitter
- * @param  {Object}  emitter  Base emitter instance. Optional.
- * @return {Object}           Initialized emitter instance.
- */
-const createEmitter = function(emitter) {
-  emitter = emitter || Object.create(Emitter);
-
-  emitter = Object.assign(emitter, EventEmitter.prototype, {
-    emitters: new Set(),
-    emit: Emitter.emit
-  });
-
-  EventEmitter.call(emitter);
-
-  return emitter;
-};
-
-export { Emitter as chainableEmitter, createEmitter };

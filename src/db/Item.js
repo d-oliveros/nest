@@ -1,5 +1,4 @@
 import './connection';
-import { extend } from 'lodash';
 import mongoose from 'mongoose';
 import logger from '../logger';
 
@@ -8,11 +7,7 @@ const debug = logger.debug('nest:item');
 /**
  * Schema
  */
-const schemaOptions = {
-  strict: false
-};
-
-const schema = new mongoose.Schema({
+const itemSchema = new mongoose.Schema({
   name: {
     type: String,
     trim: true
@@ -49,13 +44,12 @@ const schema = new mongoose.Schema({
     type: Date,
     default: Date.now
   }
-}, schemaOptions);
-
+}, { strict: false });
 
 /**
  * Static Methods
  */
-extend(schema.statics, {
+Object.assign(itemSchema.statics, {
 
   /**
    * Applies `Item.upsert` to `items` in parallel.
@@ -102,16 +96,14 @@ extend(schema.statics, {
 
 });
 
-
 /**
  * Indexes
  */
-schema.index({ 'name': -1 });
-schema.index({ 'provider': -1 });
-schema.index({ 'providers.route': -1 });
-
+itemSchema.index({ 'name': -1 });
+itemSchema.index({ 'provider': -1 });
+itemSchema.index({ 'providers.route': -1 });
 
 /**
  * @providesModule Item
  */
-export default mongoose.model('Item', schema);
+export default mongoose.model('Item', itemSchema);

@@ -3,7 +3,6 @@ import './testenv';
 import fs from 'fs';
 import path from 'path';
 import mkdirp from 'mkdirp';
-import { prettyPrint } from 'html';
 import Mocha, { Test, Suite } from 'mocha';
 import { createSpider } from '../src/spider';
 import { populateRoutes } from '../src/route';
@@ -135,11 +134,12 @@ function logPageBody({ page }, route, dataDir) {
 
   return new Promise((resolve) => {
     mkdirp(dumppath, (err) => {
-      if (err) return logger.warn(err.stack);
+      if (err) {
+        logger.warn(err.stack);
+        return resolve();
+      }
 
-      const prettyData = prettyPrint(data, { indent_size: 2 });
-
-      fs.writeFile(abspath, prettyData, (err) => {
+      fs.writeFile(abspath, data, (err) => {
         if (err) {
           logger.warn(err.stack);
         }

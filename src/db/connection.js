@@ -8,13 +8,21 @@ mongoose.Promise = global.Promise;
  * Creates a connection to the Mongo database.
  * @exports {Object}  Mongo connection
  */
-const { host, port, db, user, pass } = config.mongo;
-const authString = user ? `${user}:${pass}@` : '';
+const { host, db, replicaSet } = config.mongo;
 
-try {
+// Connect mongo to a replica set, if available
+if (replicaSet) {
+  mongoose.connect(replicaSet.uri, replicaSet.options, (err) => {
+    if (err) {
+      console.error(err.stack);
+      process.exit(1);
+    }
+  });
+} else { // Or, connect mongo to a standalone instance
+  const { port, user, pass } = config.mongo;
+  const authString = user ? `${user}:${pass}@` : '';
+
   mongoose.connect(`mongodb://${authString}${host}:${port || 27017}/${db}`);
-} catch (err) {
-  console.error(err.stack);
 }
 
 mongoose.connection.on('error', (err) => {

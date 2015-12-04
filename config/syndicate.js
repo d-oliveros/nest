@@ -1,8 +1,8 @@
 var os = require('os');
-var ENGINE_WORKERS = process.env.ENGINE_WORKERS || os.cpus().length;
+var NEST_WORKERS = process.env.NEST_WORKERS || os.cpus().length;
 
 module.exports = {
-  workers: parseInt(ENGINE_WORKERS, 10),
+  workers: parseInt(NEST_WORKERS, 10),
 
   // These routes will not be processed by the engine.
   disabledRoutes: []

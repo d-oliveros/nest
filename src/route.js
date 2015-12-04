@@ -9,7 +9,7 @@ const debug = logger.debug('nest:route');
  * @param  {Object}  route  Route definition object
  * @return {Object}         Initialized route instance
  */
-const createRoute = function(route) {
+export const createRoute = function(route) {
   invariant(route.key, 'Key is required.');
 
   if (route.initialized) {
@@ -24,7 +24,7 @@ const createRoute = function(route) {
     name: route.name || '',
     description: route.description || '',
 
-    // template generation function. Takes an action for input
+    // template generation function. Takes a job for input
     getUrl: isFunction(route.url)
       ? route.url
       : (isString(route.url)
@@ -42,9 +42,9 @@ const createRoute = function(route) {
     checkStatus: route.checkStatus ? route.checkStatus : () => 'ok',
 
     // function to be called when the route returns an error code >= 400
-    // if an action is returned, the spider will be redirected to this action
-    // if a truthy value is returned, the spedir will retry this route
-    onError: async () => true,
+    // if an job is returned, the spider will be redirected to this job
+    // if a truthy value is returned, the spider will retry this route
+    onError: route.onError ? route.onError : async () => true,
 
     // auto-testing options
     test: route.test || null,
@@ -65,7 +65,7 @@ const createRoute = function(route) {
  * @param  {Object} obj Object to populate routes on
  * @return {Object}     The populated object
  */
-const populateRoutes = function(routes) {
+export const populateRoutes = function(routes) {
   if (!isArray(routes)) routes = toArray(routes);
 
   const newRoutes = routes.slice();
@@ -80,5 +80,3 @@ const populateRoutes = function(routes) {
 
   return newRoutes;
 };
-
-export { createRoute, populateRoutes };

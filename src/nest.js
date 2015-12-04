@@ -2,76 +2,47 @@ import fs from 'fs';
 import path from 'path';
 import requireAll from 'require-all';
 import invariant from 'invariant';
-import { isObject, isString, defaults, toArray, find, pick } from 'lodash';
+import { isObject, defaults, toArray, pick, find } from 'lodash';
 import { populateRoutes } from './route';
-import { createEngine } from './engine';
-import { createSpider } from './spider';
+import Syndicate from './syndicate';
 import mongoConnection from './db/connection';
-import Action from './db/Action';
-import Item from './db/Item';
+import Queue from './db/queue';
+import Item from './db/item';
 
 /**
- * Requires the plugins, workers and routes from a root directory
- * @param  {String} rootdir Absolute path to the root directory
- * @return {Object}         Resolved modules
+ * Creates new a nest object.
+ *
+ * @param  {String|Object} root
+ *  If a string is passed, it will require the routes, plugins and workers
+ *  using this string as the root directory.
+ *
+ *  Otherwise, root must be an object with:
+ *  - {Object} routes Routes to use
+ *  - {Object} plugins Plugins to use
+ *
+ * @return {Object} A nest instance
  */
-const getNestModules = function(rootdir) {
-  return ['plugins', 'workers', 'routes'].reduce((source, modType) => {
-    const dir = path.join(rootdir, modType);
+export default function createNest(root) {
+  const nest = Object.create(nestProto);
 
-    if (!fs.existsSync(dir) || !fs.lstatSync(dir).isDirectory()) {
-      source[modType] = [];
-    } else {
-      const mods = requireAll({
-        dirname: dir,
-        resolve: (mod) => mod && mod.default ? mod.default : mod,
-        recursive: true
-      });
+  nest.load(root);
+  nest.syndicate = new Syndicate(pick(nest, 'routes', 'plugins', 'workers'));
+  nest.connection = mongoConnection;
 
-      source[modType] = toArray(mods);
+  return nest;
+}
 
-      if (modType === 'routes') {
-        source[modType] = populateRoutes(source[modType]);
-      }
-    }
-
-    return source;
-  }, {});
-};
-
-const Nest = {
+const nestProto = {
 
   /**
-   * Scrapes a route with the provided query
+   * Creates a new job. If the job already exists, returns the existing job.
    *
-   * @param  {Object|String}  route  Route key or loaded route object
-   * @param  {String}  query  Query string. Optional.
-   * @return {Promise}
+   * @param {String}    key   The job's route ID.
+   * @param {Object}    data  The job's data.
+   * @returns {Object}        The created (or existing) job.
    */
-  async scrape(route, query) {
-    if (isString(route)) {
-      route = this.getRoute(route);
-    }
-
-    invariant(route, `Route ${route} not found`);
-
-    const action = await this.initialize(query, route);
-    const spider = createSpider();
-
-    return await spider.scrape(action, {
-      routes: this.routes,
-      plugins: this.plugins
-    });
-  },
-
-  /**
-   * Initializes a route with the provided query.
-   * @param  {Object}         route  A route instance
-   * @param  {String|Object}  query  Query string. Optional.
-   * @return {Object}                Resulting action definition.
-   */
-  async initialize({ key, priority }, query) {
-    return await Action.findOrCreate(key, { query, priority });
+  async createJob(key, { query, priority }) {
+    return await Queue.createJob(key, { query, priority });
   },
 
   /**
@@ -88,12 +59,23 @@ const Nest = {
   },
 
   /**
-   * Gets a route by its route key
-   * @param  {Object}  routeKey  The route's ID
-   * @return {Object}            The route, or null if not found
+   * Starts processing the queue.
+   *
+   * @return {Promise}
+   *  Promise to be resolved when all the queue's workers have started.
    */
-  getRoute(routeKey) {
-    return find(this.routes, { key: routeKey });
+  async startQueue() {
+    await this.syndicate.start();
+  },
+
+  /**
+   * Gets a route definition by route key.
+   *
+   * @param  {String}  key  The route's key
+   * @return {Object}       The route's definition
+   */
+  getRoute(key) {
+    return find(this.routes, { key });
   },
 
   /**
@@ -131,26 +113,30 @@ const Nest = {
 };
 
 /**
- * Creates new a nest object.
- *
- * @param  {String|Object} root
- *  If a string is passed, it will require the routes, plugins and workers
- *  using this string as the root directory.
- *
- *  Otherwise, root must be an object with:
- *  - {Object} routes Routes to use
- *  - {Object} plugins Plugins to use
- *
- * @return {Object} A nest instance
+ * Requires the plugins, workers and routes from a root directory
+ * @param  {String} rootdir Absolute path to the root directory
+ * @return {Object}         Resolved modules
  */
-const createNest = function(root) {
-  const nest = Object.create(Nest);
+export function getNestModules(rootdir) {
+  return ['plugins', 'workers', 'routes'].reduce((source, modType) => {
+    const dir = path.join(rootdir, modType);
 
-  nest.load(root);
-  nest.engine = createEngine(pick(nest, 'routes', 'plugins', 'workers'));
-  nest.connection = mongoConnection;
+    if (!fs.existsSync(dir) || !fs.lstatSync(dir).isDirectory()) {
+      source[modType] = [];
+    } else {
+      const mods = requireAll({
+        dirname: dir,
+        resolve: (mod) => mod && mod.default ? mod.default : mod,
+        recursive: true
+      });
 
-  return nest;
-};
+      source[modType] = toArray(mods);
 
-export { createNest, getNestModules };
+      if (modType === 'routes') {
+        source[modType] = populateRoutes(source[modType]);
+      }
+    }
+
+    return source;
+  }, {});
+}

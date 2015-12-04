@@ -13,7 +13,19 @@ const { PHANTOM_LOG, FORCE_DYNAMIC } = process.env;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const MAX_RETRY_COUNT = 3;
 
-const Spider = {
+/**
+ * Creates or initializes a spider instance
+ * @param  {Object}  spider  Base spider instance
+ * @return {Object}          Instanciated spider instance
+ */
+export const createSpider = function(spider) {
+  return Object.assign(spider || Object.create(spiderProto), {
+    running: true,
+    phantom: null
+  });
+};
+
+export const spiderProto = {
 
   /**
    * Requests a url with request or PhantomJS, if 'dynamic' is true
@@ -295,18 +307,18 @@ const Spider = {
     defaults(sanitized, {
       hasNextPage: false,
       items: [],
-      actions: []
+      jobs: []
     });
 
-    // validate scraped.items and scraped.actions type
-    for (const field of ['items', 'actions']) {
+    // validate scraped.items and scraped.jobs type
+    for (const field of ['items', 'jobs']) {
       invariant(sanitized[field] instanceof Array,
         `Scraping function returned data.${field}, ` +
         `but its not an array.`);
     }
 
-    // sanitize the actions
-    sanitized.actions = compact(sanitized.actions.map((op) => {
+    // sanitize the jobs
+    sanitized.jobs = compact(sanitized.jobs.map((op) => {
       if (!op.routeId) return null;
       return op;
     }));
@@ -329,17 +341,3 @@ const Spider = {
     return sanitized;
   }
 };
-
-/**
- * Creates or initializes a spider instance
- * @param  {Object}  spider  Base spider instance
- * @return {Object}          Instanciated spider instance
- */
-const createSpider = function(spider) {
-  return Object.assign(spider || Object.create(Spider), {
-    running: true,
-    phantom: null
-  });
-};
-
-export { Spider as spiderProto, createSpider };

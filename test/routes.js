@@ -7,8 +7,8 @@ import Mocha, { Test, Suite } from 'mocha';
 import { createSpider } from '../src/spider';
 import { populateRoutes } from '../src/route';
 import logger from '../src/logger';
-import Action from '../src/db/Action';
-import Item from '../src/db/Item';
+import Queue from '../src/db/queue';
+import Item from '../src/db/item';
 
 /**
  * Creates a test descriptor that will test each provided route
@@ -32,7 +32,7 @@ export function startRouteTests({ routes, plugins = {}, dataDir, onlyRouteId }) 
   suite.timeout(20000); // 20 secs
 
   suite.beforeEach(async () => {
-    await Action.remove();
+    await Queue.remove();
     await Item.remove();
   });
 
@@ -63,15 +63,15 @@ export function startRouteTests({ routes, plugins = {}, dataDir, onlyRouteId }) 
 
 function createRouteTest(route, { routes, plugins }, dataDir) {
   const testParams = route.test;
-  const { shouldSpawnActions, shouldCreateItems } = testParams;
+  const { shouldSpawnJobs, shouldCreateItems } = testParams;
   const responsabilities = getTestResponsabilities(testParams);
   const testName = `${route.name} should ${responsabilities.join(' and ')}`;
 
   return new Test(testName, async () => {
     const spider = createSpider();
 
-    const action = await Action.findOrCreate(route, testParams.query);
-    const url = route.getUrl(action);
+    const job = await Queue.createJob(route.key, { query: testParams.query });
+    const url = route.getUrl(job);
     const scraped = await spider.scrape(url, route);
 
     if (dataDir) {
@@ -79,8 +79,8 @@ function createRouteTest(route, { routes, plugins }, dataDir) {
       await logPageBody(scraped, route, dataDir);
     }
 
-    if (shouldSpawnActions && !scraped.actions.length) {
-      const errorMsg = 'New crawling actions were not spawned.';
+    if (shouldSpawnJobs && !scraped.jobs.length) {
+      const errorMsg = 'New crawling jobs were not spawned.';
       throw new Error(errorMsg);
     }
 
@@ -94,8 +94,8 @@ function createRouteTest(route, { routes, plugins }, dataDir) {
 function getTestResponsabilities(params) {
   const responsabilities = [];
 
-  if (params.shouldSpawnActions) {
-    responsabilities.push('spawn actions');
+  if (params.shouldSpawnJobs) {
+    responsabilities.push('spawn jobs');
   }
 
   if (params.shouldCreateItems) {

@@ -5,7 +5,32 @@ import createError from 'http-errors';
 import { isString, isObject } from 'lodash';
 import logger from './logger';
 
-const Page = {
+/**
+ * Creates a new page.
+ *
+ * @param  {String}  data  The page's content. Can be HTML, JSON, etc.
+ * @param  {Object}  meta  Extra properties to add to the page.
+ * @return {Object}        A new page instance
+ */
+export function createPage(data, meta) {
+  const page = Object.assign(Object.create(pageProto), {
+    data: null,
+    location: null,
+    isJSON: false,
+    valid: false,
+    html: null,
+    phantomPage: null,
+    statusCode: null,
+    res: null,
+    $: null
+  });
+
+  page.loadData(data, meta);
+
+  return page;
+}
+
+const pageProto = {
 
   /**
    * Runs the provided function in the page's context;
@@ -89,29 +114,3 @@ const Page = {
     }
   }
 };
-
-/**
- * Creates a new page.
- * @param  {String}  data  The page's content. Can be HTML, JSON, etc.
- * @param  {Object}  meta  Extra properties to add to the page.
- * @return {Object}        A new page instance
- */
-const createPage = function(data, meta) {
-  const page = Object.assign(Object.create(Page), {
-    data: null,
-    location: null,
-    isJSON: false,
-    valid: false,
-    html: null,
-    phantomPage: null,
-    statusCode: null,
-    res: null,
-    $: null
-  });
-
-  page.loadData(data, meta);
-
-  return page;
-};
-
-export { createPage };

@@ -6,7 +6,7 @@ debug.enable('nest:worker*');
 debug.enable('nest:spider*');
 debug.enable('nest:item*');
 
-const createNest = require('../src/nest').createNest;
+const createNest = require('../src/nest').default;
 const rootdir = process.cwd();
 
 export default async function scrapeCommand(routeName, query) {

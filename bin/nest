@@ -40,7 +40,7 @@ program
 
 program
   .command('work')
-  .description('Starts the engine and consume the queue')
+  .description('Starts the workers and process the queue')
   .action(function() {
     require('../cli/work').default.apply(this, arguments);
   });

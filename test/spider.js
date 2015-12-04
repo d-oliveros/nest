@@ -48,7 +48,7 @@ describe('Spider', function() {
     }});
 
     expect(scraped).to.be.an('object');
-    expect(scraped.actions).to.be.an('array').of.length(0);
+    expect(scraped.jobs).to.be.an('array').of.length(0);
     expect(scraped.items).to.be.an('array');
 
     expect(scraped.items.length).to.be.greaterThan(20);
@@ -62,7 +62,7 @@ describe('Spider', function() {
     const scraped = await spider.scrape(url, mockRoute);
 
     expect(scraped).to.be.an('object');
-    expect(scraped.actions).to.be.an('array').of.length(0);
+    expect(scraped.jobs).to.be.an('array').of.length(0);
     expect(scraped.items).to.be.an('array');
 
     expect(scraped.items.length).to.be.greaterThan(20);

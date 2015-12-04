@@ -1,6 +1,6 @@
 import './testenv';
 import { extend } from 'lodash';
-import Item from '../src/db/Item';
+import Item from '../src/db/item';
 import dummyItem from './mocks/profile.json';
 
 describe('Item', function() {

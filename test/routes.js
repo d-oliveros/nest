@@ -7,8 +7,8 @@ import Mocha, { Test, Suite } from 'mocha';
 import { createSpider } from '../src/spider';
 import { populateRoutes } from '../src/route';
 import logger from '../src/logger';
-import Queue from '../src/db/Queue';
-import Item from '../src/db/Item';
+import Queue from '../src/db/queue';
+import Item from '../src/db/item';
 
 /**
  * Creates a test descriptor that will test each provided route
@@ -70,7 +70,7 @@ function createRouteTest(route, { routes, plugins }, dataDir) {
   return new Test(testName, async () => {
     const spider = createSpider();
 
-    const job = await Queue.put(route.key, { query: testParams.query });
+    const job = await Queue.createJob(route.key, { query: testParams.query });
     const url = route.getUrl(job);
     const scraped = await spider.scrape(url, route);
 

@@ -4,8 +4,8 @@ import { isObject, isFunction, pick, find } from 'lodash';
 import { createSpider, spiderProto } from './spider';
 import { EventEmitter } from 'events';
 import { chainableEmitterProto as chainableEmitter } from './emitter';
-import Queue from './db/Queue';
-import Item from './db/Item';
+import Queue from './db/queue';
+import Item from './db/item';
 import logger from './logger';
 
 const debug = logger.debug('nest:worker');

@@ -5,7 +5,7 @@ import invariant from 'invariant';
 import { EventEmitter } from 'events';
 import syndicateConfig from '../config/syndicate';
 import { createWorker } from './worker';
-import Queue from './db/Queue';
+import Queue from './db/queue';
 import logger from './logger';
 
 const debug = require('debug')('nest:syndicate');
@@ -110,6 +110,8 @@ export default class Syndicate extends EventEmitter {
 
       // extend the query with this worker's getJobQuery method
       if (isFunction(worker.getJobQuery)) {
+        debug(`Getting worker custom job query`);
+
         try {
           const workerQuery = worker.getJobQuery() || {};
 
@@ -163,22 +165,20 @@ export default class Syndicate extends EventEmitter {
       'state.finished': false
     };
 
-    each(pick(this, 'runningJobIds', 'disabledRouteIds'), (ids, field) => {
-      if (ids.length) {
-        if (ids.length === 0) {
-          query[field] = { $ne: ids[0] };
-        } else {
-          query[field] = { $nin: ids };
-        }
+    if (runningJobIds.length) {
+      if (runningJobIds.length === 1) {
+        query._id = { $ne: runningJobIds[0] };
+      } else {
+        query._id = { $nin: runningJobIds };
       }
-    });
-
-    if (runningJobIds) {
-      query._id = { $nin: runningJobIds };
     }
 
-    if (disabledRouteIds) {
-      query.routeId = { $nin: disabledRouteIds };
+    if (disabledRouteIds.length) {
+      if (disabledRouteIds.length === 1) {
+        query.routeId = { $ne: disabledRouteIds[0] };
+      } else {
+        query.routeId = { $nin: disabledRouteIds };
+      }
     }
 
     return query;

@@ -2,14 +2,12 @@ import fs from 'fs';
 import path from 'path';
 import requireAll from 'require-all';
 import invariant from 'invariant';
-import { isObject, defaults, toArray, pick } from 'lodash';
+import { isObject, defaults, toArray, pick, find } from 'lodash';
 import { populateRoutes } from './route';
 import Syndicate from './syndicate';
 import mongoConnection from './db/connection';
 import Queue from './db/queue';
 import Item from './db/item';
-
-console.log('src/nest.js');
 
 /**
  * Creates new a nest object.
@@ -71,6 +69,16 @@ const nestProto = {
   },
 
   /**
+   * Gets a route definition by route key.
+   *
+   * @param  {String}  key  The route's key
+   * @return {Object}       The route's definition
+   */
+  getRoute(key) {
+    return find(this.routes, { key });
+  },
+
+  /**
    * Loads a new environment
    *
    * @param  {String|Object} root
@@ -93,7 +101,6 @@ const nestProto = {
         workers: toArray(root.workers)
       };
     } else {
-      console.log(getNestModules);
       source = getNestModules(root);
     }
 
@@ -111,14 +118,12 @@ const nestProto = {
  * @return {Object}         Resolved modules
  */
 export function getNestModules(rootdir) {
-  console.log(rootdir);
   return ['plugins', 'workers', 'routes'].reduce((source, modType) => {
     const dir = path.join(rootdir, modType);
 
     if (!fs.existsSync(dir) || !fs.lstatSync(dir).isDirectory()) {
       source[modType] = [];
     } else {
-      console.log(dir);
       const mods = requireAll({
         dirname: dir,
         resolve: (mod) => mod && mod.default ? mod.default : mod,

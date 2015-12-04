@@ -4,8 +4,8 @@ import { clone } from 'lodash';
 import { expect } from 'chai';
 import syndicateConfig from '../config/syndicate';
 import Syndicate from '../src/syndicate';
-import Queue from '../src/db/Queue';
-import Item from '../src/db/Item';
+import Queue from '../src/db/queue';
+import Item from '../src/db/item';
 import mockRoute from './mocks/route';
 import mockModules from './mocks/modules';
 

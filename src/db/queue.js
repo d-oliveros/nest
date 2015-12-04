@@ -34,7 +34,7 @@ const jobSchema = new mongoose.Schema({
     startedDate:  { type: Date },
     data:         { type: Mixed, default: {} }
   }
-}, { cache: false });
+}, { collection: 'jobs' });
 
 /**
  * Hooks

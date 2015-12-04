@@ -80,26 +80,26 @@ const Engine = {
 
       const query = this.getBaseActionQuery();
 
-      // get the worker's action query
       if (worker.key) {
         query.worker = worker.key;
+      }
 
-        if (isFunction(worker.getActionQuery)) {
-          try {
-            const workerQuery = worker.getActionQuery() || {};
+      // extend the query with this worker's getActionQuery method
+      if (isFunction(worker.getActionQuery)) {
+        try {
+          const workerQuery = worker.getActionQuery() || {};
 
-            invariant(isObject(workerQuery),
-              `Invalid value returned from getActionQuery() (${worker.key})`);
+          invariant(isObject(workerQuery),
+            `Invalid value returned from getActionQuery() (${worker.key})`);
 
-            invariant(!isFunction(workerQuery.then),
-              `Promises are not supported in worker's action query`);
+          invariant(!isFunction(workerQuery.then),
+            `Promises are not supported in worker's action query`);
 
-            if (isObject(workerQuery)) {
-              Object.assign(query, workerQuery);
-            }
-          } catch (err) {
-            logger.error(err);
+          if (isObject(workerQuery)) {
+            Object.assign(query, workerQuery);
           }
+        } catch (err) {
+          logger.error(err);
         }
       }
 
@@ -107,7 +107,7 @@ const Engine = {
 
       const action = await Action
         .findOne(query)
-        .sort({ 'priority': -1 })
+        .sort({ priority: -1 })
         .exec();
 
       if (action) {
@@ -136,9 +136,16 @@ const Engine = {
 
     // build the query used to get an action
     const query = {
-      'state.finished': false,
-      routeId: { $in: routeIds }
+      'state.finished': false
     };
+
+    if (routeIds.length) {
+      if (routeIds.length === 1) {
+        query.routeId = { $ne: routeIds[0] };
+      } else {
+        query.routeId = { $nin: routeIds };
+      }
+    }
 
     if (runningActions) {
       query._id = { $nin: runningActions };

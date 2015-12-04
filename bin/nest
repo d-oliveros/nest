@@ -38,13 +38,11 @@ program
     require('../cli/list').default.apply(this, arguments);
   });
 
-program.parse(process.argv);
-
-/*
 program
   .command('work')
   .description('Starts the engine and consume the queue')
   .action(function() {
-    cli.work({ root: root });
+    require('../cli/work').default.apply(this, arguments);
   });
-*/
+
+program.parse(process.argv);

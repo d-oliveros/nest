@@ -2,7 +2,7 @@
 import './connection';
 import mongoose from 'mongoose';
 import invariant from 'invariant';
-import { isObject, extend, isArray } from 'lodash';
+import { isString, isObject, extend, pick, isArray } from 'lodash';
 import inspect from 'util-inspect';
 import logger from '../logger';
 
@@ -53,36 +53,26 @@ schema.pre('save', function(next) {
 extend(schema.statics, {
 
   /**
-   * Creates or find an action to this route with the provided query argument.
-   * @param {Object}         route  The route instance.
-   * @param {String|Object}  query  The query parameter of this action.
-   * @returns {Object}              The created or updated action.
+   * Finds an action. If the action does not exist, creates a new action.
+   *
+   * @param {String}    key   The action's key.
+   * @param {Object}    data  The action's data.
+   * @returns {Object}        The created or updated action.
    */
-  async findOrCreate(route, query) {
-    invariant(isObject(route), 'Route is not an object');
-    invariant(!isArray(query), 'Query arrays not supported');
-    invariant(route.key, 'Route key is required.');
+  async findOrCreate(key, data = {}) {
+    invariant(isString(key), 'Key is not a string');
+    invariant(isObject(data), 'Route is not an object');
+    invariant(!isArray(data), 'Data arrays not supported');
 
-    const key = {
-      routeId: route.key
-    };
+    const newAction = { routeId: key, ...data };
 
-    if (query) {
-      key.query = query;
-    }
-
-    debug(`findOrCreate with params\n${inspect(key)}`);
-
-    let action = await this.findOne(key).exec();
+    let action = await this
+      .findOne(pick(newAction, 'routeId', 'query'))
+      .exec();
 
     if (!action) {
-      const params = extend({}, key, {
-        priority: route.priority || 50
-      });
-
-      debug(`Creating action with params:\n${inspect(params)}`);
-
-      action = await this.create(params);
+      debug(`Creating action\n${inspect(newAction)}`);
+      action = await this.create(newAction);
       action.wasNew = true;
     } else {
       action.wasNew = false;

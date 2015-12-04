@@ -37,9 +37,9 @@
     "promise-queue": "^2.2.0",
     "request-promise": "^1.0.2",
     "require-all": "*",
+    "shortid": "^2.2.4",
     "string.prototype.padstart": "^3.0.0",
     "util-inspect": "^0.1.8",
-    "uuid": "^2.0.1",
     "winston": "*"
   },
   "devDependencies": {

@@ -70,8 +70,8 @@ const Nest = {
    * @param  {String|Object}  query  Query string. Optional.
    * @return {Object}                Resulting action definition.
    */
-  async initialize(route, query) {
-    return await Action.findOrCreate(route, query);
+  async initialize({ key, priority }, query) {
+    return await Action.findOrCreate(key, { query, priority });
   },
 
   /**

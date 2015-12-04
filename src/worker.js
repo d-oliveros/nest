@@ -1,4 +1,4 @@
-import uuid from 'uuid';
+import shortid from 'shortid';
 import invariant from 'invariant';
 import { isObject, isFunction, pick, find } from 'lodash';
 import { createSpider, spiderProto } from './spider';
@@ -52,9 +52,8 @@ const Worker = {
   async startLoop() {
     invariant(this.running, 'Worker must be running to start the worker loop');
 
-    do {
+    while (this.running) {
       let action;
-      let res;
 
       // get the next action
       try {
@@ -83,8 +82,18 @@ const Worker = {
       try {
         this.emit('action:start', action, this);
         newAction = await this.startAction(action);
+
+        invariant(isObject(newAction) && isObject(newAction.stats),
+          'New action state is not valid');
+
       } catch (err) {
-        logger.error(err);
+        if (isObject(err)) {
+          if (err.statusCode) {
+            debug(`Got ${err.statusCode}. Continuing...`);
+          } else {
+            logger.error(err);
+          }
+        }
         continue;
       }
 
@@ -95,18 +104,17 @@ const Worker = {
         `${newAction.stats.spawned} actions created.`);
 
       // check if should reinitialize
-      if (res.shouldReinitialize) {
-        debug(`Worker reinitializing`);
-        try {
+      try {
+        if (newAction.shouldReinitialize) {
+          debug(`Worker reinitializing`);
           await this.initialize();
-        } catch (err) {
-          logger.error(err);
-          this.stop();
-          continue;
         }
+      } catch (err) {
+        logger.error(err);
+        this.stop();
+        continue;
       }
-
-    } while (this.running);
+    }
 
     this.action = null;
     this.route = null;
@@ -123,11 +131,11 @@ const Worker = {
     invariant(isObject(action), 'Action is not valid');
     invariant(this.running, 'Worker is not running');
 
-    const { state, routeId } = action;
+    const { state, routeId, query } = action;
     const routes = this.engine.modules.routes;
     const route = find(routes, { key: routeId });
 
-    if (action.state.finished) {
+    if (state.finished) {
       debug('Action was already finished');
       return action;
     }
@@ -137,7 +145,9 @@ const Worker = {
       state.startedDate = Date.now();
     }
 
-    debug(`Starting action: ${action.routeId} ${action.query || ''}`);
+    let msg = `Starting action: ${routeId} ${query}`;
+    if (state.currentPage > 2) msg += ` (page ${state.currentPage})`;
+    debug(msg);
 
     let scraped;
 
@@ -190,18 +200,13 @@ const Worker = {
     debug('Saving action');
     await action.save();
 
-    if (state.finished) {
-      this.emit('action:finish', action);
-    }
-
-    // if the action has been stopped
-    if (!this.running) {
-      this.emit('action:stopped', action);
+    if (route.transitionDelay) {
+      debug(`Sleeping for ${route.transitionDelay}ms`);
+      await sleep(route.transitionDelay);
     }
 
     // Action finished
     if (state.finished || !this.running) {
-      this.running = false;
       return action;
     }
 
@@ -237,7 +242,10 @@ const Worker = {
       }
 
       // Create a new action
-      return Action.findOrCreate(targetRoute, query);
+      return Action.findOrCreate(targetRoute.key, {
+        priority: targetRoute.priority,
+        query: query
+      });
     }));
 
     debug(`Actions spawned: ${newActions.length} actions`);
@@ -284,7 +292,7 @@ const createWorker = function(engine, augment) {
 
   // constructs a new worker
   const worker = assign(create(Worker), emitterProto, chainableEmitter, {
-    id: uuid.v4(),
+    id: shortid.generate(),
     engine: engine,
     emitters: new Set(),
     running: false,

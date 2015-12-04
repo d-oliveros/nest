@@ -44,13 +44,16 @@ const createRoute = function(route) {
     // function to be called when the route returns an error code >= 400
     // if an action is returned, the spider will be redirected to this action
     // if a truthy value is returned, the spedir will retry this route
-    onError: route.onError ? route.onError : () => true,
+    onError: async () => true,
 
     // auto-testing options
     test: route.test || null,
 
     // limit the amount of workers that can work on this route at the same time
     concurrency: route.concurrency || -1,
+
+    // adds a delay to page transitions
+    transitionDelay: route.transitionDelay || 0,
 
     // routes with higher priority will be processed first by the workers
     priority: isNaN(route.priority) ? 50 : parseInt(route.priority, 10)

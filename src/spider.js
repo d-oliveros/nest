@@ -10,6 +10,7 @@ import logger from './logger';
 
 const debug = logger.debug('nest:spider');
 const { PHANTOM_LOG, FORCE_DYNAMIC } = process.env;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const MAX_RETRY_COUNT = 3;
 
 const Spider = {
@@ -155,7 +156,8 @@ const Spider = {
   },
 
   /**
-   * Stops the spider, optionally clearing the listeners
+   * Stops the spider, optionally clearing the listeners.
+   *
    * @param  {Boolean}  removeListeners  Should its event listeners be removed?
    * @return {undefined}
    */
@@ -171,14 +173,17 @@ const Spider = {
   },
 
   /**
-   * Scrapes a web page using a route handler definition
-   * @param  {String}  url  URL to scrape
-   * @param  {Object}  route   Route definition, holding the scraper func
-   * @param  {Object}  meta    Meta information
-   * @return {Object}          Scraped data.
+   * Scrapes a web page using a route handler definition.
+   *
+   * @param  {String}  url    URL to scrape
+   * @param  {Object}  route  Route definition, holding the scraper func
+   * @param  {Object}  meta   Meta information
+   * @return {Object}         Scraped data.
    */
   async scrape(url, route, meta = {}) {
-    invariant(isObject(route), `Route not found`);
+    invariant(isString(url), 'Url is not a string');
+    invariant(isObject(route), `Route is not an object`);
+    invariant(isObject(meta), 'Meta is invalid');
 
     let page;
     let status;
@@ -221,16 +226,14 @@ const Spider = {
       try {
         if (isFunction(route.onError)) {
           nextStep = await route.onError.call(this, route, meta);
-        } else {
+        }
+
+        if (!isFunction(route.onError) || (isBoolean(nextStep) && nextStep)) {
           const retryCount = route.retryCount || MAX_RETRY_COUNT;
           nextStep = meta.errorCount <= retryCount ? 'retry' : 'stop';
         }
       } catch (err) {
         logger.error(err);
-      }
-
-      if (isBoolean(nextStep)) {
-        nextStep = nextStep ? 'retry' : 'stop';
       }
 
       invariant(isString(nextStep), 'Next step is not a string');
@@ -239,12 +242,14 @@ const Spider = {
 
       switch (nextStep) {
         case 'stop':
+          const err = createError(status);
           this.running = false;
-          debug(`Stopping with error`);
+          debug(`Request blocked with status code: ${status} (${err.message})`);
           throw createError(status);
 
         case 'retry':
           debug(`Retrying url ${url} (Retry count ${meta.errorCount})`);
+          await sleep(3500);
           return await this.scrape(url, route, meta);
 
         default:

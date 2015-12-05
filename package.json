@@ -7,7 +7,8 @@
   "scripts": {
     "lint": "eslint bin",
     "test": "DEBUG=nest* ./node_modules/.bin/mocha",
-    "docs": "./node_modules/.bin/esdoc -c ./.esdocrc"
+    "docs": "./node_modules/.bin/esdoc -c ./.esdocrc",
+    "compile": "babel -d lib src"
   },
   "bin": {
     "nest": "bin/nest"
@@ -43,6 +44,7 @@
     "winston": "*"
   },
   "devDependencies": {
+    "babel-cli": "^6.3.13",
     "babel-eslint": "*",
     "chai": "*",
     "debug": "^2.2.0",

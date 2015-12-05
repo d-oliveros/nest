@@ -32,7 +32,7 @@ export default function createNest(root) {
   return nest;
 }
 
-const nestProto = {
+export const nestProto = {
 
   /**
    * Creates a new job. If the job already exists, returns the existing job.

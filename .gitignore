@@ -19,6 +19,9 @@ coverage
 # Grunt intermediate storage
 .grunt
 
+# Built files
+lib
+
 # node-waf configuration
 .lock-wscript
 

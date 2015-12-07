@@ -59,6 +59,14 @@ const nestProto = {
   },
 
   /**
+  * Exposes the mongoose Items and Jobs models for custom uses
+  */
+  models: {
+    item: Item,
+    job:  Queue
+  },
+
+  /**
    * Starts processing the queue.
    *
    * @return {Promise}

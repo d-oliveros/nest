@@ -1,10 +1,12 @@
-import padStart from 'string.prototype.padstart';
-import { getNestModules } from '../src/nest';
+/* eslint-disable vars-on-top */
+/* eslint-disable no-var */
+var padStart = require('string.prototype.padstart');
+var getNestModules = require('../src/nest');
 
-const rootdir = process.cwd();
+var rootdir = process.cwd();
 
-export default function listCommand() {
-  const { routes } = getNestModules(rootdir);
+module.exports = function listCommand() {
+  var routes = getNestModules(rootdir).routes;
 
   if (routes.length === 0) {
     console.log('No routes available');
@@ -12,13 +14,13 @@ export default function listCommand() {
   }
 
   console.log(`\n` +
-    `--Available Routes--\n` +
-    `* to scrape a route: nest scrape <route>\n` +
+    '--Available Routes--\n' +
+    '* to scrape a route: nest scrape <route>\n' +
     prettyPrint(routes)
   );
 
   process.exit();
-}
+};
 
 /**
  * returns the routes in a nicely formatted string
@@ -26,11 +28,11 @@ export default function listCommand() {
  * @return {String}        Nicely formatted string
  */
 function prettyPrint(routes) {
-  const pad = 14;
-  let string = '\n';
+  var pad = 14;
+  var string = '\n';
 
   // Pretty print the routes
-  routes.forEach((route) => {
+  routes.forEach(function(route) {
     string += paddedPrint(pad, 'key: ', route.key);
 
     if (route.name) {

@@ -1,32 +1,41 @@
-import { isObject, find } from 'lodash';
-import { startRouteTests } from '../test/routes';
-import { getNestModules } from '../src/nest';
+/* eslint-disable vars-on-top */
+/* eslint-disable no-var */
+require('../test/testenv');
 
-const root = process.cwd();
+var find = require('lodash').find;
+var startRouteTests = require('../test/routes').startRouteTests;
+var getNestModules = require('../lib/nest').getNestModules;
 
-export default async function testCommand(routeKey) {
+var root = process.cwd();
+
+module.exports = function testCommand(routeKey) {
   try {
-    const { routes } = getNestModules(root);
+    var routes = getNestModules(root).routes;
 
     // only run a single test
     if (routeKey && !find(routes, { key: routeKey })) {
-      console.log(`Route "${routeKey}" not found`);
+      console.log('Route "' + routeKey + '" not found');
       process.exit(4);
     }
 
-    // Load the route tests
-    await startRouteTests({
+    var routeParams = {
       routes: routes,
       onlyRouteId: routeKey,
       dataDir: root
-    });
+    };
 
-    process.exit(0);
-
+    // Load the route tests
+    startRouteTests(routeParams)
+      .then(function() {
+        process.exit(0);
+      })
+      .catch(function(err) {
+        throw err;
+      });
   } catch (err) {
-    if (isObject(err) && !err.failureCount) {
+    if (typeof err === 'object' && !err.failureCount) {
       console.error(err.stack);
     }
     process.exit(8);
   }
-}
+};

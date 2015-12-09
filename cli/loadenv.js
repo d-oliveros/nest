@@ -1,3 +1,4 @@
+/* eslint-disable no-var */
 
 /**
  * Loads the environment in `.env`.
@@ -7,7 +8,7 @@ var fs = require('fs');
 var path = require('path');
 var dotenv = require('dotenv');
 var cwd = process.cwd();
-var defaultEnvPath = path.join(__dirname, '.env.default');
+var defaultEnvPath = path.resolve(__dirname, '..', '.env.default');
 var envPath = path.join(cwd, '.env');
 
 dotenv.load({ path: defaultEnvPath });

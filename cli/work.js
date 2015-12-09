@@ -1,11 +1,13 @@
-import debug from 'debug';
+/* eslint-disable vars-on-top */
+/* eslint-disable no-var */
+var debug = require('debug');
 debug.enable('nest:worker*');
 debug.enable('nest:spider*');
 debug.enable('nest:item*');
 
-const createNest = require('../src/nest').default;
-const rootdir = process.cwd();
+var createNest = require('../lib/nest').default;
+var rootdir = process.cwd();
 
-export default function workCommand() {
+module.exports = function workCommand() {
   createNest(rootdir).syndicate.start();
-}
+};

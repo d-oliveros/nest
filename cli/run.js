@@ -1,35 +1,36 @@
-import invariant from 'invariant';
-import { isFunction, isObject } from 'lodash';
-import debug from 'debug';
-import path from 'path';
+/* eslint-disable vars-on-top */
+/* eslint-disable no-var */
+var invariant = require('invariant');
+var debug = require('debug');
+var path = require('path');
 
 // enable Worker messages
 debug.enable('nest:worker*');
 debug.enable('nest:spider*');
 debug.enable('nest:item*');
 
-const createNest = require('../src/nest').default;
-const rootdir = process.cwd();
+var createNest = require('../src/nest').default;
+var rootdir = process.cwd();
 
-export default async function run(script) {
+module.exports = function runCommand(script) {
   script = script || 'index';
 
   try {
-    const nest = createNest(rootdir);
-    let func = require(path.join(rootdir, script));
+    var nest = createNest(rootdir);
+    var func = require(path.join(rootdir, script));
 
-    if (isObject(func) && isFunction(func.default)) {
+    if (typeof func === 'object' && typeof func.default === 'function') {
       func = func.default;
     }
 
-    invariant(isFunction(func), 'Script must export a function');
+    invariant(typeof func === 'function', 'Script must export a function');
 
-    await func(nest);
-
-    console.log('Script ' + script + ' finished');
-
+    func(nest)
+      .then(function() {
+        console.log('Script ' + script + ' finished');
+      });
   } catch (err) {
     console.error(err.stack);
     process.exit(1);
   }
-}
+};

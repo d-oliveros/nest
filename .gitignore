@@ -19,7 +19,7 @@ coverage
 # Grunt intermediate storage
 .grunt
 
-# Built files
+# Build files
 lib
 
 # node-waf configuration

@@ -1,11 +1,9 @@
 #!/usr/bin/env node
-
-/* eslint-disable vars-on-top */
-/* eslint-disable no-var */
-
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = 0;
 
-require('../cli/loadenv');
+require('babel-polyfill');
+require('babel-core/register');
+require('../loadenv');
 
 var program = require('commander');
 var version = require('../package.json').version;

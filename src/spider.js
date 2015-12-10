@@ -80,16 +80,27 @@ export const spiderProto = {
     }
 
     const pageOpenStatus = await phantomPage.openAsync(url);
-    invariant(pageOpenStatus === 'success', `Could not open url: ${url}`);
 
-    const jsInjectionStatus = await this.injectJS(phantomPage);
-    invariant(jsInjectionStatus, `Could not inject JS on url: ${url}`);
+    // Phantom js does not tells you what went wrong when it fails :/
+    // Return a page with status code 5000
+    let statusCode = 200;
+    if (pageOpenStatus !== 'success') {
+      statusCode = 500;
+    }
 
-    const getHTML = () => $('html').html(); // eslint-disable-line no-undef
-    const html = await phantomPage.evaluateAsync(getHTML);
-    const page = createPage(html, { url, phantomPage });
+    try {
+      const jsInjectionStatus = await this.injectJS(phantomPage);
+      invariant(jsInjectionStatus, `Could not inject JS on url: ${url}`);
 
-    return page;
+      const getHTML = () => $('html').html(); // eslint-disable-line no-undef
+      const html = await phantomPage.evaluateAsync(getHTML);
+      const page = createPage(html, { url, phantomPage, statusCode });
+
+      return page;
+
+    } catch (err) {
+      throw err;
+    }
   },
 
   /**
@@ -206,7 +217,7 @@ export const spiderProto = {
 
       // manually check if the page has been blocked
       if (isFunction(route.checkStatus)) {
-        status = page.runInContext(route.checkStatus);
+        status = await page.runInContext(route.checkStatus);
       }
 
       status = !isNaN(status)
@@ -225,7 +236,7 @@ export const spiderProto = {
       return null;
     }
 
-    debug(`Got ${status}`);
+    debug(`Got status ${status}`);
 
     // run the route's error handler for 4xx routes
     if (status >= 400) {

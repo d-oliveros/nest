@@ -1,10 +1,11 @@
 const env = process.env;
+const isTest = env.NODE_ENV === 'test';
 let config = {};
 
 // Stand-alone config
 if (!env.MONGO_REPLICA_SET) {
   config = {
-    db: env.MONGO_DB,
+    db: isTest ? 'nest_test' : env.MONGO_DB,
     host: env.MONGO_HOST,
     port: env.MONGO_PORT,
     user: env.MONGO_USER,

@@ -159,7 +159,8 @@ export default class Syndicate extends EventEmitter {
    * @return {Object}  Query
    */
   getBaseJobQuery() {
-    const { runningJobIds, disabledRouteIds } = this;
+    const { runningJobIds } = this;
+    const disabledRouteIds = syndicateConfig.disabledRoutes;
 
     const query = {
       'state.finished': false
@@ -195,6 +196,7 @@ export default class Syndicate extends EventEmitter {
 
     // disables routes if the concurrency treshold is met
     for (const worker of this.workers) {
+      debug('[route]', worker.route);
       if (!worker.route) continue;
 
       const { concurrency, key: routeId } = worker.route;
@@ -204,6 +206,7 @@ export default class Syndicate extends EventEmitter {
 
       if (runningRoutes[routeId] === concurrency) {
         disabledRoutes.push(routeId);
+
       }
     }
 

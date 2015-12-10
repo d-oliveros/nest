@@ -155,10 +155,10 @@ const workerProto = {
         this.stop();
         continue;
       }
-    }
 
-    this.job = null;
-    this.route = null;
+      this.job = null;
+      this.route = null;
+    }
 
     this.emit('worker:stopped', this);
   },

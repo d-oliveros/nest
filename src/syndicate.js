@@ -160,7 +160,7 @@ export default class Syndicate extends EventEmitter {
    */
   getBaseJobQuery() {
     const { runningJobIds } = this;
-    const disabledRouteIds = syndicateConfig.disabledRoutes;
+    const disabledRouteIds = syndicateConfig.disabledRoutes || [];
 
     const query = {
       'state.finished': false

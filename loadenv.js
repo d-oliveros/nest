@@ -1,3 +1,4 @@
+/* eslint-disable no-var */
 
 /**
  * Loads the environment in `.env`.

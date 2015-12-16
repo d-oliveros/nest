@@ -1,3 +1,4 @@
+/* eslint-disable no-var */
 var noop = require('lodash').noop;
 
 var phantomConfig = {

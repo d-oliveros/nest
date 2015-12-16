@@ -5,7 +5,7 @@
   "main": "index.js",
   "repository": "https://github.com/d-oliveros/nest",
   "scripts": {
-    "lint": "eslint bin",
+    "lint": "eslint .",
     "test": "DEBUG=nest* ./node_modules/.bin/mocha",
     "docs": "./node_modules/.bin/esdoc -c ./.esdocrc",
     "compile": "babel -d lib src"

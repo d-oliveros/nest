@@ -69,7 +69,7 @@ describe('Syndicate', function() {
     };
 
     const check = function() {
-      if (runningWorkers < syndicateConfig || finished) return;
+      if (runningWorkers < syndicateConfig.workers || finished) return;
 
       syndicate.removeListener('job:start', onJobStart);
       syndicate.removeListener('job:noop', onNoop);

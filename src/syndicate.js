@@ -1,4 +1,4 @@
-import { find, isFunction, isObject, times, pick, each } from 'lodash';
+import { find, isFunction, isArray, isObject, times } from 'lodash';
 import inspect from 'util-inspect';
 import PromiseQueue from 'promise-queue';
 import invariant from 'invariant';
@@ -159,8 +159,12 @@ export default class Syndicate extends EventEmitter {
    * @return {Object}  Query
    */
   getBaseJobQuery() {
-    const { runningJobIds } = this;
-    const disabledRouteIds = syndicateConfig.disabledRoutes || [];
+    const { disabledRouteIds, runningJobIds } = this;
+
+    if (isArray(syndicateConfig.disabledRoutes)) {
+      const globallyDisabledRoutes = syndicateConfig.disabledRoutes;
+      Array.prototype.push.apply(disabledRouteIds, globallyDisabledRoutes);
+    }
 
     const query = {
       'state.finished': false

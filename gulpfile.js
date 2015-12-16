@@ -1,3 +1,4 @@
+/* eslint-disable no-var */
 var gulp = require('gulp');
 var eslint = require('gulp-eslint');
 
@@ -7,7 +8,7 @@ var files = [
   'routes/**/*.js',
   'lib/**/*.js',
   'config/**/*.js',
-  'test/**/*.js',
+  'test/**/*.js'
 ];
 
 gulp.task('lint', function() {

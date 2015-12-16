@@ -1,3 +1,4 @@
+/* eslint-disable no-var */
 var os = require('os');
 var env = process.env;
 

@@ -4,6 +4,10 @@ import { getNestModules } from '../src/nest';
 
 const root = process.cwd();
 
+/**
+ * Runs the automated route tests.
+ * @param  {String}  routeKey  Route to test. (optional)
+ */
 export default async function testCommand(routeKey) {
   try {
     const { routes } = getNestModules(root);

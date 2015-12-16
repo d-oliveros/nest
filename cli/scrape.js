@@ -1,7 +1,6 @@
 import debug from 'debug';
 import { find } from 'lodash';
 
-// enable Worker messages
 debug.enable('nest:worker*');
 debug.enable('nest:spider*');
 debug.enable('nest:item*');
@@ -9,6 +8,12 @@ debug.enable('nest:item*');
 const createNest = require('../src/nest').default;
 const rootdir = process.cwd();
 
+/**
+ * Scrapes a route.
+ *
+ * @param  {String}  routeName  Name of the route to use.
+ * @param  {String}  query      Query to use when building the target URL.
+ */
 export default async function scrapeCommand(routeName, query) {
   try {
     const nest = createNest(rootdir);

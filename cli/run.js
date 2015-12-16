@@ -3,7 +3,6 @@ import { isFunction, isObject } from 'lodash';
 import debug from 'debug';
 import path from 'path';
 
-// enable Worker messages
 debug.enable('nest:worker*');
 debug.enable('nest:spider*');
 debug.enable('nest:item*');
@@ -11,12 +10,16 @@ debug.enable('nest:item*');
 const createNest = require('../src/nest').default;
 const rootdir = process.cwd();
 
-export default async function run(script) {
-  script = script || 'index';
+/**
+ * Requires a script located at 'scriptPath'.
+ * @param  {String}  scriptPath  Relative path of file to require().
+ */
+export default async function run(scriptPath) {
+  scriptPath = scriptPath || 'index';
 
   try {
     const nest = createNest(rootdir);
-    let func = require(path.join(rootdir, script));
+    let func = require(path.join(rootdir, scriptPath));
 
     if (isObject(func) && isFunction(func.default)) {
       func = func.default;
@@ -26,7 +29,7 @@ export default async function run(script) {
 
     await func(nest);
 
-    console.log('Script ' + script + ' finished');
+    console.log('Script ' + scriptPath + ' finished');
 
   } catch (err) {
     console.error(err.stack);

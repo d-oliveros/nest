@@ -3,6 +3,9 @@ import { getNestModules } from '../src/nest';
 
 const rootdir = process.cwd();
 
+/**
+ * Prints the available routes to console.
+ */
 export default function listCommand() {
   const { routes } = getNestModules(rootdir);
 
@@ -21,7 +24,8 @@ export default function listCommand() {
 }
 
 /**
- * returns the routes in a nicely formatted string
+ * Returns the routes in a nicely formatted string.
+ *
  * @param  {Object} routes Routes to use
  * @return {String}        Nicely formatted string
  */
@@ -29,7 +33,7 @@ function prettyPrint(routes) {
   const pad = 14;
   let string = '\n';
 
-  // Pretty print the routes
+  // pretty print the routes
   routes.forEach((route) => {
     string += paddedPrint(pad, 'key: ', route.key);
 

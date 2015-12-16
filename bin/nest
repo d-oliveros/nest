@@ -1,12 +1,13 @@
 #!/usr/bin/env node
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = 0;
+/* eslint-disable no-var */
+var program = require('commander');
+var version = require('../package.json').version;
 
 require('babel-polyfill');
 require('babel-core/register');
 require('../loadenv');
 
-var program = require('commander');
-var version = require('../package.json').version;
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = 0;
 
 program.version(version);
 
@@ -44,5 +45,9 @@ program
   .action(function() {
     require('../cli/work').default.apply(this, arguments);
   });
+
+if (!process.argv.slice(2).length) {
+  program.outputHelp();
+}
 
 program.parse(process.argv);

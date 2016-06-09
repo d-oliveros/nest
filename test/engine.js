@@ -2,53 +2,53 @@
 import './testenv';
 import { clone } from 'lodash';
 import { expect } from 'chai';
-import syndicateConfig from '../config/syndicate';
-import Syndicate from '../src/syndicate';
+import engineConfig from '../config/engine';
+import Engine from '../src/engine';
 import Queue from '../src/db/queue';
 import Item from '../src/db/item';
 import mockRoute from './mocks/route';
 import mockModules from './mocks/modules';
 
-const debug = require('debug')('test:syndicate');
+const debug = require('debug')('test:engine');
 
-describe('Syndicate', function() {
+describe('Engine', function() {
 
   beforeEach(async () => {
     await Queue.remove();
     await Item.remove();
   });
 
-  it(`should start with ${syndicateConfig.workers} workers`, async () => {
-    const syndicate = new Syndicate(mockModules);
-    await syndicate.start();
-    expect(syndicate.running).to.equal(true);
-    expect(syndicate.runningJobIds.length).to.equal(0);
-    expect(syndicate.workers.length).to.equal(syndicateConfig.workers);
-    await syndicate.stop();
-    expect(syndicate.running).to.equal(false);
+  it(`should start with ${engineConfig.workers} workers`, async () => {
+    const engine = new Engine(mockModules);
+    await engine.start();
+    expect(engine.running).to.equal(true);
+    expect(engine.runningJobIds.length).to.equal(0);
+    expect(engine.workers.length).to.equal(engineConfig.workers);
+    await engine.stop();
+    expect(engine.running).to.equal(false);
   });
 
   it('should emit an event if its workers emits an event', (done) => {
-    const syndicate = new Syndicate(mockModules);
+    const engine = new Engine(mockModules);
     let eventCount = 0;
 
-    syndicate.assignWorkers();
+    engine.assignWorkers();
 
-    syndicate.on('test:event', () => {
+    engine.on('test:event', () => {
       eventCount++;
 
-      if (eventCount === syndicateConfig.workers) {
+      if (eventCount === engineConfig.workers) {
         done();
       }
     });
 
-    for (const worker of syndicate.workers) {
+    for (const worker of engine.workers) {
       worker.emit('test:event');
     }
   });
 
   it('should respect the concurrency limit of routes', function(done) {
-    const syndicate = new Syndicate(mockModules);
+    const engine = new Engine(mockModules);
     const route = clone(mockRoute, true);
 
     let runningWorkers = 0;
@@ -69,10 +69,10 @@ describe('Syndicate', function() {
     };
 
     const check = function() {
-      if (runningWorkers < syndicateConfig.workers || finished) return;
+      if (runningWorkers < engineConfig.workers || finished) return;
 
-      syndicate.removeListener('job:start', onJobStart);
-      syndicate.removeListener('job:noop', onNoop);
+      engine.removeListener('job:start', onJobStart);
+      engine.removeListener('job:noop', onNoop);
 
       finished = true;
 
@@ -80,9 +80,9 @@ describe('Syndicate', function() {
         return done(new Error('Went over concurrency limit.'));
       }
 
-      syndicate.stop()
+      engine.stop()
         .then(() => {
-          if (syndicate.workers.length > 0) {
+          if (engine.workers.length > 0) {
             throw new Error('Engine did not removed workers.');
           }
           done();
@@ -95,12 +95,12 @@ describe('Syndicate', function() {
     Queue.createJob(route.key, { query: 'dummy-query-2' }).catch(done);
 
     // when a job starts, this event is emitted
-    syndicate.on('job:start', onJobStart);
+    engine.on('job:start', onJobStart);
 
     // when there are no pending jobs, this event is emitted
-    syndicate.on('job:noop', onNoop);
+    engine.on('job:noop', onNoop);
 
-    syndicate.start();
-    expect(syndicate.running).to.equal(true);
+    engine.start();
+    expect(engine.running).to.equal(true);
   });
 });

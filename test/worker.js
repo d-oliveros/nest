@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 import { expect } from 'chai';
 import { createWorker } from '../src/worker';
-import Syndicate from '../src/syndicate';
+import Engine from '../src/engine';
 import Queue from '../src/db/queue';
 import Item from '../src/db/item';
 import mockWorker from './mocks/worker';
@@ -95,10 +95,10 @@ describe('Worker', function() {
 });
 
 function createMockWorker() {
-  const syndicate = createMockSyndicate();
-  return createWorker(syndicate, mockWorker);
+  const engine = createMockEngine();
+  return createWorker(engine, mockWorker);
 }
 
-function createMockSyndicate() {
-  return new Syndicate(mockModules);
+function createMockEngine() {
+  return new Engine(mockModules);
 }

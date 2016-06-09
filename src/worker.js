@@ -16,17 +16,17 @@ const { assign, create } = Object;
 /**
  * Creates a new worker instance.
  *
- * @param  {Object}  syndicate   The syndicate this worker is part of
+ * @param  {Object}  engine     The engine this worker is part of
  * @param  {Object}  blueprint  Augmented properties to be assigned to the worker
- * @return {Object}           A worker instance
+ * @return {Object}             A worker instance
  */
-export const createWorker = function(syndicate, blueprint) {
-  invariant(isObject(syndicate), 'Engine is not an object');
+export const createWorker = function(engine, blueprint) {
+  invariant(isObject(engine), 'Engine is not an object');
 
   // constructs a new worker
   const worker = assign(create(workerProto), emitterProto, chainableEmitter, {
     id: shortid.generate(),
-    syndicate: syndicate,
+    engine: engine,
     emitters: new Set(),
     running: false,
     spider: null,
@@ -100,7 +100,7 @@ const workerProto = {
 
       // get the next job
       try {
-        job = await this.syndicate.assignJob(this);
+        job = await this.engine.assignJob(this);
         this.emit('job:assigned', job, this);
       } catch (err) {
         logger.error(err);
@@ -174,7 +174,7 @@ const workerProto = {
     invariant(this.running, 'Worker is not running');
 
     const { state, routeId, query } = job;
-    const routes = this.syndicate.modules.routes;
+    const routes = this.engine.modules.routes;
     const route = find(routes, { key: routeId });
 
     if (state.finished) {
@@ -266,7 +266,7 @@ const workerProto = {
    * @return {Promise}      Array with spawned jobs
    */
   async spawnJobs(jobs) {
-    const routes = this.syndicate.modules.routes;
+    const routes = this.engine.modules.routes;
 
     if (jobs.length === 0) {
       debug('No jobs to spawn');

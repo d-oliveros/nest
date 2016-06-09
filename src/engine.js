@@ -3,12 +3,12 @@ import inspect from 'util-inspect';
 import PromiseQueue from 'promise-queue';
 import invariant from 'invariant';
 import { EventEmitter } from 'events';
-import syndicateConfig from '../config/syndicate';
+import engineConfig from '../config/engine';
 import { createWorker } from './worker';
 import Queue from './db/queue';
 import logger from './logger';
 
-const debug = require('debug')('nest:syndicate');
+const debug = require('debug')('nest:engine');
 
 /**
  * Creates a group of workers, and provides a worker loop
@@ -16,11 +16,11 @@ const debug = require('debug')('nest:syndicate');
  *
  * @class
  */
-export default class Syndicate extends EventEmitter {
+export default class Engine extends EventEmitter {
 
   /**
-   * Instanciates a new syndicate.
-   * @param  {Object}  modules  Modules to use with this syndicate
+   * Instanciates a new engine.
+   * @param  {Object}  modules  Modules to use with this engine
    */
   constructor(modules) {
     super();
@@ -33,7 +33,7 @@ export default class Syndicate extends EventEmitter {
   }
 
   /**
-   * Creates a new worker, links the worker's emitter to the syndicate's emitter
+   * Creates a new worker, links the worker's emitter to the engine's emitter
    *
    * @param {Object}  blueprint  Properties to augment the worker with
    * @return {Object}            The newly created worker
@@ -46,17 +46,17 @@ export default class Syndicate extends EventEmitter {
 
   /**
    * Creates the amount of workers defined in the environment
-   * @see  /config/syndicate.js
+   * @see  /config/engine.js
    */
   assignWorkers() {
     if (this.running) return;
 
     // Create default workers
-    times(syndicateConfig.workers, () => this.addWorker());
+    times(engineConfig.workers, () => this.addWorker());
 
     // Create custom workers
     for (const blueprint of this.modules.workers) {
-      const amount = blueprint.concurrency || syndicateConfig.workers;
+      const amount = blueprint.concurrency || engineConfig.workers;
       times(amount, () => this.addWorker(blueprint));
     }
 
@@ -161,8 +161,8 @@ export default class Syndicate extends EventEmitter {
   getBaseJobQuery() {
     const { disabledRouteIds, runningJobIds } = this;
 
-    if (isArray(syndicateConfig.disabledRoutes)) {
-      const globallyDisabledRoutes = syndicateConfig.disabledRoutes;
+    if (isArray(engineConfig.disabledRoutes)) {
+      const globallyDisabledRoutes = engineConfig.disabledRoutes;
       Array.prototype.push.apply(disabledRouteIds, globallyDisabledRoutes);
     }
 

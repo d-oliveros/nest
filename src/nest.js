@@ -4,7 +4,7 @@ import requireAll from 'require-all';
 import invariant from 'invariant';
 import { isObject, defaults, toArray, pick, find } from 'lodash';
 import { populateRoutes } from './route';
-import Syndicate from './syndicate';
+import Engine from './engine';
 import mongoConnection from './db/connection';
 import Queue from './db/queue';
 import Item from './db/item';
@@ -22,17 +22,17 @@ import Item from './db/item';
  *
  * @return {Object} A nest instance
  */
-export default function createNest(root) {
-  const nest = Object.create(nestProto);
+export default class Nest {
+  constructor(root) {
+    this.load(root);
+    this.engine = new Engine(pick(this, 'routes', 'plugins', 'workers'));
+    this.connection = mongoConnection;
 
-  nest.load(root);
-  nest.syndicate = new Syndicate(pick(nest, 'routes', 'plugins', 'workers'));
-  nest.connection = mongoConnection;
-
-  return nest;
-}
-
-export const nestProto = {
+    this.models = {
+      item: Item,
+      job:  Queue
+    };
+  }
 
   /**
    * Creates a new job. If the job already exists, returns the existing job.
@@ -43,7 +43,7 @@ export const nestProto = {
    */
   async createJob(key, { query, priority }) {
     return await Queue.createJob(key, { query, priority });
-  },
+  }
 
   /**
    * Creates or updates an item in the database.
@@ -56,15 +56,11 @@ export const nestProto = {
    */
   addItem(item) {
     return Item.upsert(item);
-  },
+  }
 
   /**
   * Exposes the mongoose Items and Jobs models for custom uses
   */
-  models: {
-    item: Item,
-    job:  Queue
-  },
 
   /**
    * Starts processing the queue.
@@ -73,8 +69,8 @@ export const nestProto = {
    *  Promise to be resolved when all the queue's workers have started.
    */
   async startQueue() {
-    await this.syndicate.start();
-  },
+    await this.engine.start();
+  }
 
   /**
    * Gets a route definition by route key.
@@ -84,7 +80,7 @@ export const nestProto = {
    */
   getRoute(key) {
     return find(this.routes, { key });
-  },
+  }
 
   /**
    * Loads a new environment
@@ -118,7 +114,7 @@ export const nestProto = {
       workers: []
     }));
   }
-};
+}
 
 /**
  * Requires the plugins, workers and routes from a root directory

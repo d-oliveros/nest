@@ -55,7 +55,7 @@ describe('Spider', function() {
     expect(every(scraped.items, (i) => i.key)).to.equal(true);
   });
 
-  it('should scrape hacernews with a route definition', async () => {
+  it('should scrape hackernews with a route definition', async () => {
     const spider = createSpider();
     const url = mockRoute.getUrl();
 

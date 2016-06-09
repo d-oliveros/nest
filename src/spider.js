@@ -1,4 +1,4 @@
-import { pick, defaults, identity, compact, isBoolean, isString, isObject, isFunction } from 'lodash';
+import { pickBy, defaults, identity, compact, isBoolean, isString, isObject, isFunction } from 'lodash';
 import inspect from 'util-inspect';
 import invariant from 'invariant';
 import phantom from 'phantom';
@@ -9,7 +9,7 @@ import { createPage } from './page';
 import logger from './logger';
 
 const debug = logger.debug('nest:spider');
-const { PHANTOM_LOG, FORCE_DYNAMIC } = process.env;
+const { FORCE_DYNAMIC } = process.env;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const MAX_RETRY_COUNT = 3;
 
@@ -18,8 +18,8 @@ const MAX_RETRY_COUNT = 3;
  * @param  {Object}  spider  Base spider instance
  * @return {Object}          Instanciated spider instance
  */
-export const createSpider = function(spider) {
-  return Object.assign(spider || Object.create(spiderProto), {
+export const createSpider = function() {
+  return Object.assign(Object.create(spiderProto), {
     running: true,
     phantom: null
   });
@@ -71,15 +71,10 @@ export const spiderProto = {
   async openDynamic(url) {
     debug(`Opening URL ${url} with PhantomJS`);
 
-    const phantomPage = await this.createPhantomPage();
+    const ph = this.phantom || await this.createPhantom();
+    const phantomPage = await ph.createPage();
 
-    if (PHANTOM_LOG === 'true') {
-      phantomPage.set('onConsoleMessage', (msg) => {
-        console.log(`Phantom Console: ${msg}`); // eslint-disable-line
-      });
-    }
-
-    const pageOpenStatus = await phantomPage.openAsync(url);
+    const pageOpenStatus = await phantomPage.open(url);
 
     // Phantom js does not tells you what went wrong when it fails :/
     // Return a page with status code 5000
@@ -88,19 +83,13 @@ export const spiderProto = {
       statusCode = 500;
     }
 
-    try {
-      const jsInjectionStatus = await this.injectJS(phantomPage);
-      invariant(jsInjectionStatus, `Could not inject JS on url: ${url}`);
+    const jsInjectionStatus = await this.injectJS(phantomPage);
+    invariant(jsInjectionStatus, `Could not inject JS on url: ${url}`);
 
-      const getHTML = () => $('html').html(); // eslint-disable-line no-undef
-      const html = await phantomPage.evaluateAsync(getHTML);
-      const page = createPage(html, { url, phantomPage, statusCode });
+    const html = await phantomPage.evaluate(() => $('html').html());
+    const page = createPage(html, { url, phantomPage, statusCode });
 
-      return page;
-
-    } catch (err) {
-      throw err;
-    }
+    return page;
   },
 
   /**
@@ -109,13 +98,8 @@ export const spiderProto = {
    */
   async createPhantom() {
     debug('Creating PhantomJS instance');
-
-    return await new Promise((resolve) => {
-      phantom.create(phantomConfig, (ph) => {
-        this.phantom = ph;
-        resolve(ph);
-      });
-    });
+    this.phantom = await phantom.create(phantomConfig);
+    return this.phantom;
   },
 
   /**
@@ -132,50 +116,14 @@ export const spiderProto = {
   },
 
   /**
-   * Creates a PhantomJS Page instance
-   * @return {Object}  PhantomJS page instance
-   */
-  async createPhantomPage() {
-    const ph = this.phantom || await this.createPhantom();
-
-    return await new Promise((resolve) => {
-      ph.createPage((page) => {
-
-        page.openAsync = (url) => {
-          return new Promise((resolve) => {
-            page.open(url, (status) => {
-              resolve(status);
-            });
-          });
-        };
-
-        page.evaluateAsync = (func) => {
-          return new Promise((resolve) => {
-            page.evaluate(func, (res) => {
-              resolve(res);
-            });
-          });
-        };
-
-        resolve(page);
-      });
-    });
-  },
-
-  /**
    * Injects javascript <script> tags in opened web page
    * @param  {Object}  page  Page instance to inject the JS
    * @return {[type]}      [description]
    */
   async injectJS(page) {
     debug('Injecting JS on page');
-
-    return await new Promise((resolve) => {
-      const jqueryUrl = 'https://code.jquery.com/jquery-2.1.4.min.js';
-      page.includeJs(jqueryUrl, (status) => {
-        resolve(status);
-      });
-    });
+    const jqueryUrl = 'https://code.jquery.com/jquery-2.1.4.min.js';
+    return await page.includeJs(jqueryUrl);
   },
 
   /**
@@ -338,7 +286,7 @@ export const spiderProto = {
     sanitized.items = sanitized.items.map((item) => {
 
       // remove empty properties
-      item = pick(item, identity);
+      item = pickBy(item, identity);
 
       for (const key in item) {
         if (item.hasOwnProperty(key) && typeof item[key] === 'string') {

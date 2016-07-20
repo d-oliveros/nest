@@ -108,10 +108,10 @@ const pageProto = {
     // if a phantom page instance was provided, save the response object
     // once it arrives
     if (phantomPage) {
-      phantomPage.onResourceReceived = (res) => {
+      phantomPage.property('onResourceReceived', (res) => {
         this.res = res;
-        phantomPage.onResourceReceived = null;
-      };
+        phantomPage.property('onResourceReceived', null);
+      });
     }
   }
 };

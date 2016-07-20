@@ -57,8 +57,7 @@ export const spiderProto = {
     });
 
     const { statusCode, body } = res;
-    const html = body;
-    const page = createPage(html, { url, statusCode, res });
+    const page = createPage(body, { url, statusCode, res });
 
     return page;
   },
@@ -86,8 +85,7 @@ export const spiderProto = {
     const jsInjectionStatus = await this.injectJS(phantomPage);
     invariant(jsInjectionStatus, `Could not inject JS on url: ${url}`);
 
-    const getHTML = () => $('html').html(); // eslint-disable-line
-    const html = await phantomPage.evaluate(getHTML);
+    const html = await phantomPage.property('content');
     const page = createPage(html, { url, phantomPage, statusCode });
 
     return page;

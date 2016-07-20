@@ -1,12 +1,13 @@
+/* eslint-disable import/imports-first */
 import './testenv';
 import { extend } from 'lodash';
 import Item from '../src/db/item';
 import dummyItem from './mocks/profile.json';
 
-describe('Item', function() {
+describe('Item', function () {
   this.timeout(6000);
 
-  describe('Model', function() {
+  describe('Model', () => {
     before(async () => {
       await Item.remove();
     });
@@ -22,7 +23,7 @@ describe('Item', function() {
     });
   });
 
-  describe('Statics', function() {
+  describe('Statics', () => {
     before(async () => {
       await Item.remove();
     });

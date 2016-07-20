@@ -94,7 +94,7 @@ export default class Nest {
    *  - {Object} plugins Plugins to use
    */
   load(root) {
-    invariant(root, `Root must be an object or string`);
+    invariant(root, 'Root must be an object or string');
 
     let source;
 
@@ -130,7 +130,7 @@ export function getNestModules(rootdir) {
     } else {
       const mods = requireAll({
         dirname: dir,
-        resolve: (mod) => mod && mod.default ? mod.default : mod,
+        resolve: (mod) => (mod && mod.default ? mod.default : mod),
         recursive: true
       });
 

@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 import { expect } from 'chai';
-import { createWorker } from '../src/worker';
+import createWorker from '../src/worker';
 import Engine from '../src/engine';
 import Queue from '../src/db/queue';
 import Item from '../src/db/item';
@@ -8,7 +8,7 @@ import mockWorker from './mocks/worker';
 import mockModules from './mocks/modules';
 import mockRoute from './mocks/route';
 
-describe('Worker', function() {
+describe('Worker', function () {
   this.timeout(4000);
 
   beforeEach(async () => {

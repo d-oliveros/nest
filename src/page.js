@@ -1,8 +1,8 @@
 import cheerio from 'cheerio';
 import inspect from 'util-inspect';
-import invariant from 'invariant';
 import createError from 'http-errors';
-import { isString, isObject } from 'lodash';
+import { isString, isObject, isFunction } from 'lodash';
+import invariant from 'invariant';
 import logger from './logger';
 
 /**
@@ -12,7 +12,7 @@ import logger from './logger';
  * @param  {Object}  meta  Extra properties to add to the page.
  * @return {Object}        A new page instance
  */
-export function createPage(data, meta) {
+export default function createPage(data, meta) {
   const page = Object.assign(Object.create(pageProto), {
     data: null,
     location: null,
@@ -45,10 +45,11 @@ const pageProto = {
    *  Returns the value returned from 'func'
    */
   async runInContext(func, inPhantomPage) {
+    invariant(isFunction(func), 'function to run in context is not a function');
     let res;
 
     if (inPhantomPage && !this.phantomPage) {
-      logger.warn(`[Page]: Tried to apply fn to static page`);
+      logger.warn('[Page]: Tried to apply fn to static page');
     }
 
     try {

@@ -1,4 +1,4 @@
-/* eslint-disable key-spacing, no-multi-spaces */
+/* eslint-disable key-spacing, no-multi-spaces, import/imports-first */
 import './connection';
 import mongoose from 'mongoose';
 import invariant from 'invariant';
@@ -39,7 +39,7 @@ const jobSchema = new mongoose.Schema({
 /**
  * Hooks
  */
-jobSchema.pre('save', function(next) {
+jobSchema.pre('save', function (next) {
   this.wasNew = this.isNew;
   next();
 });
@@ -81,9 +81,9 @@ Object.assign(jobSchema.statics, {
 /**
  * Indexes
  */
-jobSchema.index({ 'priority': -1 });
+jobSchema.index({ priority: -1 });
 jobSchema.index({ 'state.finished': -1 });
-jobSchema.index({ 'priority': -1, 'state.finished': -1 });
+jobSchema.index({ priority: -1, 'state.finished': -1 });
 
 /**
  * @providesModule Queue

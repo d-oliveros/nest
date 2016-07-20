@@ -4,7 +4,7 @@ import PromiseQueue from 'promise-queue';
 import invariant from 'invariant';
 import { EventEmitter } from 'events';
 import engineConfig from '../config/engine';
-import { createWorker } from './worker';
+import createWorker from './worker';
 import Queue from './db/queue';
 import logger from './logger';
 
@@ -99,7 +99,7 @@ export default class Engine extends EventEmitter {
    */
   async assignJob(worker) {
     return await this.queue.add(async () => {
-      debug(`Queue access`);
+      debug('Queue access');
       debug(`Assigning job to worker ${worker.id}`);
 
       const query = this.getBaseJobQuery();
@@ -110,7 +110,7 @@ export default class Engine extends EventEmitter {
 
       // extend the query with this worker's getJobQuery method
       if (isFunction(worker.getJobQuery)) {
-        debug(`Getting worker custom job query`);
+        debug('Getting worker custom job query');
 
         try {
           const workerQuery = worker.getJobQuery() || {};
@@ -119,7 +119,7 @@ export default class Engine extends EventEmitter {
             `Invalid value returned from getJobQuery() (${worker.key})`);
 
           invariant(!isFunction(workerQuery.then),
-            `Promises are not supported in worker's job query`);
+            'Promises are not supported in worker\'s job query');
 
           if (isObject(workerQuery)) {
             Object.assign(query, workerQuery);
@@ -146,7 +146,7 @@ export default class Engine extends EventEmitter {
         worker.job = job;
         worker.route = route;
       } else {
-        debug(`No jobs`);
+        debug('No jobs');
       }
 
       return job;

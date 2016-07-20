@@ -1,10 +1,11 @@
+/* eslint-disable import/imports-first */
 import './testenv';
 import { expect } from 'chai';
 import { every } from 'lodash';
 import { createSpider } from '../src/spider';
 import mockRoute from './mocks/route';
 
-describe('Spider', function() {
+describe('Spider', function () {
   this.timeout(15000); // 15 seconds
   let globalSpider;
 
@@ -35,17 +36,13 @@ describe('Spider', function() {
     const spider = createSpider();
     const url = 'https://news.ycombinator.com';
 
-    const scraped = await spider.scrape(url, { scraper($) {
+    const scraper = ($) => {
       const titles = $('.title a').map((i, node) => $(node).text()).get();
-
-      const items = titles.map((title) => {
-        return {
-          key: title
-        };
-      });
-
+      const items = titles.map((title) => ({ key: title }));
       return { items };
-    }});
+    };
+
+    const scraped = await spider.scrape(url, { scraper });
 
     expect(scraped).to.be.an('object');
     expect(scraped.jobs).to.be.an('array').of.length(0);

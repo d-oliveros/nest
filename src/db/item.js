@@ -1,3 +1,4 @@
+/* eslint-disable import/imports-first, array-callback-return */
 import './connection';
 import mongoose from 'mongoose';
 import logger from '../logger';
@@ -89,7 +90,7 @@ Object.assign(itemSchema.statics, {
     const isNew = !updated.nModified;
     const op = isNew ? 'created' : 'updated';
 
-    debug((isNew ? 'Created item:' : 'Updated item:') + ` ${item.key}`);
+    debug(`${isNew ? 'Created item:' : 'Updated item:'} ${item.key}`);
 
     return op;
   }
@@ -99,8 +100,8 @@ Object.assign(itemSchema.statics, {
 /**
  * Indexes
  */
-itemSchema.index({ 'name': -1 });
-itemSchema.index({ 'provider': -1 });
+itemSchema.index({ name: -1 });
+itemSchema.index({ provider: -1 });
 itemSchema.index({ 'providers.route': -1 });
 
 /**

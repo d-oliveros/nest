@@ -1,5 +1,4 @@
 import { EventEmitter } from 'events';
-import inspect from 'util-inspect';
 
 const debug = require('debug')('emitter');
 
@@ -46,13 +45,12 @@ export const chainableEmitterProto = {
    * Emits an event through self and attached emitters.
    * @override EventEmitter.prototype.emit
    */
-  emit() {
-    const args = Array.prototype.slice.call(arguments);
+  emit(...args) {
 
     // emit the event through own emitter
     EventEmitter.prototype.emit.apply(this, args);
 
-    debug(`Emitting ${inspect(args)}`);
+    debug('Emitting', args);
 
     // emit the event through all the attached emitters
     this.emitters.forEach((emitter) => {

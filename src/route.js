@@ -9,7 +9,7 @@ const debug = logger.debug('nest:route');
  * @param  {Object}  route  Route definition object
  * @return {Object}         Initialized route instance
  */
-export const createRoute = function(route) {
+export function createRoute(route) {
   invariant(route.key, 'Key is required.');
 
   if (route.initialized) {
@@ -58,14 +58,14 @@ export const createRoute = function(route) {
     // routes with higher priority will be processed first by the workers
     priority: isNaN(route.priority) ? 50 : parseInt(route.priority, 10)
   });
-};
+}
 
 /**
  * Populates the routes in the provided object recursively
  * @param  {Object} obj Object to populate routes on
  * @return {Object}     The populated object
  */
-export const populateRoutes = function(routes) {
+export function populateRoutes(routes) {
   if (!isArray(routes)) routes = toArray(routes);
 
   const newRoutes = routes.slice();
@@ -79,4 +79,4 @@ export const populateRoutes = function(routes) {
   });
 
   return newRoutes;
-};
+}

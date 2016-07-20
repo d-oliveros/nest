@@ -1,8 +1,8 @@
 import shortid from 'shortid';
 import invariant from 'invariant';
 import { isObject, isFunction, pick, find } from 'lodash';
-import { createSpider, spiderProto } from './spider';
 import { EventEmitter } from 'events';
+import { createSpider, spiderProto } from './spider';
 import { chainableEmitterProto as chainableEmitter } from './emitter';
 import Queue from './db/queue';
 import Item from './db/item';
@@ -20,19 +20,19 @@ const { assign, create } = Object;
  * @param  {Object}  blueprint  Augmented properties to be assigned to the worker
  * @return {Object}             A worker instance
  */
-export const createWorker = function(engine, blueprint) {
+export default function createWorker(engine, blueprint) {
   invariant(isObject(engine), 'Engine is not an object');
 
   // constructs a new worker
   const worker = assign(create(workerProto), emitterProto, chainableEmitter, {
     id: shortid.generate(),
-    engine: engine,
     emitters: new Set(),
     running: false,
     spider: null,
     route: null,
     job: null,
-    meta: {}
+    meta: {},
+    engine
   });
 
   const extendableProperties = [
@@ -52,7 +52,7 @@ export const createWorker = function(engine, blueprint) {
   debug(`Worker ${worker.id} created`);
 
   return worker;
-};
+}
 
 const workerProto = {
 
@@ -147,7 +147,7 @@ const workerProto = {
       // check if should reinitialize
       try {
         if (job.shouldReinitialize) {
-          debug(`Worker reinitializing`);
+          debug('Worker reinitializing');
           await this.initialize();
         }
       } catch (err) {
@@ -253,7 +253,7 @@ const workerProto = {
     }
 
     // Job has next page
-    debug(`Scraping next page`);
+    debug('Scraping next page');
     this.emit('job:next', job);
 
     return await this.startJob(job);
@@ -287,7 +287,7 @@ const workerProto = {
       // Create a new job
       return Queue.createJob(targetRoute.key, {
         priority: targetRoute.priority,
-        query: query
+        query
       });
     }));
 

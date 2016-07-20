@@ -1,4 +1,4 @@
-/* eslint-disable no-console */
+/* eslint-disable no-console, import/imports-first */
 import './testenv';
 import { clone } from 'lodash';
 import { expect } from 'chai';
@@ -11,7 +11,7 @@ import mockModules from './mocks/modules';
 
 const debug = require('debug')('test:engine');
 
-describe('Engine', function() {
+describe('Engine', () => {
 
   beforeEach(async () => {
     await Queue.remove();
@@ -47,7 +47,7 @@ describe('Engine', function() {
     }
   });
 
-  it('should respect the concurrency limit of routes', function(done) {
+  it('should respect the concurrency limit of routes', (done) => {
     const engine = new Engine(mockModules);
     const route = clone(mockRoute, true);
 
@@ -55,20 +55,20 @@ describe('Engine', function() {
     let runningScrapers = 0;
     let finished = false;
 
-    const onNoop = function() {
+    const onNoop = () => {
       debug('onNoop');
       runningWorkers++;
       check(); // eslint-disable-line
     };
 
-    const onJobStart = function() {
+    const onJobStart = () => {
       debug('onJobStart');
       runningWorkers++;
       runningScrapers++;
       check(); // eslint-disable-line
     };
 
-    const check = function() {
+    const check = () => {
       if (runningWorkers < engineConfig.workers || finished) return;
 
       engine.removeListener('job:start', onJobStart);

@@ -1,4 +1,4 @@
-/* eslint-disable no-console */
+/* eslint-disable no-console, import/imports-first */
 import './testenv';
 import fs from 'fs';
 import path from 'path';
@@ -15,7 +15,7 @@ import Item from '../src/db/item';
  * @param  {Array} routes Routes to test
  * @return {undefined}
  */
-export function startRouteTests({ routes, plugins = {}, dataDir, onlyRouteId }) {
+export default function startRouteTests({ routes, plugins = {}, dataDir, onlyRouteId }) {
   const mocha = new Mocha();
 
   const routesArr = populateRoutes(routes).filter((route) => {

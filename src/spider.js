@@ -1,11 +1,11 @@
-import { pickBy, defaults, identity, compact, isBoolean, isString, isObject, isFunction } from 'lodash';
+import { pickBy, identity, defaults, isBoolean, isString, isObject, isFunction } from 'lodash';
 import inspect from 'util-inspect';
 import invariant from 'invariant';
 import phantom from 'phantom';
 import createError from 'http-errors';
 import request from 'request-promise';
 import phantomConfig from '../config/phantom';
-import { createPage } from './page';
+import createPage from './page';
 import logger from './logger';
 
 const debug = logger.debug('nest:spider');
@@ -18,7 +18,7 @@ const MAX_RETRY_COUNT = 3;
  * @param  {Object}  spider  Base spider instance
  * @return {Object}          Instanciated spider instance
  */
-export const createSpider = function() {
+export const createSpider = function () {
   return Object.assign(Object.create(spiderProto), {
     running: true,
     phantom: null
@@ -86,7 +86,8 @@ export const spiderProto = {
     const jsInjectionStatus = await this.injectJS(phantomPage);
     invariant(jsInjectionStatus, `Could not inject JS on url: ${url}`);
 
-    const html = await phantomPage.evaluate(() => $('html').html());
+    const getHTML = () => $('html').html(); // eslint-disable-line
+    const html = await phantomPage.evaluate(getHTML);
     const page = createPage(html, { url, phantomPage, statusCode });
 
     return page;
@@ -153,7 +154,8 @@ export const spiderProto = {
    */
   async scrape(url, route, meta = {}) {
     invariant(isString(url), 'Url is not a string');
-    invariant(isObject(route), `Route is not an object`);
+    invariant(isObject(route), 'Route is not an object');
+    invariant(isFunction(route.scraper), 'Route scraper is not a function');
     invariant(isObject(meta), 'Meta is invalid');
 
     let page;
@@ -212,21 +214,24 @@ export const spiderProto = {
       this.stopPhantom();
 
       switch (nextStep) {
-        case 'stop':
+        case 'stop': {
           const err = createError(status);
           this.running = false;
           debug(`Request blocked with status code: ${status} (${err.message})`);
           throw createError(status);
+        }
 
-        case 'retry':
+        case 'retry': {
           debug(`Retrying url ${url} (Retry count ${meta.errorCount})`);
           await sleep(3500);
           return await this.scrape(url, route, meta);
+        }
 
-        default:
+        default: {
           const newUrl = nextStep;
           debug(`Jumping to ${newUrl} with ${inspect(route)}, ${inspect(meta)}`);
           return await this.scrape(newUrl, route, meta);
+        }
       }
     }
 
@@ -273,14 +278,14 @@ export const spiderProto = {
     for (const field of ['items', 'jobs']) {
       invariant(sanitized[field] instanceof Array,
         `Scraping function returned data.${field}, ` +
-        `but its not an array.`);
+        'but its not an array.');
     }
 
     // sanitize the jobs
-    sanitized.jobs = compact(sanitized.jobs.map((op) => {
-      if (!op.routeId) return null;
-      return op;
-    }));
+    sanitized.jobs = sanitized.jobs.reduce((memo, op) => {
+      if (op.routeId) memo.push(op);
+      return memo;
+    }, []);
 
     // sanitize the items
     sanitized.items = sanitized.items.map((item) => {
@@ -288,8 +293,8 @@ export const spiderProto = {
       // remove empty properties
       item = pickBy(item, identity);
 
-      for (const key in item) {
-        if (item.hasOwnProperty(key) && typeof item[key] === 'string') {
+      for (const key of Object.keys(item)) {
+        if (typeof item[key] === 'string') {
           item[key] = item[key].trim();
         }
       }

@@ -7,13 +7,7 @@ export default createRoute({
 
   scraper($) {
     const titles = $('.title a').map((i, node) => $(node).text()).get();
-
-    const items = titles.map((title) => {
-      return {
-        key: title
-      };
-    });
-
+    const items = titles.map((title) => ({ key: title }));
     return { items };
   }
 });

@@ -1,5 +1,5 @@
 import { isObject, find } from 'lodash';
-import { startRouteTests } from '../test/routes';
+import startRouteTests from '../test/routes';
 import { getNestModules } from '../src/nest';
 
 const root = process.cwd();

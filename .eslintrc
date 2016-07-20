@@ -1,6 +1,6 @@
 ---
 parser: babel-eslint
-extends: airbnb/base
+extends: airbnb-base
 env:
   mocha: true
 rules:
@@ -12,8 +12,7 @@ rules:
     - 2
     - never
   no-use-before-define:
-    - 2
-    - nofunc
+    - 0
   consistent-return:
     - 0
   padded-blocks:
@@ -32,5 +31,7 @@ rules:
     - 0
   no-nested-ternary:
     - 0
-  no-use-before-define:
+  no-underscore-dangle:
+    - 0
+  import/no-extraneous-dependencies:
     - 0

@@ -1,8 +1,8 @@
 /* eslint-disable vars-on-top */
 /* eslint-disable no-var */
-var env = process.env;
-var isTest = env.NODE_ENV === 'test';
-var config = {};
+const env = process.env;
+const isTest = env.NODE_ENV === 'test';
+let config = {};
 
 // Stand-alone config
 if (!env.MONGO_REPLICA_SET) {
@@ -31,17 +31,17 @@ if (!env.MONGO_REPLICA_SET) {
     }
   };
 
-  var replicaSet = config.replicaSet;
-  var hosts = replicaSet.hosts;
-  var port = config.port;
-  var db = config.db;
+  const replicaSet = config.replicaSet;
+  const hosts = replicaSet.hosts;
+  const port = config.port;
+  const db = config.db;
 
   // URI is in the following format:
   // mongodb://[username:password@]host1[:port1][,host2[:port2],...[,hostN[:portN]]][/[database][?options]]
-  config.replicaSet.uri = hosts.map(function(host, key) {
-    var prefix = key === 0 ? 'mongodb://' : '';
-    var suffix = key === (hosts.length - 1) ? '/' + db : '';
-    return prefix + host + ':' + port + suffix;
+  config.replicaSet.uri = hosts.map((host, key) => {
+    const prefix = key === 0 ? 'mongodb://' : '';
+    const suffix = key === (hosts.length - 1) ? `/${db}` : '';
+    return `${prefix}${host}:${port}${suffix}`;
   }).join(',');
 }
 

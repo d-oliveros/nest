@@ -1,5 +1,5 @@
-import invariant from 'invariant';
-import { template, isFunction, isString, isArray, toArray } from 'lodash';
+import assert from 'assert';
+import { template, isFunction, isString } from 'lodash';
 import logger from './logger';
 
 const debug = logger.debug('nest:route');
@@ -9,8 +9,9 @@ const debug = logger.debug('nest:route');
  * @param  {Object}  route  Route definition object
  * @return {Object}         Initialized route instance
  */
-export function createRoute(route) {
-  invariant(route.key, 'Key is required.');
+export default function createRoute(route) {
+  console.log(route);
+  assert(route.key, 'Key is required.');
 
   if (route.initialized) {
     return route;
@@ -18,11 +19,14 @@ export function createRoute(route) {
 
   debug('Creating new route handler', route);
 
-  return Object.assign({}, route, {
+  return {
     initialized: true,
 
+    key: route.key,
+    url: route.url,
     name: route.name || '',
     description: route.description || '',
+
 
     // template generation function. Takes a job for input
     getUrl: isFunction(route.url)
@@ -57,26 +61,5 @@ export function createRoute(route) {
 
     // routes with higher priority will be processed first by the workers
     priority: isNaN(route.priority) ? 50 : parseInt(route.priority, 10)
-  });
-}
-
-/**
- * Populates the routes in the provided object recursively
- * @param  {Object} obj Object to populate routes on
- * @return {Object}     The populated object
- */
-export function populateRoutes(routes) {
-  if (!isArray(routes)) routes = toArray(routes);
-
-  const newRoutes = routes.slice();
-
-  newRoutes.forEach((route, i) => {
-    if (isString(route.key)) {
-      newRoutes[i] = createRoute(route);
-    } else {
-      populateRoutes(newRoutes);
-    }
-  });
-
-  return newRoutes;
+  };
 }

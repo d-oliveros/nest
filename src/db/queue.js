@@ -1,9 +1,8 @@
 /* eslint-disable key-spacing, no-multi-spaces, import/imports-first */
 import './connection';
 import mongoose from 'mongoose';
-import invariant from 'invariant';
+import assert from 'assert';
 import { isString, isObject, pick } from 'lodash';
-import inspect from 'util-inspect';
 import logger from '../logger';
 
 const debug = logger.debug('nest:queue');
@@ -57,8 +56,8 @@ Object.assign(jobSchema.statics, {
    * @returns {Object}        The created (or existing) job.
    */
   async createJob(key, data = {}) {
-    invariant(isString(key), 'Key is not a string');
-    invariant(isObject(data), 'Data is not an object');
+    assert(isString(key), 'Key is not a string');
+    assert(isObject(data), 'Data is not an object');
 
     const newJob = { routeId: key, ...data };
 
@@ -67,7 +66,7 @@ Object.assign(jobSchema.statics, {
       .exec();
 
     if (!job) {
-      debug(`Creating job\n${inspect(newJob)}`);
+      debug('Creating job', newJob);
       job = await this.create(newJob);
       job.wasNew = true;
     } else {

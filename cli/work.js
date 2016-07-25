@@ -1,14 +1,17 @@
-import debug from 'debug';
+const debug = require('debug');
+
 debug.enable('nest:worker*');
 debug.enable('nest:spider*');
 debug.enable('nest:item*');
 
-const createNest = require('../src/nest').default;
+const Nest = require('../index');
+
 const rootdir = process.cwd();
 
 /**
  * Starts processing the queue.
  */
-export default function workCommand() {
-  createNest(rootdir).syndicate.start();
-}
+module.exports = function workCommand() {
+  const nest = new Nest(rootdir);
+  nest.engine.start();
+};

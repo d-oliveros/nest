@@ -1,6 +1,6 @@
 import shortid from 'shortid';
-import invariant from 'invariant';
-import { isObject, isFunction, pick, find } from 'lodash';
+import assert from 'assert';
+import { isObject, isFunction, find } from 'lodash';
 import { EventEmitter } from 'events';
 import { createSpider, spiderProto } from './spider';
 import { chainableEmitterProto as chainableEmitter } from './emitter';
@@ -20,8 +20,8 @@ const { assign, create } = Object;
  * @param  {Object}  blueprint  Augmented properties to be assigned to the worker
  * @return {Object}             A worker instance
  */
-export default function createWorker(engine, blueprint) {
-  invariant(isObject(engine), 'Engine is not an object');
+export default function createWorker(engine) {
+  assert(isObject(engine), 'Engine is not an object');
 
   // constructs a new worker
   const worker = assign(create(workerProto), emitterProto, chainableEmitter, {
@@ -34,18 +34,6 @@ export default function createWorker(engine, blueprint) {
     meta: {},
     engine
   });
-
-  const extendableProperties = [
-    'key',
-    'concurrency',
-    'initialize',
-    'getJob'
-  ];
-
-  // Augments the instance with the provided properties
-  if (isObject(blueprint)) {
-    assign(worker, pick(blueprint, extendableProperties));
-  }
 
   EventEmitter.call(worker);
 
@@ -93,7 +81,7 @@ const workerProto = {
    * @return {Promise}  Promise to be resolved when the worker loop ends
    */
   async startLoop() {
-    invariant(this.running, 'Worker must be running to start the worker loop');
+    assert(this.running, 'Worker must be running to start the worker loop');
 
     while (this.running) {
       let job;
@@ -124,7 +112,7 @@ const workerProto = {
         this.emit('job:start', job, this);
         job = await this.startJob(job);
 
-        invariant(isObject(job) && isObject(job.stats),
+        assert(isObject(job) && isObject(job.stats),
           'New job state is not valid');
 
       } catch (err) {
@@ -170,11 +158,11 @@ const workerProto = {
    * @return {Promise}          Updated job
    */
   async startJob(job) {
-    invariant(isObject(job), 'Job is not valid');
-    invariant(this.running, 'Worker is not running');
+    assert(isObject(job), 'Job is not valid');
+    assert(this.running, 'Worker is not running');
 
     const { state, routeId, query } = job;
-    const routes = this.engine.modules.routes;
+    const routes = this.engine.routes;
     const route = find(routes, { key: routeId });
 
     if (state.finished) {
@@ -266,7 +254,7 @@ const workerProto = {
    * @return {Promise}      Array with spawned jobs
    */
   async spawnJobs(jobs) {
-    const routes = this.engine.modules.routes;
+    const routes = this.engine.routes;
 
     if (jobs.length === 0) {
       debug('No jobs to spawn');
@@ -318,8 +306,5 @@ const workerProto = {
         resolve();
       });
     });
-  },
-
-  initialize: function defaultInitializer() {},
-  getJob: function defaultJobQueryFactory() {}
+  }
 };

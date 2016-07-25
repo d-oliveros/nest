@@ -1,9 +1,8 @@
-/* eslint-disable no-var */
-var os = require('os');
-var env = process.env;
+const os = require('os');
 
-var NEST_WORKERS = env.NEST_WORKERS || os.cpus().length;
-var DISABLED_ROUTES = env.DISABLED_ROUTES ? env.DISABLED_ROUTES.split(',') : null;
+const env = process.env;
+const NEST_WORKERS = env.NEST_WORKERS || os.cpus().length;
+const DISABLED_ROUTES = env.DISABLED_ROUTES ? env.DISABLED_ROUTES.split(',') : null;
 
 module.exports = {
   workers: parseInt(NEST_WORKERS, 10),

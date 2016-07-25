@@ -5,7 +5,7 @@ import path from 'path';
 import mkdirp from 'mkdirp';
 import Mocha, { Test, Suite } from 'mocha';
 import { createSpider } from '../src/spider';
-import { populateRoutes } from '../src/route';
+import { initializeRoutes } from '../src/route';
 import logger from '../src/logger';
 import Queue from '../src/db/queue';
 import Item from '../src/db/item';
@@ -18,7 +18,7 @@ import Item from '../src/db/item';
 export default function startRouteTests({ routes, plugins = {}, dataDir, onlyRouteId }) {
   const mocha = new Mocha();
 
-  const routesArr = populateRoutes(routes).filter((route) => {
+  const routesArr = initializeRoutes(routes).filter((route) => {
     if (!route.test) {
       console.warn(`Hint: Enable test for ${route.key} ;)`);
       return false;

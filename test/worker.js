@@ -1,15 +1,20 @@
 import { EventEmitter } from 'events';
 import { expect } from 'chai';
 import createWorker from '../src/worker';
-import Engine from '../src/engine';
+import Nest from '../src/nest';
 import Queue from '../src/db/queue';
 import Item from '../src/db/item';
+import createMongoConnection from '../src/db/connection';
 import mockWorker from './mocks/worker';
 import mockModules from './mocks/modules';
 import mockRoute from './mocks/route';
 
 describe('Worker', function () {
   this.timeout(4000);
+
+  before(() => {
+    createMongoConnection();
+  });
 
   beforeEach(async () => {
     await Queue.remove();
@@ -95,10 +100,10 @@ describe('Worker', function () {
 });
 
 function createMockWorker() {
-  const engine = createMockEngine();
+  const engine = createMockNest();
   return createWorker(engine, mockWorker);
 }
 
-function createMockEngine() {
-  return new Engine(mockModules);
+function createMockNest() {
+  return new Nest(mockModules);
 }

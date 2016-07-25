@@ -54,7 +54,7 @@ export const chainableEmitterProto = {
 
     // emit the event through all the attached emitters
     this.emitters.forEach((emitter) => {
-      emitter.emit.apply(emitter, args);
+      emitter.emit(...args);
     });
   }
 };

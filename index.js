@@ -1,2 +1,7 @@
+const debug = require('debug');
 
-module.exports = require('./lib/nest');
+debug.enable('nest:worker*');
+debug.enable('nest:spider*');
+debug.enable('nest:item*');
+
+module.exports = require('./lib/nest').default;

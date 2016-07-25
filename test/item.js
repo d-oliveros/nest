@@ -2,10 +2,15 @@
 import './testenv';
 import { extend } from 'lodash';
 import Item from '../src/db/item';
+import createMongoConnection from '../src/db/connection';
 import dummyItem from './mocks/profile.json';
 
 describe('Item', function () {
   this.timeout(6000);
+
+  before(() => {
+    createMongoConnection();
+  });
 
   describe('Model', () => {
     before(async () => {

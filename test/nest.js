@@ -3,15 +3,20 @@ import './testenv';
 import { clone } from 'lodash';
 import { expect } from 'chai';
 import engineConfig from '../config/engine';
-import Engine from '../src/engine';
+import Nest from '../src/nest';
 import Queue from '../src/db/queue';
+import createMongoConnection from '../src/db/connection';
 import Item from '../src/db/item';
 import mockRoute from './mocks/route';
 import mockModules from './mocks/modules';
 
 const debug = require('debug')('test:engine');
 
-describe('Engine', () => {
+describe('Nest', () => {
+
+  before(() => {
+    createMongoConnection();
+  });
 
   beforeEach(async () => {
     await Queue.remove();
@@ -19,7 +24,7 @@ describe('Engine', () => {
   });
 
   it(`should start with ${engineConfig.workers} workers`, async () => {
-    const engine = new Engine(mockModules);
+    const engine = new Nest(mockModules);
     await engine.start();
     expect(engine.running).to.equal(true);
     expect(engine.runningJobIds.length).to.equal(0);
@@ -29,7 +34,7 @@ describe('Engine', () => {
   });
 
   it('should emit an event if its workers emits an event', (done) => {
-    const engine = new Engine(mockModules);
+    const engine = new Nest(mockModules);
     let eventCount = 0;
 
     engine.assignWorkers();
@@ -48,7 +53,7 @@ describe('Engine', () => {
   });
 
   it('should respect the concurrency limit of routes', (done) => {
-    const engine = new Engine(mockModules);
+    const engine = new Nest(mockModules);
     const route = clone(mockRoute, true);
 
     let runningWorkers = 0;
@@ -83,7 +88,7 @@ describe('Engine', () => {
       engine.stop()
         .then(() => {
           if (engine.workers.length > 0) {
-            throw new Error('Engine did not removed workers.');
+            throw new Error('Nest did not removed workers.');
           }
           done();
         })

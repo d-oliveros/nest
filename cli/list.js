@@ -1,27 +1,27 @@
-import padStart from 'string.prototype.padstart';
-import { getNestModules } from '../src/nest';
+const padStart = require('string.prototype.padstart');
+const getNestModules = require('../lib/nest').getNestModules;
 
 const rootdir = process.cwd();
 
 /**
  * Prints the available routes to console.
  */
-export default function listCommand() {
-  const { routes } = getNestModules(rootdir);
+module.exports = function listCommand() {
+  const routes = getNestModules(rootdir).routes;
 
   if (routes.length === 0) {
     console.log('No routes available');
     process.exit(1);
   }
 
-  console.log(`\n` +
-    `--Available Routes--\n` +
-    `* to scrape a route: nest scrape <route>\n` +
+  console.log('\n' + // eslint-disable-line
+    '--Available Routes--\n' +
+    '* to scrape a route: nest scrape <key>\n' +
     prettyPrint(routes)
   );
 
   process.exit();
-}
+};
 
 /**
  * Returns the routes in a nicely formatted string.
@@ -54,5 +54,5 @@ function prettyPrint(routes) {
 }
 
 function paddedPrint(pad, string, suffix) {
-  return padStart(string, pad) + suffix + '\n';
+  return `${padStart(string, pad)}${suffix}\n`;
 }

@@ -1,8 +1,7 @@
 import cheerio from 'cheerio';
-import inspect from 'util-inspect';
 import createError from 'http-errors';
 import { isString, isObject, isFunction } from 'lodash';
-import invariant from 'invariant';
+import assert from 'assert';
 import logger from './logger';
 
 /**
@@ -45,7 +44,7 @@ const pageProto = {
    *  Returns the value returned from 'func'
    */
   async runInContext(func, inPhantomPage) {
-    invariant(isFunction(func), 'function to run in context is not a function');
+    assert(isFunction(func), 'function to run in context is not a function');
     let res;
 
     if (inPhantomPage && !this.phantomPage) {
@@ -78,7 +77,7 @@ const pageProto = {
    * @return {undefined}
    */
   loadData(data, meta = {}) {
-    invariant(isObject(meta), 'Meta must be an object');
+    assert(isObject(meta), 'Meta must be an object');
 
     const { url, statusCode, res, phantomPage } = meta;
 
@@ -100,7 +99,7 @@ const pageProto = {
         this.html = data;
         this.$ = cheerio.load(data);
       } else {
-        logger.warn(`[page]: Data is not valid: ${inspect(data)}`);
+        logger.warn(`[page]: Data is not valid: ${JSON.stringify(data)}`);
         this.valid = false;
       }
     }

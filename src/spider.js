@@ -1,6 +1,5 @@
 import { pickBy, identity, defaults, isBoolean, isString, isObject, isFunction } from 'lodash';
-import inspect from 'util-inspect';
-import invariant from 'invariant';
+import assert from 'assert';
 import phantom from 'phantom';
 import createError from 'http-errors';
 import request from 'request-promise';
@@ -34,7 +33,7 @@ export const spiderProto = {
    * @return {Object}           A Page instance
    */
   async open(url, options = {}) {
-    invariant(isObject(options), 'Options needs to be an object');
+    assert(isObject(options), 'Options needs to be an object');
 
     this.url = url;
 
@@ -83,7 +82,7 @@ export const spiderProto = {
     }
 
     const jsInjectionStatus = await this.injectJS(phantomPage);
-    invariant(jsInjectionStatus, `Could not inject JS on url: ${url}`);
+    assert(jsInjectionStatus, `Could not inject JS on url: ${url}`);
 
     const html = await phantomPage.property('content');
     const page = createPage(html, { url, phantomPage, statusCode });
@@ -151,10 +150,10 @@ export const spiderProto = {
    * @return {Object}         Scraped data.
    */
   async scrape(url, route, meta = {}) {
-    invariant(isString(url), 'Url is not a string');
-    invariant(isObject(route), 'Route is not an object');
-    invariant(isFunction(route.scraper), 'Route scraper is not a function');
-    invariant(isObject(meta), 'Meta is invalid');
+    assert(isString(url), 'Url is not a string');
+    assert(isObject(route), 'Route is not an object');
+    assert(isFunction(route.scraper), 'Route scraper is not a function');
+    assert(isObject(meta), 'Meta is invalid');
 
     let page;
     let status;
@@ -207,7 +206,7 @@ export const spiderProto = {
         logger.error(err);
       }
 
-      invariant(isString(nextStep), 'Next step is not a string');
+      assert(isString(nextStep), 'Next step is not a string');
 
       this.stopPhantom();
 
@@ -227,7 +226,7 @@ export const spiderProto = {
 
         default: {
           const newUrl = nextStep;
-          debug(`Jumping to ${newUrl} with ${inspect(route)}, ${inspect(meta)}`);
+          debug(`Jumping to ${newUrl} with`, route, meta);
           return await this.scrape(newUrl, route, meta);
         }
       }
@@ -274,7 +273,7 @@ export const spiderProto = {
 
     // validate scraped.items and scraped.jobs type
     for (const field of ['items', 'jobs']) {
-      invariant(sanitized[field] instanceof Array,
+      assert(sanitized[field] instanceof Array,
         `Scraping function returned data.${field}, ` +
         'but its not an array.');
     }

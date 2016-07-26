@@ -10,9 +10,6 @@
     "compile": "babel -d lib src",
     "watch": "babel -w -d lib src"
   },
-  "bin": {
-    "nest": "bin/nest"
-  },
   "author": "David Oliveros",
   "contributors": [
     "David Oliveros"
@@ -21,7 +18,6 @@
   "dependencies": {
     "babel-runtime": "^6.9.2",
     "cheerio": "^0.20.0",
-    "commander": "^2.9.0",
     "debug": "^2.2.0",
     "http-errors": "^1.5.0",
     "lodash": "^4.13.1",
@@ -31,7 +27,6 @@
     "request-promise": "^4.0.2",
     "require-all": "^2.0.0",
     "shortid": "^2.2.6",
-    "string.prototype.padstart": "^3.0.0",
     "winston": "^2.2.0"
   },
   "devDependencies": {

@@ -1,8 +1,12 @@
 sudo: required
-dist: trusty
 language: node_js
-group: edge
 node_js:
   - "4"
 services:
   - mongodb
+addons:
+  apt:
+    sources:
+    - mongodb-3.0-precise
+    packages:
+    - mongodb-org-server

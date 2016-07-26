@@ -2,6 +2,9 @@
 Nest
 ==============
 
+[![Build Status](https://travis-ci.org/d-oliveros/nest.svg?branch=master)](https://travis-ci.org/d-oliveros/nest)
+[![Dependencies Status](https://david-dm.org/d-oliveros/nest.svg)](https://david-dm.org/d-oliveros/nest)
+
 Nest is a high-level, robust framework for web scraping.
 
 

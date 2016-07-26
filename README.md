@@ -143,7 +143,7 @@ node scrape-hackernews
 
 After running this example, your database will contain 30 scraped items from hackernews, with the following structure:
 
-```json
+```js
 {
   "_id" : ObjectId("5797199075c2d900da9e3a3e"),
   "key" : "12160127",

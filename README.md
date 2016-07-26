@@ -18,23 +18,24 @@ Nest is a high-level, robust framework for web scraping.
 ## Requirements
 
   * MongoDB up and running
+  * Node
 
 
 ## Installation
 
 [Install MongoDB](https://docs.mongodb.com/manual/installation/#mongodb-community-edition).
 
-Also install nest in your project:
+Also install node-nest in your project:
 
 ```shell
-npm install nest
+npm install node-nest
 ```
 
 ## Usage
 
 ```js
 // Instanciates a new Nest object
-var Nest = require('nest');
+var Nest = require('node-nest');
 var nest = new Nest();
 
 // Register routes
@@ -51,21 +52,21 @@ nest.queue('another-route', { query: { someVar: 'something' } });
 nest.start();
 ```
 
-## Example
+### Example
 
-In this simple example, we'll scrape Hackernews articles.
+* You can find this example's [full code here](https://github.com/d-oliveros/nest-hackernews).
 
-To use Nest, you first need to initialize a Nest object:
+In this guide, we'll scrape Hackernews articles. To use Nest, you first need to initialize a Nest object:
 
 ```js
-var Nest = require('nest');
+var Nest = require('node-nest');
 var nest = new Nest();
 ```
 
 By default, Nest will use the same amount of workers as you have CPU cores. It will also try to connect to a MongoDB running at `127.0.0.1:27017`. You can configure these parameters by doing:
 
 ```js
-var Nest = require('nest');
+var Nest = require('node-nest');
 
 var nest = new Nest({
   workers: 4,         // Set the amount of workers scraping in parallel to 4
@@ -178,12 +179,12 @@ You will notice this route is not that helpful, as it is just getting superficia
 
 Let's create a "hackernews post" route, and a new "hackernews articles" route. The new articles route should scrape the first 10 pages of hackernews, and queue a scraping job to "hackernews post" for each scraped article in the articles list. The items in the database will be updated by the new information, after scraping their post pages.
 
-The full example looks as follows:
+The [full example](https://github.com/d-oliveros/nest-hackernews) looks as follows:
 
 ```js
 // in scrape-hackernews.js
 
-var Nest = require('nest');
+var Nest = require('node-nest');
 
 var nest = new Nest();
 
@@ -270,6 +271,8 @@ nest.start();
 After running the example, the first worker will go to the articles feed, scrape the 30 articles in the list, store those scraped items in the database, and queue scraping jobs to those articles by their article ID. Then, it will paginate and scrape the next page of the feed.
 
 Meanwhile, the other workers will pick the jobs in the queue, scrape the article pages, and update the article in the database by their article ID.
+
+Remember you can find the [full example's code here](https://github.com/d-oliveros/nest-hackernews).
 
 #### Nest will avoid scraping URLs that have already been scraped
 

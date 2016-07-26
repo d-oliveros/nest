@@ -1,5 +1,5 @@
 {
-  "name": "nest",
+  "name": "node-nest",
   "version": "0.7.0",
   "description": "Robust scraping framework",
   "main": "index.js",

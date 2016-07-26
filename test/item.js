@@ -1,6 +1,5 @@
 /* eslint-disable import/imports-first */
 import './testenv';
-import { extend } from 'lodash';
 import Item from '../src/db/item';
 import createMongoConnection from '../src/db/connection';
 import dummyItem from './mocks/profile.json';
@@ -29,7 +28,7 @@ describe('Item', function () {
   });
 
   describe('Statics', () => {
-    before(async () => {
+    beforeEach(async () => {
       await Item.remove();
     });
 
@@ -42,13 +41,16 @@ describe('Item', function () {
     });
 
     it('should update an existing item', async () => {
-      const newItem = extend({}, dummyItem, {
-        name: 'Name should have changed'
-      });
+      const op = await Item.upsert(dummyItem);
 
-      const op = await Item.upsert(newItem);
+      if (op !== 'created') {
+        throw new Error('Item is not new');
+      }
 
-      if (op !== 'updated') {
+      const newItem = { ...dummyItem, name: 'Name should have changed' };
+      const op2 = await Item.upsert(newItem);
+
+      if (op2 !== 'updated') {
         throw new Error('Item is new');
       }
 

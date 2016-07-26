@@ -10,7 +10,7 @@ import mockModules from './mocks/modules';
 import mockRoute from './mocks/route';
 
 describe('Worker', function () {
-  this.timeout(4000);
+  this.timeout(6000);
 
   before(() => {
     createMongoConnection();

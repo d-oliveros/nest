@@ -10,7 +10,6 @@ const debug = logger.debug('nest:route');
  * @return {Object}         Initialized route instance
  */
 export default function createRoute(route) {
-  console.log(route);
   assert(route.key, 'Key is required.');
 
   if (route.initialized) {
@@ -26,7 +25,6 @@ export default function createRoute(route) {
     url: route.url,
     name: route.name || '',
     description: route.description || '',
-
 
     // template generation function. Takes a job for input
     getUrl: isFunction(route.url)

@@ -175,7 +175,7 @@ const workerProto = {
       state.startedDate = Date.now();
     }
 
-    let msg = `Starting job: ${routeId} ${query}`;
+    let msg = `Starting job: ${routeId} ${JSON.stringify({ query })}`;
     if (state.currentPage > 2) msg += ` (page ${state.currentPage})`;
     debug(msg);
 

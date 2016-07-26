@@ -74,7 +74,7 @@ export default class Nest extends EventEmitter {
    * @param {Object}    data  The job's data.
    * @returns {Object}        The created (or existing) job.
    */
-  async addAction(key, params = {}) {
+  async queue(key, params = {}) {
     const route = this.getRoute(key);
     assert(route, `Route ${key} does not exist`);
     assert(isObject(params), 'Params is not an object');

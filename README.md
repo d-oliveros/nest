@@ -121,7 +121,7 @@ nest.addRoute({
 
         // this is the only required property in an item object
         key: $(row).attr('id')
-      };
+      });
     });
 
     // In this example, Nest will only save the objects

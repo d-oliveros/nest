@@ -57,6 +57,9 @@ export default function createRoute(route) {
     // adds a delay to page transitions
     transitionDelay: route.transitionDelay || 0,
 
+    // how many times to retry fetching a route on 4xx errors
+    retryCount: route.retryCount,
+
     // routes with higher priority will be processed first by the workers
     priority: isNaN(route.priority) ? 50 : parseInt(route.priority, 10)
   };

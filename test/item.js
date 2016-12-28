@@ -16,7 +16,9 @@ describe('Item', function () {
       await Item.remove();
     });
 
-    it('should create a new item', (done) => Item.create(dummyItem, done));
+    it('should create a new item', (done) => {
+      Item.create(dummyItem, done);
+    });
 
     it('should delete a item', (done) => {
       Item.remove({ key: dummyItem.key }, (err, count) => {

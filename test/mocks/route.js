@@ -6,8 +6,7 @@ export default createRoute({
   concurrency: 1,
 
   scraper($) {
-    const titles = $('.title a').map((i, node) => $(node).text()).get();
-    const items = titles.map((title) => ({ key: title }));
+    const items = $('.athing').map((i, node) => ({ key: $(node).attr('id') })).get();
     return { items };
   }
 });

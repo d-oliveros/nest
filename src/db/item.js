@@ -31,7 +31,7 @@ const itemSchema = new mongoose.Schema({
     type: String
   },
 
-  route: {
+  routeId: {
     type: String,
     required: true
   },
@@ -83,18 +83,22 @@ Object.assign(itemSchema.statics, {
   async upsert(item) {
     debug(`Upsert: Finding Item ${item.key}`);
 
-    const query = { key: item.key };
-    const options = { upsert: true };
+    const Item = this;
+    const existItem = await Item.findOne({ key: item.key });
 
-    const updated = await this.update(query, item, options).exec();
-    const isNew = !updated.nModified;
-    const op = isNew ? 'created' : 'updated';
+    if (existItem) {
+      Object.assign(existItem, item);
+      await existItem.save();
 
-    debug(`${isNew ? 'Created item:' : 'Updated item:'} ${item.key}`);
+      debug(`'Updated item:' ${item.key}`);
+      return 'updated';
+    }
 
-    return op;
+    await Item.create(item);
+
+    debug(`Created item: ${item.key}`);
+    return 'created';
   }
-
 });
 
 /**

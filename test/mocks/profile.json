@@ -3,5 +3,5 @@
   "name": "Test User",
   "link": "https://www.testingdomain.com/user/test",
   "provider": "test",
-  "route": "profile"
+  "routeId": "profile"
 }

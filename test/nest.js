@@ -1,7 +1,8 @@
-/* eslint-disable no-console, import/imports-first */
-import './testenv';
 import { clone } from 'lodash';
 import { expect } from 'chai';
+
+import './testenv';
+
 import engineConfig from '../config/engine';
 import Nest from '../src/nest';
 import Queue from '../src/db/queue';
@@ -10,10 +11,10 @@ import Item from '../src/db/item';
 import mockRoute from './mocks/route';
 import mockModules from './mocks/modules';
 
+
 const debug = require('debug')('test:engine');
 
 describe('Nest', () => {
-
   before(() => {
     createMongoConnection();
   });
@@ -27,7 +28,7 @@ describe('Nest', () => {
     const engine = new Nest(mockModules);
     await engine.start();
     expect(engine.running).to.equal(true);
-    expect(engine.runningJobIds.length).to.equal(0);
+    expect(engine.getRunningJobIds().length).to.equal(0);
     expect(engine.workers.length).to.equal(engineConfig.workers);
     await engine.stop();
     expect(engine.running).to.equal(false);
@@ -40,7 +41,7 @@ describe('Nest', () => {
     engine.assignWorkers();
 
     engine.on('test:event', () => {
-      eventCount++;
+      eventCount += 1;
 
       if (eventCount === engineConfig.workers) {
         done();
@@ -62,19 +63,21 @@ describe('Nest', () => {
 
     const onNoop = () => {
       debug('onNoop');
-      runningWorkers++;
+      runningWorkers += 1;
       check(); // eslint-disable-line
     };
 
     const onJobStart = () => {
       debug('onJobStart');
-      runningWorkers++;
-      runningScrapers++;
+      runningWorkers += 1;
+      runningScrapers += 1;
       check(); // eslint-disable-line
     };
 
     const check = () => {
-      if (runningWorkers < engineConfig.workers || finished) return;
+      if (runningWorkers < engineConfig.workers || finished) {
+        return;
+      }
 
       engine.removeListener('job:start', onJobStart);
       engine.removeListener('job:noop', onNoop);
@@ -82,7 +85,8 @@ describe('Nest', () => {
       finished = true;
 
       if (runningScrapers > 1) {
-        return done(new Error('Went over concurrency limit.'));
+        done(new Error('Went over concurrency limit.'));
+        return;
       }
 
       engine.stop()

@@ -32,7 +32,7 @@ export default function createWorker(engine) {
     route: null,
     job: null,
     meta: {},
-    engine
+    engine,
   });
 
   EventEmitter.call(worker);
@@ -47,16 +47,18 @@ const workerProto = {
   /**
    * Start this worker.
    *
-   * @return {Promise}
-   *  Promise to be resolved when this worker is assigned its first job
+   * @return {Promise}  Promise to be resolved when this worker is assigned its first job.
    */
   async start() {
-    if (this.running) return;
+    if (this.running) {
+      return;
+    }
 
     if (this.initialize) {
       try {
         await this.initialize();
-      } catch (err) {
+      }
+      catch (err) {
         logger.error(err);
         throw err;
       }
@@ -64,7 +66,7 @@ const workerProto = {
 
     this.running = true;
 
-    return await new Promise((resolve) => {
+    await new Promise((resolve) => {
       this.once('job:assigned', (job, worker) => {
         if (worker === this) {
           debug(`Worker ${this.id} started`);
@@ -78,6 +80,7 @@ const workerProto = {
 
   /**
    * Starts the worker loop.
+   *
    * @return {Promise}  Promise to be resolved when the worker loop ends
    */
   async startLoop() {
@@ -90,7 +93,8 @@ const workerProto = {
       try {
         job = await this.engine.assignJob(this);
         this.emit('job:assigned', job, this);
-      } catch (err) {
+      }
+      catch (err) {
         logger.error(err);
         this.stop();
         continue;
@@ -112,14 +116,18 @@ const workerProto = {
         this.emit('job:start', job, this);
         job = await this.startJob(job);
 
-        assert(isObject(job) && isObject(job.stats),
-          'New job state is not valid');
+        assert(
+          isObject(job) && isObject(job.stats),
+          'New job state is not valid'
+        );
 
-      } catch (err) {
+      }
+      catch (err) {
         if (isObject(err)) {
           if (err.statusCode) {
             debug(`Got ${err.statusCode}. Continuing...`);
-          } else {
+          }
+          else {
             logger.error(err);
           }
         }
@@ -130,7 +138,8 @@ const workerProto = {
         `Job finished: ${job.routeId}. ` +
         `${job.stats.items} items created. ` +
         `${job.stats.updated} items updated. ` +
-        `${job.stats.spawned} jobs created.`);
+        `${job.stats.spawned} jobs created.`
+      );
 
       // check if should reinitialize
       try {
@@ -138,7 +147,8 @@ const workerProto = {
           debug('Worker reinitializing');
           await this.initialize();
         }
-      } catch (err) {
+      }
+      catch (err) {
         logger.error(err);
         this.stop();
         continue;
@@ -154,8 +164,8 @@ const workerProto = {
   /**
    * Runs a job.
    *
-   * @param  {Object}  job  Job instance
-   * @return {Promise}          Updated job
+   * @param  {Object}  job  Job instance.
+   * @return {Promise}          Updated job.
    */
   async startJob(job) {
     assert(isObject(job), 'Job is not valid');
@@ -175,9 +185,10 @@ const workerProto = {
       state.startedDate = Date.now();
     }
 
-    let msg = `Starting job: ${routeId} ${JSON.stringify({ query })}`;
-    if (state.currentPage > 2) msg += ` (page ${state.currentPage})`;
-    debug(msg);
+    debug(
+      `Starting job: ${routeId} ${JSON.stringify({ query })}` +
+      (state.currentPage > 2) ? ` (page ${state.currentPage})` : ''
+    );
 
     let scraped;
 
@@ -185,7 +196,8 @@ const workerProto = {
       // if the worker provides a custom processor
       scraped = await this.process(job, route);
       scraped = spiderProto.sanitizeScraped(scraped);
-    } else {
+    }
+    else {
       // else, scrape this route using a spider
       const url = route.getUrl(job);
       this.spider = createSpider();
@@ -203,14 +215,15 @@ const workerProto = {
       job.stats.spawned += newOps.length;
     }
 
-    // save and update items
+    // update items state
     const results = await Item.eachUpsert(scraped.items);
     results.jobsCreated = newOps.length;
 
-    // change state
+    // update scraper state
     if (scraped.hasNextPage) {
-      state.currentPage++;
-    } else {
+      state.currentPage += 1;
+    }
+    else {
       state.finished = true;
       state.finishedDate = Date.now();
     }
@@ -219,12 +232,12 @@ const workerProto = {
       state.data = assign(state.data || {}, scraped.state);
     }
 
-    job.stats.pages++;
+    job.stats.pages += 1;
     job.stats.items += results.created;
     job.stats.updated += results.updated;
     job.updated = new Date();
 
-    this.iteration++;
+    this.iteration += 1;
     this.emit('scraped:page', results, job);
 
     debug('Saving job');
@@ -244,7 +257,8 @@ const workerProto = {
     debug('Scraping next page');
     this.emit('job:next', job);
 
-    return await this.startJob(job);
+    const nextPageJob = await this.startJob(job);
+    return nextPageJob;
   },
 
   /**
@@ -275,7 +289,7 @@ const workerProto = {
       // Create a new job
       return Queue.createJob(targetRoute.key, {
         priority: targetRoute.priority,
-        query
+        query: query,
       });
     }));
 
@@ -286,10 +300,13 @@ const workerProto = {
 
   /**
    * Stops this worker and its spider, if any.
-   * @return {Promise}  Promise to be resolved when this worker is stopped
+   *
+   * @return {Promise}  Promise to be resolved when this worker is stopped.
    */
   async stop() {
-    if (!this.running) return;
+    if (!this.running) {
+      return;
+    }
 
     this.running = false;
 
@@ -306,5 +323,5 @@ const workerProto = {
         resolve();
       });
     });
-  }
+  },
 };

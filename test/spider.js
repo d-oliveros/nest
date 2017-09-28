@@ -1,11 +1,13 @@
-/* eslint-disable import/imports-first */
-import './testenv';
 import { expect } from 'chai';
 import { every } from 'lodash';
+
+import './testenv';
+
 import { createSpider } from '../src/spider';
 import mockRoute from './mocks/route';
 
-describe('Spider', function () {
+
+describe('Spider', function SpiderUnitTestSuite() {
   this.timeout(15000); // 15 seconds
   let globalSpider;
 

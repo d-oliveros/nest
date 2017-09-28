@@ -36,14 +36,15 @@ describe('Worker', function () {
 
     expect(worker.emitters.has(emitter)).to.equal(true);
 
-    worker.once('test:event', () => completed++);
-    emitter.once('test:event', () => completed++);
+    worker.once('test:event', () => { completed += 1; });
+    emitter.once('test:event', () => { completed += 1; });
 
     worker.emit('test:event');
 
     setTimeout(() => {
       if (completed !== 2) {
-        return done(new Error('Emitter did not received event'));
+        done(new Error('Emitter did not received event'));
+        return;
       }
 
       done();
@@ -75,7 +76,7 @@ describe('Worker', function () {
     let noopCount = 0;
 
     worker.on('job:noop', async () => {
-      noopCount++;
+      noopCount += 1;
 
       if (noopCount === maxNoops) {
         await worker.stop();

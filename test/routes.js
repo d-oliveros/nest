@@ -1,9 +1,10 @@
-/* eslint-disable no-console, import/imports-first */
-import './testenv';
 import fs from 'fs';
 import path from 'path';
 import mkdirp from 'mkdirp';
 import Mocha, { Test, Suite } from 'mocha';
+
+import './testenv';
+
 import { createSpider } from '../src/spider';
 import { initializeRoutes } from '../src/route';
 import logger from '../src/logger';
@@ -15,7 +16,7 @@ import Item from '../src/db/item';
  * @param  {Array} routes Routes to test
  * @return {undefined}
  */
-export default function startRouteTests({ routes, plugins = {}, dataDir, onlyRouteId }) {
+export default function startRouteTests({ routes, dataDir, onlyRouteId }) {
   const mocha = new Mocha();
 
   const routesArr = initializeRoutes(routes).filter((route) => {
@@ -38,14 +39,15 @@ export default function startRouteTests({ routes, plugins = {}, dataDir, onlyRou
 
   // Test each route in each domain
   routesArr.forEach((route) => {
-    const routeTest = createRouteTest(route, { routes, plugins }, dataDir);
+    const routeTest = createRouteTest(route, dataDir);
     suite.addTest(routeTest);
   });
 
   return new Promise((resolve, reject) => {
     if (routesArr.length === 1) {
       console.log(`Testing "${routesArr[0].key}" route...`);
-    } else {
+    }
+    else {
       console.log(`Testing ${routesArr.length} routes...`);
     }
 
@@ -53,7 +55,8 @@ export default function startRouteTests({ routes, plugins = {}, dataDir, onlyRou
       if (failureCount) {
         const err = new Error('Tests failed');
         err.failureCount = failureCount;
-        return reject(err);
+        reject(err);
+        return;
       }
 
       resolve(routesArr.length);
@@ -61,7 +64,7 @@ export default function startRouteTests({ routes, plugins = {}, dataDir, onlyRou
   });
 }
 
-function createRouteTest(route, { routes, plugins }, dataDir) {
+function createRouteTest(route, dataDir) {
   const testParams = route.test;
   const { shouldSpawnJobs, shouldCreateItems } = testParams;
   const responsabilities = getTestResponsabilities(testParams);
@@ -112,7 +115,10 @@ function logScrapedData(scraped, route, dataDir) {
 
   return new Promise((resolve) => {
     mkdirp(dumppath, (err) => {
-      if (err) return logger.warn(err.stack);
+      if (err) {
+        logger.warn(err.stack);
+        return;
+      }
 
       fs.writeFile(abspath, JSON.stringify(scraped, null, 2), (err) => {
         if (err) {
@@ -136,7 +142,8 @@ function logPageBody({ page }, route, dataDir) {
     mkdirp(dumppath, (err) => {
       if (err) {
         logger.warn(err.stack);
-        return resolve();
+        resolve();
+        return;
       }
 
       fs.writeFile(abspath, data, (err) => {

@@ -9,7 +9,7 @@ import logger from './logger';
  *
  * @param  {String}  data  The page's content. Can be HTML, JSON, etc.
  * @param  {Object}  meta  Extra properties to add to the page.
- * @return {Object}        A new page instance
+ * @return {Object}        A new page instance.
  */
 export default function createPage(data, meta) {
   const page = Object.assign(Object.create(pageProto), {
@@ -21,7 +21,7 @@ export default function createPage(data, meta) {
     phantomPage: null,
     statusCode: null,
     res: null,
-    $: null
+    $: null,
   });
 
   page.loadData(data, meta);
@@ -34,14 +34,9 @@ const pageProto = {
   /**
    * Runs the provided function in the page's context;
    *
-   * @param  {Function}  func
-   *  Function to apply in this page's context.
-   *
-   * @param  {Boolean}  inPhantomPage
-   *  Should func be called from within the PhantomJS page?
-   *
-   * @return {Mixed}
-   *  Returns the value returned from 'func'
+   * @param  {Function}  func  Function to apply in this page's context.
+   * @param  {Boolean}   inPhantomPage  Should func be called from within the PhantomJS page?
+   * @return {Mixed}     Returns the value returned from 'func'
    */
   async runInContext(func, inPhantomPage) {
     assert(isFunction(func), 'function to run in context is not a function');
@@ -54,16 +49,16 @@ const pageProto = {
     try {
       if (inPhantomPage && this.phantomPage) {
         res = await this.phantomPage.evaluateAsync(func);
-      } else {
+      }
+      else {
         res = await func.call(this, this.isJSON ? this.data : this.$, this);
       }
-    } catch (err) {
+    }
+    catch (err) {
       logger.error(err);
-
       if (isObject(err) && !err.statusCode) {
         throw createError(500, err);
       }
-
       throw err;
     }
 
@@ -71,7 +66,8 @@ const pageProto = {
   },
 
   /**
-   * Initializes this page with the provided properties
+   * Initializes this page with the provided properties.
+   *
    * @param  {String}  data  The page's content. Can be HTML, JSON, etc.
    * @param  {Object}  meta  Extra properties to add to the page.
    * @return {undefined}
@@ -88,29 +84,30 @@ const pageProto = {
     this.res = res || null;
     this.phantomPage = phantomPage || null;
 
-    // checks if the data is JSON
-    // if the data is JSON, parses the json in 'page.data'
-    // otherwise, load the HTML with cheerio and expose it in 'page.$`
+    // checks if the data is JSON.
+    // if the data is JSON, parses the json in 'page.data'.
+    // otherwise, load the HTML with cheerio and expose it in 'page.$`.
     try {
       this.data = JSON.parse(data);
       this.isJSON = true;
-    } catch (err) {
+    }
+    catch (err) {
       if (data && isString(data)) {
         this.html = data;
         this.$ = cheerio.load(data);
-      } else {
+      }
+      else {
         logger.warn(`[page]: Data is not valid: ${JSON.stringify(data)}`);
         this.valid = false;
       }
     }
 
-    // if a phantom page instance was provided, save the response object
-    // once it arrives
+    // if a phantom page instance was provided, save the response object once it arrives.
     if (phantomPage) {
       phantomPage.property('onResourceReceived', (res) => {
         this.res = res;
         phantomPage.property('onResourceReceived', null);
       });
     }
-  }
+  },
 };

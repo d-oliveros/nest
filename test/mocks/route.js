@@ -9,5 +9,5 @@ export default createRoute({
     const titles = $('.title a').map((i, node) => $(node).text()).get();
     const items = titles.map((title) => ({ key: title }));
     return { items };
-  }
+  },
 });

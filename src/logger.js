@@ -11,25 +11,25 @@ const { NEST_LOG, NODE_ENV } = process.env;
 const { Console, File } = winston.transports;
 
 /**
- * Logger transports
+ * Logger transports.
  */
 const transports = [
   new Console({
     level: 'info',
     colorize: true,
-    timestamp: true
-  })
+    timestamp: true,
+  }),
 ];
 
 if (NEST_LOG === 'true') {
   transports.push(new File({
     level: NODE_ENV === 'production' ? 'info' : 'debug',
-    filename: logPath
+    filename: logPath,
   }));
 }
 
 /**
- * Instanciated winston logger instance
+ * Instanciated winston logger instance.
  */
 const logger = new Logger({ transports });
 

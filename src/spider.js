@@ -1,11 +1,21 @@
-import { pickBy, identity, defaults, isBoolean, isString, isObject, isFunction } from 'lodash';
 import assert from 'assert';
 import phantom from 'phantom';
 import createError from 'http-errors';
 import request from 'request-promise';
+import {
+  pickBy,
+  identity,
+  defaults,
+  isBoolean,
+  isString,
+  isObject,
+  isFunction,
+} from 'lodash';
+
 import phantomConfig from '../config/phantom';
 import createPage from './page';
 import logger from './logger';
+
 
 const debug = logger.debug('nest:spider');
 const { FORCE_DYNAMIC } = process.env;
@@ -13,24 +23,26 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const MAX_RETRY_COUNT = 3;
 
 /**
- * Creates or initializes a spider instance
- * @param  {Object}  spider  Base spider instance
- * @return {Object}          Instanciated spider instance
+ * Creates or initializes a spider instance.
+ *
+ * @param  {Object}  spider  Base spider instance.
+ * @return {Object}          Instanciated spider instance.
  */
 export const createSpider = function () {
   return Object.assign(Object.create(spiderProto), {
     running: true,
-    phantom: null
+    phantom: null,
   });
 };
 
 export const spiderProto = {
 
   /**
-   * Requests a url with request or PhantomJS, if 'dynamic' is true
-   * @param  {String}  url      The URL to open
-   * @param  {Object}  options  Optional parameters
-   * @return {Object}           A Page instance
+   * Requests a url with request or PhantomJS, if 'dynamic' is true.
+   *
+   * @param  {String}  url      The URL to open.
+   * @param  {Object}  options  Optional parameters.
+   * @return {Object}           A Page instance.
    */
   async open(url, options = {}) {
     assert(isObject(options), 'Options needs to be an object');
@@ -40,19 +52,22 @@ export const spiderProto = {
     const isDynamic = options.dynamic || FORCE_DYNAMIC;
     const getPage = isDynamic ? this.openDynamic : this.openStatic;
 
-    return await getPage.call(this, url);
+    const page = await getPage.call(this, url);
+
+    return page;
   },
 
   /**
-   * Requests a url with request
-   * @param  {String}  url  The URL to request
-   * @return {Object}       A Page instance
+   * Requests a url with request.
+   *
+   * @param  {String}  url  The URL to request.
+   * @return {Object}       A Page instance.
    */
   async openStatic(url) {
     debug(`Opening URL ${url}`);
 
     const res = await request(url, {
-      resolveWithFullResponse: true
+      resolveWithFullResponse: true,
     });
 
     const { statusCode, body } = res;
@@ -62,9 +77,10 @@ export const spiderProto = {
   },
 
   /**
-   * Requests a url with PhantomJS
-   * @param  {String}  url  The URL to request
-   * @return {Object}       A Page instance
+   * Requests a url with PhantomJS.
+   *
+   * @param  {String}  url  The URL to request.
+   * @return {Object}       A Page instance.
    */
   async openDynamic(url) {
     debug(`Opening URL ${url} with PhantomJS`);
@@ -74,8 +90,8 @@ export const spiderProto = {
 
     const pageOpenStatus = await phantomPage.open(url);
 
-    // Phantom js does not tells you what went wrong when it fails :/
-    // Return a page with status code 5000
+    // phantom js does not tells you what went wrong when it fails :/
+    // return a page with status code 5000
     let statusCode = 200;
     if (pageOpenStatus !== 'success') {
       statusCode = 500;
@@ -91,8 +107,9 @@ export const spiderProto = {
   },
 
   /**
-   * Creates a PhantomJS instance
-   * @return {Object}  PhantomJS instance
+   * Creates a PhantomJS instance.
+   *
+   * @return {Object}  PhantomJS instance.
    */
   async createPhantom() {
     debug('Creating PhantomJS instance');
@@ -101,7 +118,8 @@ export const spiderProto = {
   },
 
   /**
-   * Stops own phantomjs instance
+   * Stops own phantomjs instance.
+   *
    * @return {undefined}
    */
   stopPhantom() {
@@ -114,14 +132,16 @@ export const spiderProto = {
   },
 
   /**
-   * Injects javascript <script> tags in opened web page
-   * @param  {Object}  page  Page instance to inject the JS
-   * @return {[type]}      [description]
+   * Injects javascript <script> tags in opened web page.
+   *
+   * @param  {Object}   page           Page instance to inject the JS.
+   * @return {boolean}  jsWasInjected  `true` if JS was injected in the page.
    */
   async injectJS(page) {
     debug('Injecting JS on page');
     const jqueryUrl = 'https://code.jquery.com/jquery-2.1.4.min.js';
-    return await page.includeJs(jqueryUrl);
+    const jsInjectionStatus = await page.includeJs(jqueryUrl);
+    return !!jsInjectionStatus;
   },
 
   /**
@@ -144,9 +164,9 @@ export const spiderProto = {
   /**
    * Scrapes a web page using a route handler definition.
    *
-   * @param  {String}  url    URL to scrape
-   * @param  {Object}  route  Route definition, holding the scraper func
-   * @param  {Object}  meta   Meta information
+   * @param  {String}  url    URL to scrape.
+   * @param  {Object}  route  Route definition, holding the scraper func.
+   * @param  {Object}  meta   Meta information.
    * @return {Object}         Scraped data.
    */
   async scrape(url, route, meta = {}) {
@@ -171,10 +191,12 @@ export const spiderProto = {
         ? parseInt(status, 10)
         : page.status || 200;
 
-    } catch (err) {
+    }
+    catch (err) {
       if (isObject(err) && !isNaN(err.statusCode)) {
         status = parseInt(err.statusCode, 10);
-      } else {
+      }
+      else {
         throw err;
       }
     }
@@ -191,7 +213,7 @@ export const spiderProto = {
       let nextStep = 'stop';
 
       meta.errorCount = meta.errorCount || 0;
-      meta.errorCount++;
+      meta.errorCount += 1;
 
       try {
         if (isFunction(route.onError)) {
@@ -202,7 +224,8 @@ export const spiderProto = {
           const retryCount = route.retryCount || MAX_RETRY_COUNT;
           nextStep = meta.errorCount <= retryCount ? 'retry' : 'stop';
         }
-      } catch (err) {
+      }
+      catch (err) {
         logger.error(err);
       }
 
@@ -221,13 +244,15 @@ export const spiderProto = {
         case 'retry': {
           debug(`Retrying url ${url} (Retry count ${meta.errorCount})`);
           await sleep(3500);
-          return await this.scrape(url, route, meta);
+          const scraped = await this.scrape(url, route, meta);
+          return scraped;
         }
 
         default: {
           const newUrl = nextStep;
           debug(`Jumping to ${newUrl} with`, route, meta);
-          return await this.scrape(newUrl, route, meta);
+          const scraped = await this.scrape(newUrl, route, meta);
+          return scraped;
         }
       }
     }
@@ -255,9 +280,10 @@ export const spiderProto = {
   },
 
   /**
-   * Normalizes and sanitizes scraped data
-   * @param  {Object}  scraped  The scraped data
-   * @return {Object}           Sanitized data
+   * Normalizes and sanitizes scraped data.
+   *
+   * @param  {Object}  scraped  The scraped data.
+   * @return {Object}           Sanitized data.
    */
   sanitizeScraped(scraped) {
     const sanitized = isObject(scraped) ? Object.assign({}, scraped) : {};
@@ -268,19 +294,22 @@ export const spiderProto = {
     defaults(sanitized, {
       hasNextPage: false,
       items: [],
-      jobs: []
+      jobs: [],
     });
 
     // validate scraped.items and scraped.jobs type
     for (const field of ['items', 'jobs']) {
-      assert(sanitized[field] instanceof Array,
-        `Scraping function returned data.${field}, ` +
-        'but its not an array.');
+      assert(
+        sanitized[field] instanceof Array,
+        `Scraping function returned data.${field}, but its not an array.`
+      );
     }
 
     // sanitize the jobs
     sanitized.jobs = sanitized.jobs.reduce((memo, op) => {
-      if (op.routeId) memo.push(op);
+      if (op.routeId) {
+        memo.push(op);
+      }
       return memo;
     }, []);
 
@@ -300,5 +329,5 @@ export const spiderProto = {
     });
 
     return sanitized;
-  }
+  },
 };

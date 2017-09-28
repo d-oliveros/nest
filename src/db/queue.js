@@ -1,21 +1,23 @@
-/* eslint-disable key-spacing, no-multi-spaces, import/imports-first */
-import './connection';
 import mongoose from 'mongoose';
 import assert from 'assert';
 import { isString, isObject, pick } from 'lodash';
+
+import './connection';
 import logger from '../logger';
 
+
 const debug = logger.debug('nest:queue');
-const Mixed = mongoose.Schema.Types.Mixed;
+const { Mixed } = mongoose.Schema.Types;
 
 /**
- * Schema
+ * Schema.
  */
+/* eslint-disable no-multi-spaces */
 const jobSchema = new mongoose.Schema({
   routeId:   { type: String, required: true },
   query:     { type: Mixed },
   priority:  { type: Number, default: 50 },
-  created:   { type: Date,   default: Date.now },
+  created:   { type: Date,  default: Date.now },
   updated:   { type: Date },
 
   stats: {
@@ -23,7 +25,7 @@ const jobSchema = new mongoose.Schema({
     results: { type: Number, default: 0 },
     items:   { type: Number, default: 0 },
     updated: { type: Number, default: 0 },
-    spawned: { type: Number, default: 0 }
+    spawned: { type: Number, default: 0 },
   },
 
   state: {
@@ -31,20 +33,23 @@ const jobSchema = new mongoose.Schema({
     finished:     { type: Boolean, default: false },
     finishedDate: { type: Date },
     startedDate:  { type: Date },
-    data:         { type: Mixed, default: {} }
-  }
-}, { collection: 'jobs' });
+    data:         { type: Mixed, default: {} },
+  },
+}, {
+  collection: 'jobs',
+});
+/* eslint-enable no-multi-spaces */
 
 /**
- * Hooks
+ * Hooks.
  */
-jobSchema.pre('save', function (next) {
+jobSchema.pre('save', function JobModelPreSaveHook(next) {
   this.wasNew = this.isNew;
   next();
 });
 
 /**
- * Static Methods
+ * Static Methods.
  */
 Object.assign(jobSchema.statics, {
 
@@ -69,16 +74,17 @@ Object.assign(jobSchema.statics, {
       debug('Creating job', newJob);
       job = await this.create(newJob);
       job.wasNew = true;
-    } else {
+    }
+    else {
       job.wasNew = false;
     }
 
     return job;
-  }
+  },
 });
 
 /**
- * Indexes
+ * Indexes.
  */
 jobSchema.index({ priority: -1 });
 jobSchema.index({ 'state.finished': -1 });

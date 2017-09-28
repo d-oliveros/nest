@@ -2,12 +2,14 @@ import { find, isFunction, isArray, isObject, isNumber, times } from 'lodash';
 import PromiseQueue from 'promise-queue';
 import assert from 'assert';
 import { EventEmitter } from 'events';
+
 import engineConfig from '../config/engine';
 import createWorker from './worker';
 import Queue from './db/queue';
 import createRoute from './route';
 import createMongoConnection from './db/connection';
 import logger from './logger';
+
 
 const debug = require('debug')('nest');
 
@@ -21,7 +23,8 @@ export default class Nest extends EventEmitter {
 
   /**
    * Instanciates a new engine.
-   * @param  {Object}  modules  Modules to use with this engine
+   *
+   * @param  {Object}  modules  Modules to use with this engine.
    */
   constructor(params = {}) {
     super();
@@ -30,7 +33,7 @@ export default class Nest extends EventEmitter {
 
     this.running = false;
     this.workers = [];
-    this.pq = new PromiseQueue(1, Infinity);
+    this.promiseQueue = new PromiseQueue(1, Infinity);
     this.routes = isArray(routes) ? routes.map(createRoute) : [];
     this.connection = createMongoConnection(mongo);
     this.workersAmount = isNumber(workers) ? workers : engineConfig.workers;
@@ -38,12 +41,15 @@ export default class Nest extends EventEmitter {
 
   /**
    * Spawns workers, assign jobs to workers, and start each worker's loop.
+   *
    * @return {Promise}  Resolved when all the workers are assigned a job.
    */
   async start() {
-    if (this.running) return;
+    if (this.running) {
+      return;
+    }
 
-    // creates new workers, link the workers' emitters to the engine's emitter
+    // creates new workers, link the workers' emitters to the engine's emitter.
     this.assignWorkers();
 
     debug(`Created ${this.workers.length} workers`);
@@ -56,10 +62,13 @@ export default class Nest extends EventEmitter {
 
   /**
    * Stops the workers.
+   *
    * @return {Promise}  Resolved when all the workers are stopped.
    */
   async stop() {
-    if (!this.running) return;
+    if (!this.running) {
+      return;
+    }
 
     await Promise.all(this.workers.map((worker) => worker.stop()));
 
@@ -79,10 +88,12 @@ export default class Nest extends EventEmitter {
     assert(route, `Route ${key} does not exist`);
     assert(isObject(params), 'Params is not an object');
 
-    return await Queue.createJob(key, {
+    const job = await Queue.createJob(key, {
       query: params.query,
-      priority: params.priority || route.priority
+      priority: params.priority || route.priority,
     });
+
+    return job;
   }
 
   addRoute(route) {
@@ -96,8 +107,8 @@ export default class Nest extends EventEmitter {
   /**
    * Gets a route definition by route key.
    *
-   * @param  {String}  key  The route's key
-   * @return {Object}       The route's definition
+   * @param  {String}  key  The route's key.
+   * @return {Object}       The route's definition.
    */
   getRoute(key) {
     return find(this.routes, { key });
@@ -113,11 +124,12 @@ export default class Nest extends EventEmitter {
 
   /**
    * Queries for a new job, and assigns the job to the worker.
-   * @param  {Object}  worker  Worker to assign the job to
+   *
+   * @param  {Object}  worker  Worker to assign the job to.
    * @return {Object}          Fetched Job instance.
    */
   assignJob(worker) {
-    return this.pq.add(async () => {
+    return this.promiseQueue.add(async () => {
       debug('Queue access');
       debug(`Assigning job to worker ${worker.id}`);
 
@@ -127,23 +139,28 @@ export default class Nest extends EventEmitter {
         query.worker = worker.key;
       }
 
-      // extend the query with this worker's getJobQuery method
+      // extend the query with this worker's getJobQuery method.
       if (isFunction(worker.getJobQuery)) {
         debug('Getting worker custom job query');
 
         try {
           const workerQuery = worker.getJobQuery() || {};
 
-          assert(isObject(workerQuery),
-            `Invalid value returned from getJobQuery() (${worker.key})`);
+          assert(
+            isObject(workerQuery),
+            `Invalid value returned from getJobQuery() (${worker.key})`
+          );
 
-          assert(!isFunction(workerQuery.then),
-            'Promises are not supported in worker\'s job query');
+          assert(
+            !isFunction(workerQuery.then),
+            'Promises are not supported in worker\'s job query'
+          );
 
           if (isObject(workerQuery)) {
             Object.assign(query, workerQuery);
           }
-        } catch (err) {
+        }
+        catch (err) {
           logger.error(err);
         }
       }
@@ -164,7 +181,8 @@ export default class Nest extends EventEmitter {
 
         worker.job = job;
         worker.route = route;
-      } else {
+      }
+      else {
         debug('No jobs');
       }
 
@@ -173,12 +191,13 @@ export default class Nest extends EventEmitter {
   }
 
   /**
-   * Gets the base query to be used to fetch a new job from the queue
+   * Gets the base query to be used to fetch a new job from the queue.
    *
    * @return {Object}  Query
    */
   getBaseJobQuery() {
-    const { disabledRouteIds, runningJobIds } = this;
+    const disabledRouteIds = this.getDisabledRouteIds();
+    const runningJobIds = this.getRunningJobIds();
 
     if (isArray(engineConfig.disabledRoutes)) {
       const globallyDisabledRoutes = engineConfig.disabledRoutes;
@@ -186,13 +205,14 @@ export default class Nest extends EventEmitter {
     }
 
     const query = {
-      'state.finished': false
+      'state.finished': false,
     };
 
     if (runningJobIds.length) {
       if (runningJobIds.length === 1) {
         query._id = { $ne: runningJobIds[0] };
-      } else {
+      }
+      else {
         query._id = { $nin: runningJobIds };
       }
     }
@@ -200,7 +220,8 @@ export default class Nest extends EventEmitter {
     if (disabledRouteIds.length) {
       if (disabledRouteIds.length === 1) {
         query.routeId = { $ne: disabledRouteIds[0] };
-      } else {
+      }
+      else {
         query.routeId = { $nin: disabledRouteIds };
       }
     }
@@ -211,19 +232,23 @@ export default class Nest extends EventEmitter {
   /**
    * Gets the disabled routes.
    * A route may be disabled if the route's concurrency treshold has been met.
+   *
    * @return {Array}  Array of disabled route IDs.
    */
-  get disabledRouteIds() {
+  getDisabledRouteIds() {
     const disabledRoutes = [];
     const runningRoutes = {};
 
     // disables routes if the concurrency treshold is met
     for (const worker of this.workers) {
-      if (!worker.route) continue;
+      if (!worker.route) {
+        continue;
+      }
+
       const { concurrency, key: routeId } = worker.route;
 
       runningRoutes[routeId] = runningRoutes[routeId] || 0;
-      runningRoutes[routeId]++;
+      runningRoutes[routeId] += 1;
 
       if (runningRoutes[routeId] === concurrency) {
         disabledRoutes.push(routeId);
@@ -238,9 +263,9 @@ export default class Nest extends EventEmitter {
   /**
    * Gets the running worker's job IDs.
    *
-   * @return {Array}  Job IDs currently in progress
+   * @return {Array}  Job IDs currently in progress.
    */
-  get runningJobIds() {
+  getRunningJobIds() {
     return this.workers.reduce((ids, worker) => {
       if (worker.job) {
         ids.push(worker.job._id.toString());

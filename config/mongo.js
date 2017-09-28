@@ -1,40 +1,33 @@
-/* eslint-disable vars-on-top */
-/* eslint-disable no-var */
-const env = process.env;
+const { env } = process;
 const isTest = env.NODE_ENV === 'test';
 let config = {};
 
-// Stand-alone config
 if (!env.MONGO_REPLICA_SET) {
-  config = {
+  config = { // Stand-alone config
     db: isTest ? 'nest_test' : env.MONGO_DB,
     host: env.MONGO_HOST,
     port: env.MONGO_PORT,
     user: env.MONGO_USER,
-    pass: env.MONGO_PASS
+    pass: env.MONGO_PASS,
   };
-} else {
-
-  // Replica set config
-  config = {
+}
+else {
+  config = { // Replica set config
     db: env.MONGO_DB,
     port: env.MONGO_PORT,
     replicaSet: {
-      hosts: env.MONGO_REPLICA_HOSTS.split(',').map((host) => host.trim()),
+      hosts: env.MONGO_REPLICA_HOSTS.split(',').map(host => host.trim()),
       options: {
         replset: { replicaSet: env.MONGO_REPLICA_SET, connectTimeoutMS: 5000, keepAlive: 1 },
         server: { keepAlive: 1, connectTimeoutMS: 5000 },
         readPreference: 'PRIMARY',
         user: env.MONGO_USER,
-        pass: env.MONGO_PASS
-      }
-    }
+        pass: env.MONGO_PASS,
+      },
+    },
   };
 
-  const replicaSet = config.replicaSet;
-  const hosts = replicaSet.hosts;
-  const port = config.port;
-  const db = config.db;
+  const { port, db, replicaSet: { hosts } } = config;
 
   // URI is in the following format:
   // mongodb://[username:password@]host1[:port1][,host2[:port2],...[,hostN[:portN]]][/[database][?options]]

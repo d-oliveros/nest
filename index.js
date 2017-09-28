@@ -4,4 +4,4 @@ debug.enable('nest:worker*');
 debug.enable('nest:spider*');
 debug.enable('nest:item*');
 
-module.exports = require('./lib/nest').default;
+module.exports = require('./lib/nest').default; // eslint-disable-line import/no-unresolved

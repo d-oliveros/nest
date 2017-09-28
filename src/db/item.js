@@ -1,17 +1,18 @@
-/* eslint-disable import/imports-first, array-callback-return */
-import './connection';
 import mongoose from 'mongoose';
+
+import './connection';
 import logger from '../logger';
+
 
 const debug = logger.debug('nest:item');
 
 /**
- * Schema
+ * Schema.
  */
 const itemSchema = new mongoose.Schema({
   name: {
     type: String,
-    trim: true
+    trim: true,
   },
 
   key: {
@@ -19,41 +20,42 @@ const itemSchema = new mongoose.Schema({
     required: true,
     unique: true,
     lowercase: true,
-    trim: true
+    trim: true,
   },
 
   type: {
     type: String,
-    default: 'content'
+    default: 'content',
   },
 
   link: {
-    type: String
+    type: String,
   },
 
   route: {
     type: String,
-    required: true
+    required: true,
   },
 
   routeWeight: {
     type: Number,
-    default: 50
+    default: 50,
   },
 
   created: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 }, { strict: false });
 
 /**
- * Static Methods
+ * Static Methods.
  */
 Object.assign(itemSchema.statics, {
 
   /**
    * Applies `Item.upsert` to `items` in parallel.
+   *
    * @param  {Array}  items  Items to upsert.
    * @return {Object}        Object with operation stats.
    */
@@ -62,12 +64,12 @@ Object.assign(itemSchema.statics, {
     const stats = {
       created: 0,
       updated: 0,
-      ignored: 0
+      ignored: 0,
     };
 
     const promises = items.map(async (item) => {
       const op = await Item.upsert(item);
-      stats[op]++;
+      stats[op] += 1;
     });
 
     await Promise.all(promises);
@@ -77,6 +79,7 @@ Object.assign(itemSchema.statics, {
 
   /**
    * Creates or updates a scraped item in the database.
+   *
    * @param  {Object}  item  The item to be upserted.
    * @return {String}        Operation type. Either 'created' or 'updated'.
    */
@@ -93,18 +96,18 @@ Object.assign(itemSchema.statics, {
     debug(`${isNew ? 'Created item:' : 'Updated item:'} ${item.key}`);
 
     return op;
-  }
+  },
 
 });
 
 /**
- * Indexes
+ * Indexes.
  */
 itemSchema.index({ name: -1 });
 itemSchema.index({ provider: -1 });
 itemSchema.index({ 'providers.route': -1 });
 
 /**
- * @providesModule Item
+ * @providesModule Item.
  */
 export default mongoose.model('Item', itemSchema);

@@ -5,5 +5,5 @@ export default {
 
   async initialize() {
     await sleep(200);
-  }
+  },
 };

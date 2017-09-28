@@ -1,8 +1,8 @@
-/* eslint-disable import/imports-first */
 import './testenv';
 import Item from '../src/db/item';
 import createMongoConnection from '../src/db/connection';
 import dummyItem from './mocks/profile.json';
+
 
 describe('Item', function () {
   this.timeout(6000);
@@ -22,8 +22,14 @@ describe('Item', function () {
 
     it('should delete a item', (done) => {
       Item.remove({ key: dummyItem.key }, (err, count) => {
-        if (err) return done(err);
-        if (count === 0) return done(new Error('No items deleted'));
+        if (err) {
+          done(err);
+          return;
+        }
+        if (count === 0) {
+          done(new Error('No items deleted'));
+          return;
+        }
         done();
       });
     });

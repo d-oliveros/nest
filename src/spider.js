@@ -1,5 +1,5 @@
 import assert from 'assert';
-import phantom from 'phantom';
+import puppeteer from 'puppeteer';
 import createError from 'http-errors';
 import request from 'request-promise';
 import {
@@ -12,7 +12,7 @@ import {
   isFunction,
 } from 'lodash';
 
-import phantomConfig from '../config/phantom';
+import puppeteerConfig from '../config/puppeteer';
 import createPage from './page';
 import logger from './logger';
 
@@ -31,14 +31,14 @@ const MAX_RETRY_COUNT = 3;
 export const createSpider = function () {
   return Object.assign(Object.create(spiderProto), {
     running: true,
-    phantom: null,
+    browser: undefined,
   });
 };
 
 export const spiderProto = {
 
   /**
-   * Requests a url with request or PhantomJS, if 'dynamic' is true.
+   * Requests a url with request or Puppeteer, if 'dynamic' is true.
    *
    * @param  {String}  url      The URL to open.
    * @param  {Object}  options  Optional parameters.
@@ -49,10 +49,10 @@ export const spiderProto = {
 
     this.url = url;
 
-    const isDynamic = options.dynamic || FORCE_DYNAMIC;
-    const getPage = isDynamic ? this.openDynamic : this.openStatic;
-
-    const page = await getPage.call(this, url);
+    const page = await (options.dynamic || FORCE_DYNAMIC
+      ? this.openDynamic(url)
+      : this.openStatic(url)
+    );
 
     return page;
   },
@@ -66,82 +66,84 @@ export const spiderProto = {
   async openStatic(url) {
     debug(`Opening URL ${url}`);
 
-    const res = await request(url, {
+    const response = await request(url, {
       resolveWithFullResponse: true,
     });
 
-    const { statusCode, body } = res;
-    const page = createPage(body, { url, statusCode, res });
+    const { statusCode, body } = response;
+    const page = createPage({
+      url,
+      content: body,
+      statusCode: statusCode,
+      pageLoadRes: response,
+    });
 
     return page;
   },
 
   /**
-   * Requests a url with PhantomJS.
+   * Requests a url with Puppeteer.
    *
    * @param  {String}  url  The URL to request.
    * @return {Object}       A Page instance.
    */
   async openDynamic(url) {
-    debug(`Opening URL ${url} with PhantomJS`);
+    debug(`Opening URL ${url} with Puppeteer`);
 
-    const ph = this.phantom || await this.createPhantom();
-    const phantomPage = await ph.createPage();
+    const browser = this.browser || await this.createBrowser();
+    const browserPage = await browser.newPage();
 
-    const pageOpenStatus = await phantomPage.open(url);
+    const browserPageLoadRes = await browserPage.goto(url, { waitUtil: 'load' });
 
-    // phantom js does not tells you what went wrong when it fails :/
-    // return a page with status code 5000
-    let statusCode = 200;
-    if (pageOpenStatus !== 'success') {
-      statusCode = 500;
-    }
+    const jqueryUrl = 'https://code.jquery.com/jquery-2.1.4.min.js';
+    await browserPage.addScriptTag(jqueryUrl);
 
-    const jsInjectionStatus = await this.injectJS(phantomPage);
-    assert(jsInjectionStatus, `Could not inject JS on url: ${url}`);
-
-    const html = await phantomPage.property('content');
-    const page = createPage(html, { url, phantomPage, statusCode });
+    const page = createPage({
+      url,
+      content: await browserPage.content(),
+      statusCode: browserPageLoadRes.statusCode,
+      browserPage: browserPage,
+      pageLoadRes: browserPageLoadRes,
+    });
 
     return page;
   },
 
   /**
-   * Creates a PhantomJS instance.
+   * Creates a Puppeteer instance.
    *
-   * @return {Object}  PhantomJS instance.
+   * @return {Object}  Puppeteer instance.
    */
-  async createPhantom() {
-    debug('Creating PhantomJS instance');
-    this.phantom = await phantom.create(phantomConfig);
-    return this.phantom;
+  async createBrowser() {
+    debug('Creating Puppeteer instance');
+    this.browser = await puppeteer.launch(puppeteerConfig);
+    return this.browser;
   },
 
   /**
-   * Stops own phantomjs instance.
+   * Stops own Puppeteer instance.
    *
    * @return {undefined}
    */
-  stopPhantom() {
-    if (this.phantom) {
-      debug('Stopping PhantomJS');
-      this.phantom.exit();
+  stopBrowser() {
+    if (this.browser) {
+      debug('Stopping Puppeteer');
+      this.browser.close();
     }
 
-    this.phantom = null;
+    this.browser = undefined;
   },
 
   /**
    * Injects javascript <script> tags in opened web page.
    *
    * @param  {Object}   page           Page instance to inject the JS.
-   * @return {boolean}  jsWasInjected  `true` if JS was injected in the page.
+   * @return {undefined}
    */
   async injectJS(page) {
     debug('Injecting JS on page');
     const jqueryUrl = 'https://code.jquery.com/jquery-2.1.4.min.js';
-    const jsInjectionStatus = await page.includeJs(jqueryUrl);
-    return !!jsInjectionStatus;
+    await page.addScriptTag(jqueryUrl);
   },
 
   /**
@@ -154,7 +156,7 @@ export const spiderProto = {
     debug('Stopping Spider');
 
     this.running = false;
-    this.stopPhantom();
+    this.stopBrowser();
 
     if (removeListeners) {
       this.removeAllListeners();
@@ -231,7 +233,7 @@ export const spiderProto = {
 
       assert(isString(nextStep), 'Next step is not a string');
 
-      this.stopPhantom();
+      this.stopBrowser();
 
       switch (nextStep) {
         case 'stop': {
@@ -274,7 +276,7 @@ export const spiderProto = {
 
     debug(`Scraped ${scraped.items.length} items`);
 
-    this.stopPhantom();
+    this.stopBrowser();
 
     return scraped;
   },

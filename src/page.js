@@ -1,8 +1,26 @@
+import { isObject, isFunction } from 'lodash';
 import cheerio from 'cheerio';
 import createError from 'http-errors';
-import { isString, isObject, isFunction } from 'lodash';
 import assert from 'assert';
+
 import logger from './logger';
+
+/**
+ * Checks if the passed argument is a JSON string.
+ *
+ * @param  {} body [description]
+ * @return {[type]}      [description]
+ */
+const checkIsJson = (body) => {
+  try {
+    assert(typeof body === 'string');
+    JSON.parse(body);
+    return true;
+  }
+  catch (error) {
+    return false;
+  }
+};
 
 /**
  * Creates a new page.
@@ -11,20 +29,25 @@ import logger from './logger';
  * @param  {Object}  meta  Extra properties to add to the page.
  * @return {Object}        A new page instance.
  */
-export default function createPage(data, meta) {
-  const page = Object.assign(Object.create(pageProto), {
-    data: null,
-    location: null,
-    isJSON: false,
-    valid: false,
-    html: null,
-    phantomPage: null,
-    statusCode: null,
-    res: null,
-    $: null,
-  });
+export default function createPage(pageData) {
+  assert(pageData && isObject(pageData), 'Meta must be an object');
 
-  page.loadData(data, meta);
+  const isJson = checkIsJson(pageData.content);
+  const parsedJson = isJson ? JSON.parse(pageData.content) : undefined;
+
+  const page = Object.assign(Object.create(pageProto), {
+    data: isJson ? parsedJson : pageData.content,
+    valid: !!pageData.content,
+    location: {
+      href: pageData.url,
+    },
+    isJson: isJson,
+    html: isJson ? undefined : pageData.content,
+    browserPage: pageData.browserPage,
+    statusCode: pageData.statusCode || -1,
+    pageLoadRes: pageData.pageLoadRes,
+    $: isJson ? undefined : cheerio.load(pageData.content),
+  });
 
   return page;
 }
@@ -34,24 +57,24 @@ const pageProto = {
   /**
    * Runs the provided function in the page's context;
    *
-   * @param  {Function}  func  Function to apply in this page's context.
-   * @param  {Boolean}   inPhantomPage  Should func be called from within the PhantomJS page?
-   * @return {Mixed}     Returns the value returned from 'func'
+   * @param  {Function}  func       Function to apply in this page's context.
+   * @param  {Boolean}   inBrowser  Should func be called from within the Puppeteer page?
+   * @return {Mixed}                Returns the value returned from 'func'
    */
-  async runInContext(func, inPhantomPage) {
+  async runInContext(func, inBrowser) {
     assert(isFunction(func), 'function to run in context is not a function');
     let res;
 
-    if (inPhantomPage && !this.phantomPage) {
+    if (inBrowser && !this.browserPage) {
       logger.warn('[Page]: Tried to apply fn to static page');
     }
 
     try {
-      if (inPhantomPage && this.phantomPage) {
-        res = await this.phantomPage.evaluateAsync(func);
+      if (inBrowser && this.browserPage) {
+        res = await this.browserPage.evaluateAsync(func);
       }
       else {
-        res = await func.call(this, this.isJSON ? this.data : this.$, this);
+        res = await func.call(this, (this.isJson ? this.data : this.$), this);
       }
     }
     catch (err) {
@@ -63,51 +86,5 @@ const pageProto = {
     }
 
     return res;
-  },
-
-  /**
-   * Initializes this page with the provided properties.
-   *
-   * @param  {String}  data  The page's content. Can be HTML, JSON, etc.
-   * @param  {Object}  meta  Extra properties to add to the page.
-   * @return {undefined}
-   */
-  loadData(data, meta = {}) {
-    assert(isObject(meta), 'Meta must be an object');
-
-    const { url, statusCode, res, phantomPage } = meta;
-
-    this.data = data;
-    this.location = { href: url };
-    this.valid = !!data;
-    this.statusCode = statusCode || 200;
-    this.res = res || null;
-    this.phantomPage = phantomPage || null;
-
-    // checks if the data is JSON.
-    // if the data is JSON, parses the json in 'page.data'.
-    // otherwise, load the HTML with cheerio and expose it in 'page.$`.
-    try {
-      this.data = JSON.parse(data);
-      this.isJSON = true;
-    }
-    catch (err) {
-      if (data && isString(data)) {
-        this.html = data;
-        this.$ = cheerio.load(data);
-      }
-      else {
-        logger.warn(`[page]: Data is not valid: ${JSON.stringify(data)}`);
-        this.valid = false;
-      }
-    }
-
-    // if a phantom page instance was provided, save the response object once it arrives.
-    if (phantomPage) {
-      phantomPage.property('onResourceReceived', (res) => {
-        this.res = res;
-        phantomPage.property('onResourceReceived', null);
-      });
-    }
   },
 };

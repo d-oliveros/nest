@@ -10,12 +10,11 @@ Nest is a high-level, robust framework for web scraping.
 
 ## Features
 
-* Dynamic Scraping with PhantomJS
-* Static scraping, without PhantomJS or JS evaluation
-* A worker queue for persistent, parallel scraping
-* MongoDB integration. Scraped items are automatically saved to a Mongo db
-* Persistent State
-* Dead-simple API
+* Dynamic Scraping with a headless browser (Puppeteer)
+* Static scraping with direct HTTP requests without JS evaluation (cheerio)
+* Parallel scraping, worker queue
+* MongoDB integration. State is persisted to Mongo after each operation
+* Minimal API and dead-easy to use
 
 
 ## Requirements
@@ -294,6 +293,7 @@ mongo nest
 > db.dropDatabase()
 ```
 
+_process.env.NEST_DUMP_BROWSER_IO_TO_STD_OUT=1 to dump puppeteer io to stdout._
 
 ## Engine
 

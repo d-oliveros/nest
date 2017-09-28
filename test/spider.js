@@ -20,18 +20,20 @@ describe('Spider', function SpiderUnitTestSuite() {
     spider.stop();
   });
 
-  it('should open a dynamic page with phantomJS', async () => {
+  it('should open a dynamic page with a headless browser', async () => {
     globalSpider = createSpider();
-    await globalSpider.open('http://www.google.com', { dynamic: true });
+    await globalSpider.open('http://www.google.com', {
+      dynamic: true,
+    });
   });
 
-  it('should have a phantomJS instance', () => {
-    expect(globalSpider.phantom).to.be.an('object');
+  it('should have a Puppeteer instance', () => {
+    expect(globalSpider.browser).to.be.an('object');
   });
 
-  it('should close a phantomJS instance', () => {
-    globalSpider.stopPhantom();
-    expect(globalSpider.phantom).to.equal(null);
+  it('should close a Puppeteer instance', () => {
+    globalSpider.stopBrowser();
+    expect(globalSpider.browser).to.equal(undefined);
   });
 
   it('should scrape hackernews', async () => {
@@ -74,8 +76,8 @@ describe('Spider', function SpiderUnitTestSuite() {
     await spider.open('http://www.github.com');
     spider.stop();
 
-    if (spider.phantom) {
-      throw new Error('Phantom was not cleared');
+    if (spider.browser) {
+      throw new Error('Browser was not cleared');
     }
   });
 });

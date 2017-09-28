@@ -1,6 +1,6 @@
 {
   "name": "node-nest",
-  "version": "0.7.5",
+  "version": "0.7.6",
   "description": "Robust scraping framework",
   "main": "index.js",
   "repository": "https://github.com/d-oliveros/nest",
